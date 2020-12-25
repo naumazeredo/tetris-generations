@@ -1,0 +1,16 @@
+[package]
+name = "codename-dash-rs"
+version = "0.1.0"
+authors = ["Naum Azeredo <naumazeredo@gmail.com>"]
+edition = "2018"
+#build = "build.rs"
+
+[dependencies]
+gl = "0.14.0"
+imgui = "0.6.1"
+imgui-opengl-renderer = "0.10.0"
+
+[dependencies.sdl2]
+version = "0.34"
+default-features = false
+features = []
