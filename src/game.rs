@@ -2,14 +2,6 @@ extern crate sdl2;
 
 use super::engine::Engine;
 
-/*
-enum State {
-    Start,
-    Run,
-    GameOver,
-}
-*/
-
 pub struct Game {
     pub running: bool,
 }

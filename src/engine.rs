@@ -3,7 +3,7 @@ extern crate imgui_opengl_renderer;
 
 use super::game::{self, Game};
 use super::time::{self, Time};
-use super::imgui_sdl2::{self};
+use super::debug::{self, Debug};
 
 pub struct Engine {
     pub sdl_context: sdl2::Sdl,
@@ -17,13 +17,9 @@ pub struct Engine {
 
     pub game: Game,
     pub time: Time,
+    pub debug: Debug,
 
     pub running: bool,
-
-    // debug
-    imgui: imgui::Context,
-    imgui_sdl2: imgui_sdl2::ImguiSdl2,
-    imgui_renderer: imgui_opengl_renderer::Renderer,
 }
 
 impl Engine {
@@ -59,22 +55,7 @@ impl Engine {
 
         window.gl_make_current(&gl_context).unwrap();
 
-        /*
-        canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
-        canvas.clear();
-        canvas.present();
-        */
-
-        // TODO split debug render
-        let mut imgui = imgui::Context::create();
-        imgui.set_ini_filename(None);
-
-        let imgui_sdl2 = imgui_sdl2::ImguiSdl2::new(&mut imgui, &window);
-
-        let imgui_renderer = imgui_opengl_renderer::Renderer::new(
-            &mut imgui,
-            |s| video_subsystem.gl_get_proc_address(s) as _
-        );
+        let debug = Debug::new(&window);
 
         // TODO input handler
         let event_pump = sdl_context.event_pump().unwrap();
@@ -110,11 +91,8 @@ impl Engine {
             event_pump: event_pump,
             game: game,
             time: time,
+            debug: debug,
             running: true,
-
-            imgui: imgui,
-            imgui_sdl2: imgui_sdl2,
-            imgui_renderer: imgui_renderer,
         }
     }
 
@@ -122,8 +100,6 @@ impl Engine {
         while self.running {
             self.update();
             self.render();
-
-            ::std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 60));
         }
     }
 
@@ -135,8 +111,7 @@ impl Engine {
 
         // TODO input handler
         for event in self.event_pump.poll_iter() {
-            self.imgui_sdl2.handle_event(&mut self.imgui, &event);
-            if self.imgui_sdl2.ignore_event(&event) { continue; }
+            if debug::handle_event(&mut self.debug, &event) { continue; }
 
             match event {
                 Event::Quit {..} |
@@ -147,9 +122,12 @@ impl Engine {
                         use sdl2::video::FullscreenType;
 
                         let new_fullscreen_state = match self.window.fullscreen_state() {
-                            FullscreenType::Off => FullscreenType::True,
-                            FullscreenType::True => FullscreenType::Desktop,
-                            FullscreenType::Desktop => FullscreenType::Off,
+                            //FullscreenType::Off => FullscreenType::True,
+                            //FullscreenType::True => FullscreenType::Desktop,
+                            //FullscreenType::Desktop => FullscreenType::Off,
+
+                            FullscreenType::Off => FullscreenType::Desktop,
+                            _ => FullscreenType::Off,
                         };
 
                         self.window.set_fullscreen(new_fullscreen_state).unwrap();
@@ -167,18 +145,7 @@ impl Engine {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
-        // debug
-        self.imgui_sdl2.prepare_frame(
-            self.imgui.io_mut(),
-            &self.window,
-            &self.event_pump.mouse_state()
-        );
-
-        let ui = self.imgui.frame();
-        ui.show_demo_window(&mut true);
-
-        self.imgui_sdl2.prepare_render(&ui, &self.window);
-        self.imgui_renderer.render(ui);
+        debug::render(self);
 
         self.window.gl_swap_window();
     }
