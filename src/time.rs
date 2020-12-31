@@ -1,6 +1,6 @@
 extern crate sdl2;
 
-use super::engine::Engine;
+use super::app::App;
 
 pub struct Time {
     pub frame_count: u32,
@@ -15,7 +15,7 @@ pub struct Time {
 }
 
 impl Time {
-    pub fn new(timer_subsystem: &sdl2::TimerSubsystem) -> Self {
+    pub fn new(app: &App) -> Self {
         Self {
             frame_count: 0,
             real_time: 0,
@@ -23,37 +23,37 @@ impl Time {
             game_time: 0,
             game_frame_duration: 0,
             scale: 1.0,
-            last_time: get_current_time(timer_subsystem),
+            last_time: get_current_time(app),
             last_scale: 1.0,
         }
     }
+
+    pub fn new_frame(&mut self, app: &mut App) {
+        self.frame_count += 1;
+
+        let current_time = get_current_time(&app);
+        self.real_frame_duration = current_time - self.last_time;
+        self.real_time += self.real_frame_duration;
+        self.last_time = current_time;
+
+        self.game_frame_duration =
+            (self.scale * (self.real_frame_duration as f64)) as u64;
+        self.game_time += self.game_frame_duration;
+    }
+
+    pub fn pause(&mut self) {
+        self.last_scale = self.scale;
+        self.scale = 0.0;
+    }
+
+    pub fn resume(&mut self) {
+        self.scale = self.last_scale;
+    }
 }
 
-pub fn new_frame(engine: &mut Engine) {
-    engine.time.frame_count += 1;
-
-    let current_time = get_current_time(&engine.timer_subsystem);
-    engine.time.real_frame_duration = current_time - engine.time.last_time;
-    engine.time.real_time += engine.time.real_frame_duration;
-    engine.time.last_time = current_time;
-
-    engine.time.game_frame_duration =
-        (engine.time.scale * (engine.time.real_frame_duration as f64)) as u64;
-    engine.time.game_time += engine.time.game_frame_duration;
-}
-
-pub fn pause(engine: &mut Engine) {
-    engine.time.last_scale = engine.time.scale;
-    engine.time.scale = 0.0;
-}
-
-pub fn resume(engine: &mut Engine) {
-    engine.time.scale = engine.time.last_scale;
-}
-
-fn get_current_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
-    let counter = timer_subsystem.performance_counter();
-    let frequency = timer_subsystem.performance_frequency();
+fn get_current_time(app: &App) -> u64 {
+    let counter = app.timer_subsystem.performance_counter();
+    let frequency = app.timer_subsystem.performance_frequency();
 
     counter * 1_000_000 / frequency
 }

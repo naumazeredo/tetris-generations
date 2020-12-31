@@ -1,11 +1,9 @@
 extern crate sdl2;
 extern crate imgui_opengl_renderer;
 
-use super::game::{self, Game};
-use super::time::{self, Time};
-use super::debug::{self, Debug};
+use super::game::Game;
 
-pub struct Engine {
+pub struct App {
     pub sdl_context: sdl2::Sdl,
     pub video_subsystem: sdl2::VideoSubsystem,
     pub timer_subsystem: sdl2::TimerSubsystem,
@@ -15,14 +13,10 @@ pub struct Engine {
 
     pub event_pump: sdl2::EventPump,
 
-    pub game: Game,
-    pub time: Time,
-    pub debug: Debug,
-
     pub running: bool,
 }
 
-impl Engine {
+impl App {
     pub fn new() -> Self {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
@@ -55,14 +49,11 @@ impl Engine {
 
         window.gl_make_current(&gl_context).unwrap();
 
-        let debug = Debug::new(&window);
 
         // TODO input handler
         let event_pump = sdl_context.event_pump().unwrap();
 
-        let game = Game::new();
-        let time = Time::new(&timer_subsystem);
-
+        // TODO video system
         // XXX testing how to get some display info
         let video_driver = video_subsystem.current_video_driver();
         println!("Video driver: {}", video_driver);
@@ -89,64 +80,56 @@ impl Engine {
             window: window,
             gl_context: gl_context,
             event_pump: event_pump,
-            game: game,
-            time: time,
-            debug: debug,
             running: true,
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, game: &mut Game) {
+        game.setup(self);
+
         while self.running {
-            self.update();
-            self.render();
-        }
-    }
+            use sdl2::event::Event;
+            use sdl2::keyboard::Keycode;
 
-    pub fn update(&mut self) {
-        time::new_frame(self);
+            // TODO input handler
+            for event in self.event_pump.poll_iter() {
+                if game.debug.handle_event(&event) { continue; }
 
-        use sdl2::event::Event;
-        use sdl2::keyboard::Keycode;
+                match event {
+                    Event::Quit {..} |
+                        Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                            self.running = false;
+                        },
+                        Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
+                            use sdl2::video::FullscreenType;
 
-        // TODO input handler
-        for event in self.event_pump.poll_iter() {
-            if debug::handle_event(&mut self.debug, &event) { continue; }
+                            let new_fullscreen_state = match self.window.fullscreen_state() {
+                                //FullscreenType::Off => FullscreenType::True,
+                                //FullscreenType::True => FullscreenType::Desktop,
+                                //FullscreenType::Desktop => FullscreenType::Off,
 
-            match event {
-                Event::Quit {..} |
-                    Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                        self.running = false;
-                    },
-                    Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
-                        use sdl2::video::FullscreenType;
+                                FullscreenType::Off => FullscreenType::Desktop,
+                                _ => FullscreenType::Off,
+                            };
 
-                        let new_fullscreen_state = match self.window.fullscreen_state() {
-                            //FullscreenType::Off => FullscreenType::True,
-                            //FullscreenType::True => FullscreenType::Desktop,
-                            //FullscreenType::Desktop => FullscreenType::Off,
-
-                            FullscreenType::Off => FullscreenType::Desktop,
-                            _ => FullscreenType::Off,
-                        };
-
-                        self.window.set_fullscreen(new_fullscreen_state).unwrap();
-                    },
-                _ => {}
+                            self.window.set_fullscreen(new_fullscreen_state).unwrap();
+                        },
+                    _ => {}
+                }
             }
+
+            game.update(self);
+
+            // Render
+
+            unsafe {
+                gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+                gl::Clear(gl::COLOR_BUFFER_BIT);
+            }
+
+            game.render(self);
+
+            self.window.gl_swap_window();
         }
-
-        game::update(self);
-    }
-
-    pub fn render(&mut self) {
-        unsafe {
-            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-        }
-
-        debug::render(self);
-
-        self.window.gl_swap_window();
     }
 }

@@ -3,7 +3,7 @@ extern crate imgui;
 extern crate imgui_opengl_renderer;
 
 use super::imgui_sdl2::{self};
-use super::engine::Engine;
+use super::app::App;
 
 pub struct Debug {
     imgui: imgui::Context,
@@ -13,7 +13,6 @@ pub struct Debug {
 
 impl Debug {
     pub fn new(window: &sdl2::video::Window) -> Self {
-
         let mut imgui = imgui::Context::create();
         imgui.set_ini_filename(None);
 
@@ -32,32 +31,28 @@ impl Debug {
             imgui_renderer
         }
     }
-}
 
-pub fn handle_event(debug: &mut Debug, event: &sdl2::event::Event) -> bool {
-    debug.imgui_sdl2.handle_event(&mut debug.imgui, event);
-    return debug.imgui_sdl2.ignore_event(&event);
-}
+    pub fn handle_event(&mut self, event: &sdl2::event::Event) -> bool {
+        self.imgui_sdl2.handle_event(&mut self.imgui, event);
+        return self.imgui_sdl2.ignore_event(&event);
+    }
 
-pub fn render(engine: &mut Engine) {
-    // debug
-    engine.debug.imgui_sdl2.prepare_frame(
-        engine.debug.imgui.io_mut(),
-        &engine.window,
-        &engine.event_pump.mouse_state()
-    );
+    pub fn render(&mut self, app: &App) {
+        self.imgui_sdl2.prepare_frame(
+            self.imgui.io_mut(),
+            &app.window,
+            &app.event_pump.mouse_state()
+        );
 
-    let ui = engine.debug.imgui.frame();
+        let ui = self.imgui.frame();
 
-    imgui::Window::new(imgui::im_str!("Debug"))
-        .build(&ui, || {
-            ui.text(format!("Application average {:.3} ms/frame ({:.1} FPS)",
-                1000.0 / ui.io().framerate, ui.io().framerate));
-        });
+        imgui::Window::new(imgui::im_str!("Debug"))
+            .build(&ui, || {
+                ui.text(format!("Application average {:.3} ms/frame ({:.1} FPS)",
+                    1000.0 / ui.io().framerate, ui.io().framerate));
+            });
 
-    //ui.show_demo_window(&mut true);
-
-    engine.debug.imgui_sdl2.prepare_render(&ui, &engine.window);
-    engine.debug.imgui_renderer.render(ui);
-
+        self.imgui_sdl2.prepare_render(&ui, &app.window);
+        self.imgui_renderer.render(ui);
+    }
 }

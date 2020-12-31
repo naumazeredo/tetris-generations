@@ -1,15 +1,18 @@
 //#![windows_subsystem = "windows"]
 extern crate sdl2;
 
-mod game;
-mod engine;
-mod time;
+mod app;
 mod debug;
+mod game;
 mod imgui_sdl2;
+mod linalg;
+mod time;
 
-use engine::Engine;
+use app::App;
+use game::Game;
 
 pub fn main() {
-    let mut engine = Engine::new();
-    engine.run();
+    let mut app = App::new();
+    let mut game = Game::new(&app);
+    app.run(&mut game);
 }
