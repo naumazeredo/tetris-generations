@@ -34,6 +34,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 name = "codename-dash-rs"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "gl",
  "imgui",
  "imgui-opengl-renderer",

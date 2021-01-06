@@ -10,6 +10,7 @@ gl = "0.14.0"
 imgui = "0.6.1"
 imgui-opengl-renderer = "0.10.0"
 num-traits = "0.2.14"
+bitflags = "1.2.1"
 
 [dependencies.sdl2]
 version = "0.34"

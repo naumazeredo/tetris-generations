@@ -2,8 +2,10 @@ extern crate sdl2;
 extern crate imgui;
 extern crate imgui_opengl_renderer;
 
+use imgui::*;
 use super::imgui_sdl2::{self};
 use super::app::App;
+use super::game::GameState;
 
 pub struct Debug {
     imgui: imgui::Context,
@@ -37,7 +39,12 @@ impl Debug {
         return self.imgui_sdl2.ignore_event(&event);
     }
 
-    pub fn render(&mut self, app: &App) {
+    /*
+    pub fn prepare_render(&mut self, app: &App) {
+    }
+    */
+
+    pub fn render(&mut self, app: &mut App, state: &mut GameState) {
         self.imgui_sdl2.prepare_frame(
             self.imgui.io_mut(),
             &app.window,
@@ -50,6 +57,21 @@ impl Debug {
             .build(&ui, || {
                 ui.text(format!("Application average {:.3} ms/frame ({:.1} FPS)",
                     1000.0 / ui.io().framerate, ui.io().framerate));
+
+                ui.separator();
+
+                Drag::new(im_str!("x")).speed(0.1).build(&ui, &mut state.x);
+                Drag::new(im_str!("y")).speed(0.1).build(&ui, &mut state.y);
+                Drag::new(im_str!("r")).speed(0.1).build(&ui, &mut state.r);
+                Drag::new(im_str!("px")).speed(0.1).build(&ui, &mut state.px);
+                Drag::new(im_str!("py")).speed(0.1).build(&ui, &mut state.py);
+                Drag::new(im_str!("w")).speed(0.1).build(&ui, &mut state.w);
+                Drag::new(im_str!("h")).speed(0.1).build(&ui, &mut state.h);
+                Drag::new(im_str!("l")).build(&ui, &mut state.l);
+
+                let mut c: [f32; 4] = state.c.into();
+                ColorEdit::new(im_str!("c"), &mut c).build(&ui);
+                state.c = super::render::Color::from(c);
             });
 
         self.imgui_sdl2.prepare_render(&ui, &app.window);

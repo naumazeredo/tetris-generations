@@ -2,6 +2,7 @@ extern crate sdl2;
 extern crate imgui_opengl_renderer;
 
 use super::game::Game;
+use super::render::Render;
 
 pub struct App {
     pub sdl_context: sdl2::Sdl,
@@ -10,6 +11,8 @@ pub struct App {
 
     pub window: sdl2::video::Window,
     pub gl_context: sdl2::video::GLContext,
+
+    pub render: Render,
 
     pub event_pump: sdl2::EventPump,
 
@@ -49,6 +52,7 @@ impl App {
 
         window.gl_make_current(&gl_context).unwrap();
 
+        let render = Render::new();
 
         // TODO input handler
         let event_pump = sdl_context.event_pump().unwrap();
@@ -74,12 +78,13 @@ impl App {
         }
 
         Self {
-            sdl_context: sdl_context,
-            video_subsystem: video_subsystem,
-            timer_subsystem: timer_subsystem,
-            window: window,
-            gl_context: gl_context,
-            event_pump: event_pump,
+            sdl_context,
+            video_subsystem,
+            timer_subsystem,
+            window,
+            gl_context,
+            render,
+            event_pump,
             running: true,
         }
     }
@@ -121,15 +126,11 @@ impl App {
             game.update(self);
 
             // Render
-
-            unsafe {
-                gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-                gl::Clear(gl::COLOR_BUFFER_BIT);
-            }
+            self.render.prepare_render();
 
             game.render(self);
 
-            self.window.gl_swap_window();
+            self.render.render(&mut self.window);
         }
     }
 }

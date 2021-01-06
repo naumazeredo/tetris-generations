@@ -12,7 +12,7 @@ pub struct Mat4 {
 }
 
 #[allow(dead_code)]
-static IDENTITY : Mat4 = Mat4 {
+pub static IDENTITY : Mat4 = Mat4 {
     m: [
         [1.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 0.0, 0.0],
@@ -51,7 +51,7 @@ impl Mat4 {
     }
 }
 
-
+#[allow(dead_code)]
 pub fn translation(v: Vec3) -> Mat4 {
     Mat4 {
         m: [
@@ -63,6 +63,7 @@ pub fn translation(v: Vec3) -> Mat4 {
     }
 }
 
+#[allow(dead_code)]
 pub fn rotation(rad: f32, axis: Vec3) -> Mat4 {
     let (s, c) = f32::sin_cos(rad);
 
@@ -86,10 +87,13 @@ pub fn rotation(rad: f32, axis: Vec3) -> Mat4 {
     m[2][2] = c + t.z * a.z;
     m[2][3] = 0.0;
 
+    m[3][3] = 1.0;
+
     Mat4 { m }
 }
 
 // TODO invert_z: bool
+#[allow(dead_code)]
 pub fn ortho(
     left: f32, right: f32,
     bottom: f32, top: f32,
