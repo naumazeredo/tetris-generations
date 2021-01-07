@@ -3,10 +3,9 @@ extern crate imgui;
 extern crate imgui_opengl_renderer;
 
 use imgui::*;
-use super::imgui_sdl2::{self};
-use super::app::App;
-use super::game::GameState;
+use super::imgui_sdl2;
 
+// TODO move all this to Render?
 pub struct Debug {
     imgui: imgui::Context,
     imgui_sdl2: imgui_sdl2::ImguiSdl2,
@@ -39,16 +38,17 @@ impl Debug {
         return self.imgui_sdl2.ignore_event(&event);
     }
 
-    /*
-    pub fn prepare_render(&mut self, app: &App) {
-    }
-    */
-
-    pub fn render(&mut self, app: &mut App, state: &mut GameState) {
+    pub fn render<S, F: Fn(&Ui, &mut S)>(
+        &mut self,
+        window: &sdl2::video::Window,
+        event_pump: &sdl2::EventPump,
+        state: &mut S,
+        render_info: F
+    ) {
         self.imgui_sdl2.prepare_frame(
             self.imgui.io_mut(),
-            &app.window,
-            &app.event_pump.mouse_state()
+            window,
+            &event_pump.mouse_state()
         );
 
         let ui = self.imgui.frame();
@@ -60,21 +60,10 @@ impl Debug {
 
                 ui.separator();
 
-                Drag::new(im_str!("x")).speed(0.1).build(&ui, &mut state.x);
-                Drag::new(im_str!("y")).speed(0.1).build(&ui, &mut state.y);
-                Drag::new(im_str!("r")).speed(0.1).build(&ui, &mut state.r);
-                Drag::new(im_str!("px")).speed(0.1).build(&ui, &mut state.px);
-                Drag::new(im_str!("py")).speed(0.1).build(&ui, &mut state.py);
-                Drag::new(im_str!("w")).speed(0.1).build(&ui, &mut state.w);
-                Drag::new(im_str!("h")).speed(0.1).build(&ui, &mut state.h);
-                Drag::new(im_str!("l")).build(&ui, &mut state.l);
-
-                let mut c: [f32; 4] = state.c.into();
-                ColorEdit::new(im_str!("c"), &mut c).build(&ui);
-                state.c = super::render::Color::from(c);
+                render_info(&ui, state);
             });
 
-        self.imgui_sdl2.prepare_render(&ui, &app.window);
+        self.imgui_sdl2.prepare_render(&ui, window);
         self.imgui_renderer.render(ui);
     }
 }

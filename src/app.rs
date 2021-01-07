@@ -1,18 +1,22 @@
 extern crate sdl2;
 extern crate imgui_opengl_renderer;
 
-use super::game::Game;
+use super::time::Time;
 use super::render::Render;
+use super::debug::Debug;
 
 pub struct App {
     pub sdl_context: sdl2::Sdl,
     pub video_subsystem: sdl2::VideoSubsystem,
     pub timer_subsystem: sdl2::TimerSubsystem,
 
+    // TODO video/window struct
     pub window: sdl2::video::Window,
     pub gl_context: sdl2::video::GLContext,
 
+    pub time: Time,
     pub render: Render,
+    pub debug: Debug,
 
     pub event_pump: sdl2::EventPump,
 
@@ -52,7 +56,9 @@ impl App {
 
         window.gl_make_current(&gl_context).unwrap();
 
+        let time = Time::new(&timer_subsystem);
         let render = Render::new();
+        let debug = Debug::new(&window);
 
         // TODO input handler
         let event_pump = sdl_context.event_pump().unwrap();
@@ -83,22 +89,30 @@ impl App {
             timer_subsystem,
             window,
             gl_context,
+            time,
             render,
+            debug,
             event_pump,
             running: true,
         }
     }
 
-    pub fn run(&mut self, game: &mut Game) {
-        game.setup(self);
-
+    pub fn run<S, U: Fn(&mut S, &mut App), R: Fn(&mut S, &mut App)>(
+        &mut self,
+        state: &mut S,
+        update: U,
+        render: R,
+        //handle_event: Fn(&mut S, &mut App, sdl2::event::Event)
+    ) {
         while self.running {
             use sdl2::event::Event;
             use sdl2::keyboard::Keycode;
 
+            self.time.new_frame(&self.timer_subsystem);
+
             // TODO input handler
             for event in self.event_pump.poll_iter() {
-                if game.debug.handle_event(&event) { continue; }
+                if self.debug.handle_event(&event) { continue; }
 
                 match event {
                     Event::Quit {..} |
@@ -123,14 +137,12 @@ impl App {
                 }
             }
 
-            game.update(self);
+            update(state, self);
 
             // Render
             self.render.prepare_render();
-
-            game.render(self);
-
-            self.render.render(&mut self.window);
+            render(state, self);
+            self.window.gl_swap_window();
         }
     }
 }

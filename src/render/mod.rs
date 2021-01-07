@@ -222,21 +222,16 @@ impl Render {
         }
     }
 
-    // TODO video/window struct
-    pub fn render(&mut self, window: &mut sdl2::video::Window) {
+    // @TODO rename? (render_queued_cmds/render_queued)
+    pub fn render_queued(&mut self) {
         if self.world_draw_cmds.len() > 0 {
             self.bind_arrays();
             self.flush_draw_cmds();
         }
-
-        window.gl_swap_window();
     }
 
     fn bind_arrays(&mut self) {
         unsafe {
-            // @Refactor(naum): all next lines, except flush_draw_cmds(), should be
-            // called in change_shader_program routine they are dependent of shader
-            // program
             gl::BindVertexArray(self.vertex_array_object);
 
             // positions
@@ -245,8 +240,7 @@ impl Render {
                 CString::new("position").unwrap().as_ptr()
             ) as ShaderLocation;
 
-            //gl::EnableVertexAttribArray(pos_attr);
-            gl::EnableVertexAttribArray(0);
+            gl::EnableVertexAttribArray(pos_attr);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer_object);
             gl::VertexAttribPointer(
                 pos_attr,
@@ -324,9 +318,9 @@ impl Render {
             let h;
 
             match draw_cmd.cmd {
-                Command::DrawSprite(data) => {
-                    w = data.size.x;
-                    h = data.size.y;
+                Command::DrawSprite { size, .. } => {
+                    w = size.x;
+                    h = size.y;
                 },
             }
 
@@ -445,7 +439,6 @@ impl Render {
                     model_mat_uniform,
                     1,
                     gl::FALSE as GLboolean,
-                    //&model_mat.m[0] as *const f32
                     mem::transmute(&model_mat.m[0])
                 );
 
