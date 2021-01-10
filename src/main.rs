@@ -23,27 +23,35 @@ fn main() {
     App::new().run(&mut state, update, render);
 }
 
-// XXX maybe change these functions to State methods and create a trait
+// @TODO setup functions (to be called after app setup)
+
+// @XXX maybe change these functions to State methods and create a trait
 fn update(_state: &mut State, _app: &mut App) {
 }
 
 fn render(state: &mut State, app: &mut App) {
-    app.render.draw_sprite(
+    if state.texture.is_none() {
+        state.texture = Some(load_texture("assets/gfx/default.png"));
+    }
+
+    app.render.queue_draw_sprite(
         0 as Program,
         state.l,
         state.c,
         Vec2 { x: state.x, y: state.y }, Vec2 { x: state.w, y: state.h },
         state.r,
         Vec2 { x: state.px, y: state.py },
-        Texture::new(),
+        //Texture::new(),
+        state.texture.unwrap(),
         TextureFlip::NO,
         (Vec2i::new(), Vec2i::new())
     );
 
     // @Refactor maybe this debug info really should be managed by the App. This way
-    //           we don't have to explicitly call render_queued
+    //           we don't have to explicitly call render_queued, which seems way cleaner.
+    //           Maybe not since we can add framebuffers and have more control of rendering here.
 
-    app.render.render_queued();
+    app.render.render_queued_draws();
 
     // @TODO remove debug from App? Will I need to pass it in the callback functions also?
     //       Ideally we could just add it to the State, but we can't pass the state to its
@@ -64,7 +72,6 @@ fn render(state: &mut State, app: &mut App) {
     });
 }
 
-#[derive(Default)]
 struct State {
     x: f32,
     y: f32,
@@ -80,6 +87,8 @@ struct State {
     c: render::Color,
 
     l: i32,
+
+    texture: Option<Texture>,
 }
 
 impl State {
@@ -94,6 +103,7 @@ impl State {
             h: 32.,
             c: render::WHITE,
             l: 0,
+            texture: None,
         }
     }
 }

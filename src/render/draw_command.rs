@@ -28,7 +28,7 @@ pub struct DrawCommand {
 }
 
 impl Render {
-    pub fn draw_sprite(
+    pub fn queue_draw_sprite(
         &mut self,
         program: Program,
         layer: i32,

@@ -1,5 +1,13 @@
-//extern crate sdl2;
-//extern crate gl;
+// @TODO Render features
+//
+// [ ] batch rendering
+// [ ] render to framebuffer
+// [ ] post processing effects
+// [ ] struct Shader
+//     [ ] store all uniforms (glGetProgramiv) (do we need to store the attributes also?)
+//     [ ] be able to change attribute values during execution
+// [ ] Add error checking for gl functions
+//
 
 pub mod draw_command;
 pub mod texture;
@@ -10,6 +18,7 @@ use std::ptr;
 use std::str;
 use std::mem;
 use std::ffi::CString;
+use std::path::Path;
 
 use crate::linalg::*;
 
@@ -18,50 +27,7 @@ pub use draw_command::*;
 pub use texture::*;
 
 // TODO move compiling, link
-
-static VS_SRC: &'static str = "
-#version 330 core
-
-// input vertex data, different for all executions of this shaders
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec4 color;
-//layout(location = 2) in vec2 uv;
-
-// output data; will be interpolated for each fragment
-out vec4 frag_color;
-//out vec2 frag_uv;
-
-uniform mat4 model_mat;
-uniform mat4 view_mat;
-uniform mat4 proj_mat;
-
-void main() {
-  //frag_uv = uv;
-  frag_color = color;
-  gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1);
-  //gl_Position = model_mat * vec4(position, 1);
-}";
-
-static FS_SRC: &'static str = "
-#version 330 core
-
-in vec4 frag_color;
-//in vec2 frag_uv;
-
-//uniform sampler2D tex;
-
-//out vec4 out_color;
-out vec4 out_color;
-
-void main() {
-  // output color = color of the texture at the specific UV
-  //out_color = frag_color * texture(tex, frag_uv.st);
-  out_color = frag_color;
-}";
-
-
-// TODO read from file (another function)
-// TODO return Result
+// TODO return Option/Result?
 fn compile_shader(src: &str, shader_type: GLenum) -> Shader {
     let shader;
     unsafe {
@@ -99,6 +65,14 @@ fn compile_shader(src: &str, shader_type: GLenum) -> Shader {
         }
     }
     shader
+}
+
+fn compile_shader_from_file<P: AsRef<Path>>(path: P, shader_type: GLenum) -> Shader {
+    let buffer = std::fs::read_to_string(path)
+        //.expect(&format!("File {} not found", path.display()));
+        .expect("File not found");
+
+    compile_shader(&buffer, shader_type)
 }
 
 fn link_program(vs: Shader, fs: Shader) -> Program {
@@ -140,7 +114,7 @@ fn link_program(vs: Shader, fs: Shader) -> Program {
 #[derive(Debug)]
 pub struct Render {
     current_program: Program,
-    // current_texture: Texture,
+    current_texture_object: TextureObject,
 
     view_mat: Mat4,
     proj_mat: Mat4,
@@ -184,12 +158,13 @@ impl Render {
 
         // TODO move this
         // Create GLSL shaders
-        let vs = compile_shader(VS_SRC, gl::VERTEX_SHADER);
-        let fs = compile_shader(FS_SRC, gl::FRAGMENT_SHADER);
+        let vs = compile_shader_from_file(&Path::new("assets/shaders/default.vert"), gl::VERTEX_SHADER);
+        let fs = compile_shader_from_file(&Path::new("assets/shaders/default.frag"), gl::FRAGMENT_SHADER);
         let program = link_program(vs, fs);
 
         Self {
             current_program: program,
+            current_texture_object: 0,
             view_mat,
             proj_mat,
 
@@ -222,8 +197,8 @@ impl Render {
         }
     }
 
-    // @TODO rename? (render_queued_cmds/render_queued)
-    pub fn render_queued(&mut self) {
+    // @Refactor use a framebuffer to be able to do post processing or custom stuff
+    pub fn render_queued_draws(&mut self) {
         if self.world_draw_cmds.len() > 0 {
             self.bind_arrays();
             self.flush_draw_cmds();
@@ -268,7 +243,6 @@ impl Render {
                 ptr::null()
             );
 
-            /*
             // uvs
             let uv_attr = gl::GetAttribLocation(
                 self.current_program,
@@ -285,13 +259,12 @@ impl Render {
                 0,
                 ptr::null()
             );
-            */
 
             // element buffer
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.element_buffer_object);
 
             // texture
-            //gl::ActiveTexture(gl::TEXTURE0);
+            gl::ActiveTexture(gl::TEXTURE0);
         }
     }
 
@@ -316,11 +289,13 @@ impl Render {
 
             let w;
             let h;
+            let texture_object;
 
             match draw_cmd.cmd {
-                Command::DrawSprite { size, .. } => {
+                Command::DrawSprite { size, texture, .. } => {
                     w = size.x;
                     h = size.y;
+                    texture_object = texture.obj;
                 },
             }
 
@@ -343,21 +318,10 @@ impl Render {
             self.vertex_buffer.push(0.); self.vertex_buffer.push(1.); self.vertex_buffer.push(0.);
             */
 
-            self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(0.);
-
-            self.vertex_buffer.push(w);
-            self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(0.);
-
-            self.vertex_buffer.push(w);
-            self.vertex_buffer.push(h);
-            self.vertex_buffer.push(0.);
-
-            self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(h);
-            self.vertex_buffer.push(0.);
+            self.vertex_buffer.push(0.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
+            self.vertex_buffer.push(w); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
+            self.vertex_buffer.push(w); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
+            self.vertex_buffer.push(0.); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
 
             // colors
             self.color_buffer.push(draw_cmd.color.r);
@@ -381,17 +345,10 @@ impl Render {
             self.color_buffer.push(draw_cmd.color.a);
 
             // uv
-            self.uv_buffer.push(0.);
-            self.uv_buffer.push(0.);
-
-            self.uv_buffer.push(1.);
-            self.uv_buffer.push(0.);
-
-            self.uv_buffer.push(1.);
-            self.uv_buffer.push(1.);
-
-            self.uv_buffer.push(0.);
-            self.uv_buffer.push(1.);
+            self.uv_buffer.push(0.); self.uv_buffer.push(0.);
+            self.uv_buffer.push(1.); self.uv_buffer.push(0.);
+            self.uv_buffer.push(1.); self.uv_buffer.push(1.);
+            self.uv_buffer.push(0.); self.uv_buffer.push(1.);
 
             // add draw call
             draw_calls.push(DrawCall {
@@ -404,21 +361,25 @@ impl Render {
                 },
                 pivot: draw_cmd.pivot,
                 rot: draw_cmd.rot,
+                texture_object,
             });
 
             //start += 6;
 
             // TODO remove this
-            self.render_queued_cmds(&mut draw_calls);
+            self.render_draw_calls(&mut draw_calls);
             start = 0;
         }
     }
 
-    fn render_queued_cmds(&mut self, draw_calls: &mut Vec<DrawCall>) {
+    fn render_draw_calls(&mut self, draw_calls: &mut Vec<DrawCall>) {
         self.create_buffer_data();
 
+        // @Refactor do a single draw call here (glDrawElementsIntanced + glVertAttribDivisor)
         for call in draw_calls.iter() {
-            // if call.texture != self.current_texture { change_texture(call.texture); }
+            if call.texture_object != self.current_texture_object {
+                self.change_texture(call.texture_object);
+            }
 
             let model_mat =
                 mat4::translation(Vec3 { x: -call.pivot.x, y: -call.pivot.y, z: 0. }) *
@@ -430,6 +391,7 @@ impl Render {
                 });
 
             unsafe {
+                // @TODO send pivot, rotation and translation to shader and do a single draw call
                 let model_mat_uniform = gl::GetUniformLocation(
                     self.current_program,
                     CString::new("model_mat").unwrap().as_ptr()
@@ -461,7 +423,7 @@ impl Render {
     fn create_buffer_data(&mut self) {
         assert!(!self.vertex_buffer.is_empty());
         assert!(!self.color_buffer.is_empty());
-        //assert!(!self.uv_buffer.is_empty());
+        assert!(!self.uv_buffer.is_empty());
         assert!(!self.element_buffer.is_empty());
 
         unsafe {
@@ -481,7 +443,6 @@ impl Render {
                 gl::STATIC_DRAW
             );
 
-            /*
             gl::BindBuffer(gl::ARRAY_BUFFER, self.uv_buffer_object);
             gl::BufferData(
                 gl::ARRAY_BUFFER,
@@ -489,7 +450,6 @@ impl Render {
                 mem::transmute(&self.uv_buffer[0]),
                 gl::STATIC_DRAW
             );
-            */
 
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.element_buffer_object);
             gl::BufferData(
@@ -509,7 +469,6 @@ impl Render {
         unsafe {
             gl::UseProgram(self.current_program);
 
-            /*
             // TODO verify errors in case names are incorrect
             let texture_uniform = gl::GetUniformLocation(
                 self.current_program,
@@ -517,7 +476,6 @@ impl Render {
             );
 
             gl::Uniform1i(texture_uniform, 0);
-            */
 
             let view_mat_uniform = gl::GetUniformLocation(
                 self.current_program,
@@ -544,6 +502,14 @@ impl Render {
             );
         }
     }
+
+    fn change_texture(&mut self, new_texture_object: TextureObject) {
+        println!("changed texture: {}", new_texture_object);
+        self.current_texture_object = new_texture_object;
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D, self.current_texture_object);
+        }
+    }
 }
 
 impl Drop for Render {
@@ -566,5 +532,5 @@ struct DrawCall {
     translation: Vec3,
     pivot: Vec2,
     rot: f32,
-    //texture: Texture,
+    texture_object: TextureObject,
 }

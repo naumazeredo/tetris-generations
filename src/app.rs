@@ -10,7 +10,11 @@ pub struct App {
     pub video_subsystem: sdl2::VideoSubsystem,
     pub timer_subsystem: sdl2::TimerSubsystem,
 
-    // TODO video/window struct
+    // We only hold this context since it will get freed on Drop
+    #[allow(dead_code)]
+    sdl_image_context: sdl2::image::Sdl2ImageContext,
+
+    // @TODO video/window struct
     pub window: sdl2::video::Window,
     pub gl_context: sdl2::video::GLContext,
 
@@ -25,9 +29,14 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        // @TODO check results
+
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
         let timer_subsystem = sdl_context.timer().unwrap();
+
+        use sdl2::image::InitFlag;
+        let sdl_image_context = sdl2::image::init(InitFlag::PNG).unwrap();
 
         // OpenGL setup
 
@@ -39,12 +48,12 @@ impl App {
         gl_attr.set_context_flags().debug().set();
         gl_attr.set_context_version(3, 2);
 
-        // TODO test with these to be pixel perfect
+        // @TODO test with these to be pixel perfect
         // Enable anti-aliasing
         gl_attr.set_multisample_buffers(1);
         gl_attr.set_multisample_samples(4);
 
-        // TODO use config info
+        // @TODO use config info
         let window = video_subsystem.window("Codename Dash", 1280, 960)
             .opengl()
             .position_centered()
@@ -60,11 +69,11 @@ impl App {
         let render = Render::new();
         let debug = Debug::new(&window);
 
-        // TODO input handler
+        // @TODO input handler
         let event_pump = sdl_context.event_pump().unwrap();
 
-        // TODO video system
-        // XXX testing how to get some display info
+        // @TODO video system
+        // @XXX testing how to get some display info
         let video_driver = video_subsystem.current_video_driver();
         println!("Video driver: {}", video_driver);
 
@@ -87,6 +96,7 @@ impl App {
             sdl_context,
             video_subsystem,
             timer_subsystem,
+            sdl_image_context,
             window,
             gl_context,
             time,
@@ -110,7 +120,7 @@ impl App {
 
             self.time.new_frame(&self.timer_subsystem);
 
-            // TODO input handler
+            // @TODO input handler
             for event in self.event_pump.poll_iter() {
                 if self.debug.handle_event(&event) { continue; }
 
