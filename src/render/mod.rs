@@ -75,7 +75,7 @@ fn compile_shader_from_file<P: AsRef<Path>>(path: P, shader_type: GLenum) -> Sha
     compile_shader(&buffer, shader_type)
 }
 
-fn link_program(vs: Shader, fs: Shader) -> Program {
+fn link_shader_program(vs: Shader, fs: Shader) -> Program {
     let program;
     unsafe {
         program = gl::CreateProgram();
@@ -111,6 +111,13 @@ fn link_program(vs: Shader, fs: Shader) -> Program {
     program
 }
 
+fn create_shader_program<P: AsRef<Path>>(vs_path: P, fs_path: P) -> Program {
+    let vs = compile_shader_from_file(vs_path, gl::VERTEX_SHADER);
+    let fs = compile_shader_from_file(fs_path, gl::FRAGMENT_SHADER);
+    let program = link_shader_program(vs, fs);
+    program
+}
+
 #[derive(Debug)]
 pub struct Render {
     current_program: Program,
@@ -126,15 +133,7 @@ pub struct Render {
     uv_buffer_object:      BufferObject,
     element_buffer_object: BufferObject,
 
-    /*
-    // TODO move to shader info
-    texture_uniform:   ShaderLocation,
-    model_mat_uniform: ShaderLocation,
-    view_mat_uniform:  ShaderLocation,
-    proj_mat_uniform:  ShaderLocation,
-    */
-
-    // 
+    // @Refactor maybe use only one vbo? Not sure the cost of doing this
     vertex_buffer:  Vec<f32>,
     color_buffer:   Vec<f32>,
     uv_buffer:      Vec<f32>,
@@ -156,11 +155,9 @@ impl Render {
         let view_mat = mat4::IDENTITY;
         let proj_mat = mat4::ortho(0., 1280., 960., 0.0, 0.01, 1000.);
 
-        // TODO move this
+        // @TODO move this (to asset manager maybe)
         // Create GLSL shaders
-        let vs = compile_shader_from_file(&Path::new("assets/shaders/default.vert"), gl::VERTEX_SHADER);
-        let fs = compile_shader_from_file(&Path::new("assets/shaders/default.frag"), gl::FRAGMENT_SHADER);
-        let program = link_program(vs, fs);
+        let program = create_shader_program("assets/shaders/default.vert", "assets/shaders/default.frag");
 
         Self {
             current_program: program,
@@ -274,17 +271,18 @@ impl Render {
         let mut draw_calls = vec![];
         let mut start = 0usize;
 
-        // XXX it's better if we can move the memory out and clear the vector.
+        // @XXX it's better if we can move the memory out and clear the vector.
         //     I'm not sure Rust has a way to do this for borrowed variables.
         let draw_cmds = self.world_draw_cmds.to_owned();
         self.world_draw_cmds = vec![];
 
-        //for draw_cmd in self.world_draw_cmds.iter() {
         for draw_cmd in draw_cmds {
-            if draw_cmd.program != self.current_program {
-                // TODO render_queued_cmds
+            // @TODO remove the zero check after we have access to programs outside render
+            if draw_cmd.program != 0 &&
+               draw_cmd.program != self.current_program {
 
-                //self.change_shader_program(draw_cmd.program);
+                // TODO render_queued_cmds
+                self.change_shader_program(draw_cmd.program);
             }
 
             let w;
@@ -504,7 +502,6 @@ impl Render {
     }
 
     fn change_texture(&mut self, new_texture_object: TextureObject) {
-        println!("changed texture: {}", new_texture_object);
         self.current_texture_object = new_texture_object;
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, self.current_texture_object);

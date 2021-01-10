@@ -39,11 +39,13 @@ impl Time {
         self.game_time += self.game_frame_duration;
     }
 
+    #[allow(dead_code)]
     pub fn pause(&mut self) {
         self.last_scale = self.scale;
         self.scale = 0.0;
     }
 
+    #[allow(dead_code)]
     pub fn resume(&mut self) {
         self.scale = self.last_scale;
     }

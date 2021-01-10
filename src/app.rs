@@ -4,6 +4,7 @@ extern crate imgui_opengl_renderer;
 use super::time::Time;
 use super::render::Render;
 use super::debug::Debug;
+use super::game_state::GameState;
 
 pub struct App {
     pub sdl_context: sdl2::Sdl,
@@ -107,13 +108,12 @@ impl App {
         }
     }
 
-    pub fn run<S, U: Fn(&mut S, &mut App), R: Fn(&mut S, &mut App)>(
+    pub fn run<S: GameState>(
         &mut self,
-        state: &mut S,
-        update: U,
-        render: R,
-        //handle_event: Fn(&mut S, &mut App, sdl2::event::Event)
+        //state: &mut S,
     ) {
+        let mut state = S::new();
+
         while self.running {
             use sdl2::event::Event;
             use sdl2::keyboard::Keycode;
@@ -147,11 +147,13 @@ impl App {
                 }
             }
 
-            update(state, self);
+            //update(state, self);
+            state.update(self);
 
             // Render
             self.render.prepare_render();
-            render(state, self);
+            //render(state, self);
+            state.render(self);
             self.window.gl_swap_window();
         }
     }

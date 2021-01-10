@@ -43,8 +43,7 @@ pub fn load_texture<P: AsRef<Path> + Copy + std::fmt::Display>(path: P) -> Textu
             panic!(format!("Surface could not be loaded: {}", err))
         });
 
-    let format = surface.pixel_format_enum();
-    println!("{:?}", format);
+    //let format = surface.pixel_format_enum();
     let w = surface.width();
     let h = surface.height();
 
@@ -75,59 +74,6 @@ pub fn load_texture<P: AsRef<Path> + Copy + std::fmt::Display>(path: P) -> Textu
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
     });
-
-    /*
-    //let sdl_surface = surface.raw();
-    unsafe {
-        w = (*sdl_surface).w as u32;
-        h = (*sdl_surface).h as u32;
-
-        let data = (*sdl_surface).pixels;
-        let bpp = (*(*sdl_surface).format).BytesPerPixel as u32;
-        println!("bpp: {}", bpp);
-
-        for i in 0..h {
-            for j in 0..w {
-                print!("(");
-                for b in 0..bpp {
-                    let index = (i*w*bpp+h*bpp + b) as isize;
-                    print!("{:02x}", data.offset(index) as u8);
-                    if b != bpp-1 { print!(" "); }
-                }
-                print!(") ");
-            }
-            println!("");
-        }
-
-        gl::GenTextures(1, &mut obj);
-        gl::BindTexture(gl::TEXTURE_2D, obj);
-
-        gl::PixelStorei(gl::UNPACK_ROW_LENGTH, 0);
-
-        gl::TexImage2D(
-            gl::TEXTURE_2D, // GLenum target,
-            0, // GLint level,
-            gl::RGBA as _, // GLint internalformat,
-            w as _, // GLsizei width,
-            h as _, // GLsizei height,
-            0, // GLint border,
-            gl::RGBA, // GLenum format,
-            gl::UNSIGNED_BYTE, // GLenum type,
-            data // const void * data);
-        );
-
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as _);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as _);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
-
-        /*
-        match bpp {
-            4: 
-        }
-        */
-    }
-    */
 
     println!("Texture loaded: {}", path);
 
