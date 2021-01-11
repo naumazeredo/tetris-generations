@@ -4,7 +4,9 @@ use std::ops::{Mul, MulAssign};
 use std::ops::{Div, DivAssign};
 use std::ops::Neg;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+use crate::imdraw::ImDraw;
+
+#[derive(PartialEq, Debug, Copy, Clone, ImDraw)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,

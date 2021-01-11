@@ -4,12 +4,15 @@
 use std::path::Path;
 use gl::types::*;
 use sdl2::image::*;
+use imgui::{im_str, TreeNode};
+
+use crate::imdraw::ImDraw;
 
 pub type TextureObject  = GLuint;
 
 // @Refactor maybe own the object and free on Drop?
 //           or maybe just manage what's in GPU properly (not so safe, right?)
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug, ImDraw)]
 pub struct Texture {
     pub obj: TextureObject,
     pub w: u32,
@@ -33,6 +36,23 @@ bitflags! {
         const X  = 0b01;
         const Y  = 0b10;
         const XY = 0b11;
+    }
+}
+
+impl ImDraw for TextureFlip {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        TreeNode::new(im_str2!(label)).build(ui, || {
+            let mut flip_x = self.contains(TextureFlip::X);
+            ui.checkbox(im_str!("flip x"), &mut flip_x);
+
+            let mut flip_y = self.contains(TextureFlip::Y);
+            ui.checkbox(im_str!("flip y"), &mut flip_y);
+
+            let mut texture_flip = TextureFlip::NO;
+            if flip_x { texture_flip |= TextureFlip::X; }
+            if flip_y { texture_flip |= TextureFlip::Y; }
+            *self = texture_flip;
+        });
     }
 }
 

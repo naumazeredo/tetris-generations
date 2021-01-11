@@ -1,3 +1,4 @@
-/target
-/msvc
+target/
+debug/
+msvc/
 *.dll

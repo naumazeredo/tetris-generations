@@ -207,9 +207,10 @@ impl Render {
             gl::BindVertexArray(self.vertex_array_object);
 
             // positions
+            let pos_cstr = CString::new("position").unwrap();
             let pos_attr = gl::GetAttribLocation(
                 self.current_program,
-                CString::new("position").unwrap().as_ptr()
+                pos_cstr.as_ptr()
             ) as ShaderLocation;
 
             gl::EnableVertexAttribArray(pos_attr);
@@ -224,9 +225,10 @@ impl Render {
             );
 
             // colors
+            let color_cstr = CString::new("color").unwrap();
             let color_attr = gl::GetAttribLocation(
                 self.current_program,
-                CString::new("color").unwrap().as_ptr()
+                color_cstr.as_ptr()
             ) as ShaderLocation;
 
             gl::EnableVertexAttribArray(color_attr);
@@ -241,9 +243,10 @@ impl Render {
             );
 
             // uvs
+            let uv_cstr = CString::new("uv").unwrap();
             let uv_attr = gl::GetAttribLocation(
                 self.current_program,
-                CString::new("uv").unwrap().as_ptr()
+                uv_cstr.as_ptr()
             ) as ShaderLocation;
 
             gl::EnableVertexAttribArray(uv_attr);
@@ -408,9 +411,10 @@ impl Render {
 
             unsafe {
                 // @TODO send pivot, rotation and translation to shader and do a single draw call
+                let model_mat_cstr = CString::new("model_mat").unwrap();
                 let model_mat_uniform = gl::GetUniformLocation(
                     self.current_program,
-                    CString::new("model_mat").unwrap().as_ptr()
+                    model_mat_cstr.as_ptr()
                 );
 
                 gl::UniformMatrix4fv(
@@ -486,16 +490,18 @@ impl Render {
             gl::UseProgram(self.current_program);
 
             // TODO verify errors in case names are incorrect
+            let texture_uniform_cstr = CString::new("tex").unwrap();
             let texture_uniform = gl::GetUniformLocation(
                 self.current_program,
-                CString::new("tex").unwrap().as_ptr()
+                texture_uniform_cstr.as_ptr()
             );
 
             gl::Uniform1i(texture_uniform, 0);
 
+            let view_mat_cstr = CString::new("view_mat").unwrap();
             let view_mat_uniform = gl::GetUniformLocation(
                 self.current_program,
-                CString::new("view_mat").unwrap().as_ptr()
+                view_mat_cstr.as_ptr()
             );
 
             gl::UniformMatrix4fv(
@@ -505,9 +511,10 @@ impl Render {
                 &self.view_mat.m[0][0]
             );
 
+            let proj_mat_cstr = CString::new("proj_mat").unwrap();
             let proj_mat_uniform = gl::GetUniformLocation(
                 self.current_program,
-                CString::new("proj_mat").unwrap().as_ptr()
+                proj_mat_cstr.as_ptr()
             );
 
             gl::UniformMatrix4fv(

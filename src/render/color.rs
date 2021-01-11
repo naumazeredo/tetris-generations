@@ -1,9 +1,19 @@
+use crate::imdraw::*;
+
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Color {
     pub r: f32,
     pub g: f32,
     pub b: f32,
     pub a: f32,
+}
+
+impl ImDraw for Color {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        let mut c: [f32; 4] = (*self).into();
+        imgui::ColorEdit::new(im_str2!(label), &mut c).build(&ui);
+        *self = Color::from(c);
+    }
 }
 
 #[allow(dead_code)]

@@ -9,6 +9,7 @@ extern crate imgui;
 mod app;
 mod debug;
 mod game_state;
+#[macro_use] mod imdraw;
 mod imgui_sdl2;
 mod linalg;
 mod render;
@@ -18,12 +19,14 @@ use app::App;
 use render::*;
 use linalg::*;
 use imgui::*;
+use imdraw::ImDraw;
 use game_state::GameState;
 
 fn main() {
     App::new().run::<State>();
 }
 
+#[derive(ImDraw)]
 struct State {
     x: f32,
     y: f32,
@@ -36,12 +39,14 @@ struct State {
     w: f32,
     h: f32,
 
-    c: render::Color,
+    c: Color,
 
     l: i32,
 
     texture: Texture,
     texture_flip: TextureFlip,
+
+    test_imdraw: Vec2,
 }
 
 impl GameState for State {
@@ -58,6 +63,7 @@ impl GameState for State {
             l: 0,
             texture: load_texture("assets/gfx/default.png"),
             texture_flip: TextureFlip::NO,
+            test_imdraw: Vec2::new(),
         }
     }
 
@@ -88,6 +94,10 @@ impl GameState for State {
         //       Ideally we could just add it to the State, but we can't pass the state to its
         //       method if we do this :/
         app.debug.render(&app.window, &app.event_pump, self, |ui, state| {
+
+            state.imdraw("State", ui);
+
+            /*
             Drag::new(im_str!("x")).speed(0.1).build(&ui, &mut state.x);
             Drag::new(im_str!("y")).speed(0.1).build(&ui, &mut state.y);
             Drag::new(im_str!("r")).speed(0.1).build(&ui, &mut state.r);
@@ -110,6 +120,9 @@ impl GameState for State {
             state.texture_flip = TextureFlip::NO;
             if flip_x { state.texture_flip |= TextureFlip::X; }
             if flip_y { state.texture_flip |= TextureFlip::Y; }
+
+            state.test_imdraw.imdraw("test_imdraw", ui);
+            */
         });
     }
 }
