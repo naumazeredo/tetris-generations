@@ -271,10 +271,7 @@ impl Render {
         let mut draw_calls = vec![];
         let mut start = 0usize;
 
-        // @XXX it's better if we can move the memory out and clear the vector.
-        //     I'm not sure Rust has a way to do this for borrowed variables.
-        let draw_cmds = self.world_draw_cmds.to_owned();
-        self.world_draw_cmds = vec![];
+        let draw_cmds = std::mem::replace(&mut self.world_draw_cmds, vec![]);
 
         for draw_cmd in draw_cmds {
             // @TODO remove the zero check after we have access to programs outside render
@@ -289,11 +286,32 @@ impl Render {
             let h;
             let texture_object;
 
+            //let mut us = vec![0., 1., 1., 0.];
+            //let mut vs = vec![0., 0., 1., 1.];
+            let mut us;
+            let mut vs;
+
             match draw_cmd.cmd {
-                Command::DrawSprite { size, texture, .. } => {
+                Command::DrawSprite { size, texture, texture_flip, uvs } => {
                     w = size.x;
                     h = size.y;
                     texture_object = texture.obj;
+
+                    let u_scale = if texture.w != 0 { texture.w as f32 } else { 1. };
+                    let v_scale = if texture.h != 0 { texture.h as f32 } else { 1. };
+
+                    us = vec![
+                        uvs.0.x as f32 / u_scale, uvs.1.x as f32 / u_scale,
+                        uvs.1.x as f32 / u_scale, uvs.0.x as f32 / u_scale,
+                    ];
+
+                    vs = vec![
+                        uvs.0.y as f32 / v_scale, uvs.0.y as f32 / v_scale,
+                        uvs.1.y as f32 / v_scale, uvs.1.y as f32 / v_scale,
+                    ];
+
+                    if texture_flip.contains(TextureFlip::X) { us.swap(0, 1); us.swap(2, 3); }
+                    if texture_flip.contains(TextureFlip::Y) { vs.swap(0, 2); vs.swap(1, 3); }
                 },
             }
 
@@ -343,10 +361,10 @@ impl Render {
             self.color_buffer.push(draw_cmd.color.a);
 
             // uv
-            self.uv_buffer.push(0.); self.uv_buffer.push(0.);
-            self.uv_buffer.push(1.); self.uv_buffer.push(0.);
-            self.uv_buffer.push(1.); self.uv_buffer.push(1.);
-            self.uv_buffer.push(0.); self.uv_buffer.push(1.);
+            self.uv_buffer.push(us[0]); self.uv_buffer.push(vs[0]);
+            self.uv_buffer.push(us[1]); self.uv_buffer.push(vs[1]);
+            self.uv_buffer.push(us[2]); self.uv_buffer.push(vs[2]);
+            self.uv_buffer.push(us[3]); self.uv_buffer.push(vs[3]);
 
             // add draw call
             draw_calls.push(DrawCall {

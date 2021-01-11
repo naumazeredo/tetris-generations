@@ -41,6 +41,7 @@ struct State {
     l: i32,
 
     texture: Texture,
+    texture_flip: TextureFlip,
 }
 
 impl GameState for State {
@@ -56,6 +57,7 @@ impl GameState for State {
             c: render::WHITE,
             l: 0,
             texture: load_texture("assets/gfx/default.png"),
+            texture_flip: TextureFlip::NO,
         }
     }
 
@@ -72,8 +74,8 @@ impl GameState for State {
             self.r,
             Vec2 { x: self.px, y: self.py },
             self.texture,
-            TextureFlip::NO,
-            (Vec2i::new(), Vec2i::new())
+            self.texture_flip,
+            (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 })
         );
 
         // @Refactor maybe this debug info really should be managed by the App. This way
@@ -98,6 +100,16 @@ impl GameState for State {
             let mut c: [f32; 4] = state.c.into();
             ColorEdit::new(im_str!("c"), &mut c).build(&ui);
             state.c = Color::from(c);
+
+            let mut flip_x = state.texture_flip.contains(TextureFlip::X);
+            ui.checkbox(im_str!("fx"), &mut flip_x);
+
+            let mut flip_y = state.texture_flip.contains(TextureFlip::Y);
+            ui.checkbox(im_str!("fy"), &mut flip_y);
+
+            state.texture_flip = TextureFlip::NO;
+            if flip_x { state.texture_flip |= TextureFlip::X; }
+            if flip_y { state.texture_flip |= TextureFlip::Y; }
         });
     }
 }

@@ -10,7 +10,7 @@ pub enum Command {
         size: Vec2,
         texture: Texture,
         texture_flip: TextureFlip,
-        uv: (Vec2i, Vec2i),
+        uvs: (Vec2i, Vec2i),
     },
 }
 
@@ -39,7 +39,7 @@ impl Render {
         pivot: Vec2,
         texture: Texture,
         texture_flip: TextureFlip,
-        uv: (Vec2i, Vec2i)
+        uvs: (Vec2i, Vec2i)
     ) {
         self.world_draw_cmds.push(DrawCommand {
             program,
@@ -52,7 +52,7 @@ impl Render {
                 size,
                 texture,
                 texture_flip,
-                uv,
+                uvs,
             },
         });
     }
