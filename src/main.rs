@@ -13,6 +13,7 @@ mod game_state;
 mod imgui_sdl2;
 mod linalg;
 mod render;
+mod tasks;
 mod time;
 
 use app::App;
@@ -21,6 +22,8 @@ use linalg::*;
 use imgui::*;
 use imdraw::ImDraw;
 use game_state::GameState;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 fn main() {
     App::new().run::<State>();
@@ -50,7 +53,7 @@ struct State {
 }
 
 impl GameState for State {
-    fn new() -> Self {
+    fn new(_app: &mut App) -> Self {
         Self {
             x: 100.,
             y: 100.,
@@ -67,7 +70,6 @@ impl GameState for State {
         }
     }
 
-    // @XXX maybe change these functions to State methods and create a trait
     fn update(&mut self, _app: &mut App) {
     }
 
@@ -94,35 +96,38 @@ impl GameState for State {
         //       Ideally we could just add it to the State, but we can't pass the state to its
         //       method if we do this :/
         app.debug.render(&app.window, &app.event_pump, self, |ui, state| {
-
             state.imdraw("State", ui);
-
-            /*
-            Drag::new(im_str!("x")).speed(0.1).build(&ui, &mut state.x);
-            Drag::new(im_str!("y")).speed(0.1).build(&ui, &mut state.y);
-            Drag::new(im_str!("r")).speed(0.1).build(&ui, &mut state.r);
-            Drag::new(im_str!("px")).speed(0.1).build(&ui, &mut state.px);
-            Drag::new(im_str!("py")).speed(0.1).build(&ui, &mut state.py);
-            Drag::new(im_str!("w")).speed(0.1).build(&ui, &mut state.w);
-            Drag::new(im_str!("h")).speed(0.1).build(&ui, &mut state.h);
-            Drag::new(im_str!("l")).build(&ui, &mut state.l);
-
-            let mut c: [f32; 4] = state.c.into();
-            ColorEdit::new(im_str!("c"), &mut c).build(&ui);
-            state.c = Color::from(c);
-
-            let mut flip_x = state.texture_flip.contains(TextureFlip::X);
-            ui.checkbox(im_str!("fx"), &mut flip_x);
-
-            let mut flip_y = state.texture_flip.contains(TextureFlip::Y);
-            ui.checkbox(im_str!("fy"), &mut flip_y);
-
-            state.texture_flip = TextureFlip::NO;
-            if flip_x { state.texture_flip |= TextureFlip::X; }
-            if flip_y { state.texture_flip |= TextureFlip::Y; }
-
-            state.test_imdraw.imdraw("test_imdraw", ui);
-            */
         });
+    }
+
+    fn handle_input(&mut self, app: &mut App, event: &Event) -> bool {
+        match event {
+            Event::Quit {..} |
+            Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                app.running = false;
+            },
+            Event::KeyDown { keycode: Some(Keycode::Num1), .. } => {
+                app.task_system.schedule(app.time.game_time + 1_000_000, |id, current_time| {
+                    println!("task {} {}", id, current_time);
+                });
+            },
+            Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
+                use sdl2::video::FullscreenType;
+
+                let new_fullscreen_state = match app.window.fullscreen_state() {
+                    //FullscreenType::Off => FullscreenType::True,
+                    //FullscreenType::True => FullscreenType::Desktop,
+                    //FullscreenType::Desktop => FullscreenType::Off,
+
+                    FullscreenType::Off => FullscreenType::Desktop,
+                    _ => FullscreenType::Off,
+                };
+
+                app.window.set_fullscreen(new_fullscreen_state).unwrap();
+            },
+            _ => {}
+        }
+
+        false
     }
 }

@@ -1,4 +1,6 @@
-extern crate sdl2;
+// @Refactor maybe use std::time?
+// @Refactor create a type to hold the USec, MSec, Sec (different types to be type checked)
+//extern crate sdl2;
 
 pub struct Time {
     pub frame_count: u32,

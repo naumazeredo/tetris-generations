@@ -1,17 +1,20 @@
 extern crate sdl2;
 extern crate imgui_opengl_renderer;
 
-use super::time::Time;
-use super::render::Render;
-use super::debug::Debug;
-use super::game_state::GameState;
+use sdl2::event::Event;
 
-pub struct App {
+use crate::time::Time;
+use crate::render::Render;
+use crate::debug::Debug;
+use crate::game_state::GameState;
+use crate::tasks::TaskSystem;
+
+pub struct App<'a> {
     pub sdl_context: sdl2::Sdl,
     pub video_subsystem: sdl2::VideoSubsystem,
     pub timer_subsystem: sdl2::TimerSubsystem,
 
-    // We only hold this context since it will get freed on Drop
+    // We need to hold this to not get freed
     #[allow(dead_code)]
     sdl_image_context: sdl2::image::Sdl2ImageContext,
 
@@ -22,13 +25,14 @@ pub struct App {
     pub time: Time,
     pub render: Render,
     pub debug: Debug,
+    pub task_system: TaskSystem<'a>,
 
     pub event_pump: sdl2::EventPump,
 
     pub running: bool,
 }
 
-impl App {
+impl<'a> App<'a> {
     pub fn new() -> Self {
         // @TODO check results
 
@@ -40,6 +44,7 @@ impl App {
         let sdl_image_context = sdl2::image::init(InitFlag::PNG).unwrap();
 
         // OpenGL setup
+        // @Refactor move to window struct
 
         let gl_attr = video_subsystem.gl_attr();
 
@@ -69,6 +74,7 @@ impl App {
         let time = Time::new(&timer_subsystem);
         let render = Render::new();
         let debug = Debug::new(&window);
+        let task_system = TaskSystem::new();
 
         // @TODO input handler
         let event_pump = sdl_context.event_pump().unwrap();
@@ -103,48 +109,25 @@ impl App {
             time,
             render,
             debug,
+            task_system,
             event_pump,
             running: true,
         }
     }
 
-    pub fn run<S: GameState>(
-        &mut self,
-        //state: &mut S,
-    ) {
-        let mut state = S::new();
+    pub fn run<S: GameState>(&mut self) {
+        let mut state = S::new(self);
 
         while self.running {
-            use sdl2::event::Event;
-            use sdl2::keyboard::Keycode;
 
             self.time.new_frame(&self.timer_subsystem);
+            self.task_system.run(&mut state, self.time.game_time);
 
             // @TODO input handler
-            for event in self.event_pump.poll_iter() {
+            let events: Vec<Event> = self.event_pump.poll_iter().collect();
+            for event in events {
                 if self.debug.handle_event(&event) { continue; }
-
-                match event {
-                    Event::Quit {..} |
-                        Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                            self.running = false;
-                        },
-                        Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
-                            use sdl2::video::FullscreenType;
-
-                            let new_fullscreen_state = match self.window.fullscreen_state() {
-                                //FullscreenType::Off => FullscreenType::True,
-                                //FullscreenType::True => FullscreenType::Desktop,
-                                //FullscreenType::Desktop => FullscreenType::Off,
-
-                                FullscreenType::Off => FullscreenType::Desktop,
-                                _ => FullscreenType::Off,
-                            };
-
-                            self.window.set_fullscreen(new_fullscreen_state).unwrap();
-                        },
-                    _ => {}
-                }
+                if state.handle_input(self, &event) { continue; }
             }
 
             //update(state, self);
