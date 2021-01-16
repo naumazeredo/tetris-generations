@@ -6,6 +6,7 @@ pub mod game_state;
 #[macro_use] pub mod imgui;
 pub mod renderer;
 pub mod sdl;
+pub mod tasks;
 pub mod time;
 pub mod video;
 
@@ -13,7 +14,6 @@ pub mod video;
 //use std::rc::Rc;
 
 use sdl2::event::Event;
-use crate::tasks::TaskSystem;
 use {
     time::Time,
     renderer::Renderer,
@@ -21,6 +21,7 @@ use {
     game_state::GameState,
     sdl::SdlContext,
     video::Video,
+    tasks::TaskSystem,
 };
 
 pub struct App<'a, S: GameState + ?Sized> {
@@ -29,7 +30,7 @@ pub struct App<'a, S: GameState + ?Sized> {
     pub time: Time,
     pub renderer: Renderer,
     pub debug: Debug,
-    pub task_system: TaskSystem<'a, S>,
+    pub tasks: TaskSystem<'a, S>,
 
     pub event_pump: sdl2::EventPump,
 
@@ -46,7 +47,7 @@ impl<'a, S: 'a + GameState> App<'a, S> {
         let time = Time::new(&sdl_context.timer_subsystem);
         let renderer = Renderer::new();
         let debug = Debug::new(&video.window);
-        let task_system = TaskSystem::new();
+        let tasks = TaskSystem::new();
 
         // @TODO input handler
         let event_pump = sdl_context.sdl.event_pump().unwrap();
@@ -57,7 +58,7 @@ impl<'a, S: 'a + GameState> App<'a, S> {
             time,
             renderer,
             debug,
-            task_system,
+            tasks,
             event_pump,
             running: true,
         }

@@ -9,7 +9,6 @@ extern crate imgui_opengl_renderer;
 
 mod app;
 mod linalg;
-mod tasks;
 
 use app::{
     App,

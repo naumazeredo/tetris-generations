@@ -4,25 +4,27 @@ use std::cmp::Ordering;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::app::App;
-use crate::app::game_state::GameState;
+use super::App;
+use super::game_state::GameState;
 
-type TaskFn<S> = dyn FnMut(u64, &mut S, &mut App<S>);
+//#[feature(trait_alias)]
+//trait TaskFn<S> = FnMut(u64, &mut S, &mut App<S>);
 
+// @Rename maybe rename to Tasks (or rename all systems to *System)
 pub struct TaskSystem<'a, S: GameState + ?Sized> {
     next_id: u64,
     // @Refactor don't store whole structure in heap, only (id, execution_time)
-    tasks: BinaryHeap<TaskInner<'a, S>>,
+    tasks_scheduled: BinaryHeap<TaskInner<'a, S>>,
     _tasks_cancelled: HashSet<u64>,
 }
 
 impl<'a, S: GameState> TaskSystem<'a, S> {
     pub fn new() -> Self {
-        let tasks = BinaryHeap::new();
+        let tasks_scheduled = BinaryHeap::new();
         let _tasks_cancelled = HashSet::new();
         Self {
             next_id: 1,
-            tasks,
+            tasks_scheduled,
             _tasks_cancelled,
         }
     }
@@ -34,16 +36,16 @@ impl<'a, S: GameState> App<'a, S> {
     // @TODO use a type safe duration type
     pub fn schedule_task<F>(&mut self, time_delay: u64, callback: F) -> Task
         where
-            //F: FnMut(u64, &mut S, &mut App<S>) + 'a,
-            F: TaskFn + 'a,
+            F: FnMut(u64, &mut S, &mut App<S>) + 'a,
+            //F: TaskFn<S> + 'a,
     {
 
-        let id = self.task_system.next_id;
-        self.task_system.next_id += 1;
+        let id = self.tasks.next_id;
+        self.tasks.next_id += 1;
 
         let game_time = self.time.game_time;
         let execution_time = if time_delay == 0 { game_time + 1 } else { game_time + time_delay };
-        self.task_system.tasks.push(TaskInner {
+        self.tasks.tasks_scheduled.push(TaskInner {
             id,
             execution_time,
             callback: Rc::new(RefCell::new(callback)),
@@ -54,17 +56,16 @@ impl<'a, S: GameState> App<'a, S> {
 
     pub fn run_tasks(&mut self, state: &mut S) {
         let game_time = self.time.game_time;
-        while let Some(task) = self.task_system.tasks.peek() {
+        while let Some(task) = self.tasks.tasks_scheduled.peek() {
             if task.execution_time > game_time {
                 break;
             }
 
-            let task = self.task_system.tasks.pop().unwrap();
+            let task = self.tasks.tasks_scheduled.pop().unwrap();
 
             // @TODO check if task was cancelled or not
 
             let mut closure = task.callback.borrow_mut();
-            //(&mut closure)(task.id, task.execution_time);
             (&mut closure)(task.id, state, self);
         }
     }
@@ -72,9 +73,9 @@ impl<'a, S: GameState> App<'a, S> {
 
 impl Task {
     #[allow(dead_code)]
-    pub fn cancel<S: GameState>(&mut self, task_system: &mut TaskSystem<S>) {
+    pub fn cancel<S: GameState>(&mut self, tasks: &mut TaskSystem<S>) {
         assert!(self.0 != 0);
-        task_system._tasks_cancelled.insert(self.0);
+        tasks._tasks_cancelled.insert(self.0);
         self.0 = 0;
     }
 }
@@ -84,6 +85,7 @@ struct TaskInner<'a, S: GameState + ?Sized> {
     id: u64,
     execution_time: u64,
     callback: Rc<RefCell<dyn FnMut(u64, &mut S, &mut App<S>) + 'a>>,
+    //callback: Rc<RefCell<dyn TaskFn<S> + 'a>>,
 }
 
 impl<'a, S: GameState> Ord for TaskInner<'a, S> {
