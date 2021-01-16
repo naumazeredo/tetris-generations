@@ -1,9 +1,8 @@
-extern crate sdl2;
-extern crate imgui;
-extern crate imgui_opengl_renderer;
+// @Refactor remove debug with ImGui and create our own editor immediate gui (or not immediate)
 
+use crate::app::imgui::imgui_sdl2;
 use imgui::*;
-use super::imgui_sdl2;
+use super::{App, GameState};
 
 // TODO move all this to Render?
 pub struct Debug {
@@ -32,26 +31,26 @@ impl Debug {
             imgui_renderer
         }
     }
+}
 
-    pub fn handle_event(&mut self, event: &sdl2::event::Event) -> bool {
-        self.imgui_sdl2.handle_event(&mut self.imgui, event);
-        return self.imgui_sdl2.ignore_event(&event);
+impl<S: GameState> App<'_, S> {
+    pub fn handle_debug_event(&mut self, event: &sdl2::event::Event) -> bool {
+        self.debug.imgui_sdl2.handle_event(&mut self.debug.imgui, event);
+        return self.debug.imgui_sdl2.ignore_event(&event);
     }
 
-    pub fn render<S, F: Fn(&Ui, &mut S)>(
+    pub fn render_debug<F: Fn(&Ui, &mut S)>(
         &mut self,
-        window: &sdl2::video::Window,
-        event_pump: &sdl2::EventPump,
         state: &mut S,
         render_info: F
     ) {
-        self.imgui_sdl2.prepare_frame(
-            self.imgui.io_mut(),
-            window,
-            &event_pump.mouse_state()
+        self.debug.imgui_sdl2.prepare_frame(
+            self.debug.imgui.io_mut(),
+            &self.video.window,
+            &self.event_pump.mouse_state()
         );
 
-        let ui = self.imgui.frame();
+        let ui = self.debug.imgui.frame();
 
         imgui::Window::new(imgui::im_str!("Debug"))
             .build(&ui, || {
@@ -63,7 +62,7 @@ impl Debug {
                 render_info(&ui, state);
             });
 
-        self.imgui_sdl2.prepare_render(&ui, window);
-        self.imgui_renderer.render(ui);
+        self.debug.imgui_sdl2.prepare_render(&ui, &self.video.window);
+        self.debug.imgui_renderer.render(ui);
     }
 }

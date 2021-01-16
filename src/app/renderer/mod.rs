@@ -22,9 +22,10 @@ use std::path::Path;
 
 use crate::linalg::*;
 
-pub use types::*;
+pub use color::*;
 pub use draw_command::*;
 pub use texture::*;
+pub use types::*;
 
 // TODO move compiling, link
 // TODO return Option/Result?
@@ -119,7 +120,7 @@ fn create_shader_program<P: AsRef<Path>>(vs_path: P, fs_path: P) -> Program {
 }
 
 #[derive(Debug)]
-pub struct Render {
+pub struct Renderer {
     current_program: Program,
     current_texture_object: TextureObject,
 
@@ -142,7 +143,7 @@ pub struct Render {
     world_draw_cmds: Vec<DrawCommand>,
 }
 
-impl Render {
+impl Renderer {
     pub fn new() -> Self {
         let mut vao = 0;
         let mut bo = [0; 4];
@@ -180,6 +181,7 @@ impl Render {
         }
     }
 
+    // @Refactor create methods in App to remap this
     pub fn prepare_render(&mut self) {
         unsafe {
             gl::ClearColor(0.3, 0.3, 0.3, 1.0);
@@ -194,6 +196,7 @@ impl Render {
         }
     }
 
+    // @Refactor create methods in App to remap this
     // @Refactor use a framebuffer to be able to do post processing or custom stuff
     pub fn render_queued_draws(&mut self) {
         if self.world_draw_cmds.len() > 0 {
@@ -534,7 +537,7 @@ impl Render {
     }
 }
 
-impl Drop for Render {
+impl Drop for Renderer {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteVertexArrays(1, &mut self.vertex_array_object);

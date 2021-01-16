@@ -5,64 +5,48 @@
 extern crate bitflags;
 extern crate sdl2;
 extern crate imgui;
+extern crate imgui_opengl_renderer;
 
 mod app;
-mod debug;
-mod game_state;
-#[macro_use] mod imdraw;
-mod imgui_sdl2;
 mod linalg;
-mod render;
 mod tasks;
-mod time;
 
-use app::App;
-use render::*;
+use app::{
+    App,
+    imgui::*,
+    renderer::*,
+    game_state::GameState,
+};
+
 use linalg::*;
-use imgui::*;
-use imdraw::ImDraw;
-use game_state::GameState;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
 fn main() {
-    App::new().run::<State>();
+    App::<State>::new().run();
 }
 
 #[derive(ImDraw)]
 struct State {
-    x: f32,
-    y: f32,
-
+    x: f32, y: f32,
     r: f32,
-
-    px: f32,
-    py: f32,
-
-    w: f32,
-    h: f32,
-
+    px: f32, py: f32,
+    w: f32, h: f32,
     c: Color,
-
     l: i32,
-
     texture: Texture,
     texture_flip: TextureFlip,
-
     test_imdraw: Vec2,
 }
 
 impl GameState for State {
-    fn new(_app: &mut App) -> Self {
+    fn new(_app: &mut App<'_, Self>) -> Self {
         Self {
-            x: 100.,
-            y: 100.,
+            x: 100., y: 100.,
             r: 0.,
-            px: 0.,
-            py: 0.,
-            w: 32.,
-            h: 32.,
-            c: render::WHITE,
+            px: 0., py: 0.,
+            w: 32., h: 32.,
+            c: color::WHITE,
             l: 0,
             texture: load_texture("assets/gfx/default.png"),
             texture_flip: TextureFlip::NO,
@@ -70,11 +54,11 @@ impl GameState for State {
         }
     }
 
-    fn update(&mut self, _app: &mut App) {
+    fn update(&mut self, _app: &mut App<'_, Self>) {
     }
 
-    fn render(&mut self, app: &mut App) {
-        app.render.queue_draw_sprite(
+    fn render(&mut self, app: &mut App<'_, Self>) {
+        app.renderer.queue_draw_sprite(
             0 as Program,
             self.l,
             self.c,
@@ -86,35 +70,35 @@ impl GameState for State {
             (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 })
         );
 
+        app.renderer.render_queued_draws();
+
         // @Refactor maybe this debug info really should be managed by the App. This way
         //           we don't have to explicitly call render_queued, which seems way cleaner.
-        //           Maybe not since we can add framebuffers and have more control of rendering here.
-
-        app.render.render_queued_draws();
-
-        // @TODO remove debug from App? Will I need to pass it in the callback functions also?
-        //       Ideally we could just add it to the State, but we can't pass the state to its
-        //       method if we do this :/
-        app.debug.render(&app.window, &app.event_pump, self, |ui, state| {
+        //           Maybe not, since we can add framebuffers and have more control of rendering here.
+        app.render_debug(self, |ui, state| {
             state.imdraw("State", ui);
         });
     }
 
-    fn handle_input(&mut self, app: &mut App, event: &Event) -> bool {
+    fn handle_input(&mut self, app: &mut App<'_, Self>, event: &Event) -> bool {
+        if app.handle_debug_event(&event) { return true; }
+
         match event {
             Event::Quit {..} |
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                 app.running = false;
             },
             Event::KeyDown { keycode: Some(Keycode::Num1), .. } => {
-                app.task_system.schedule(app.time.game_time + 1_000_000, |id, current_time| {
-                    println!("task {} {}", id, current_time);
+                app.schedule_task(1_000_000, |id, state, app| {
+                    println!("task {} {}", id, app.time.game_time);
+                    state.x = 10.;
                 });
             },
             Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
                 use sdl2::video::FullscreenType;
 
-                let new_fullscreen_state = match app.window.fullscreen_state() {
+                let window = &mut app.video.window;
+                let new_fullscreen_state = match window.fullscreen_state() {
                     //FullscreenType::Off => FullscreenType::True,
                     //FullscreenType::True => FullscreenType::Desktop,
                     //FullscreenType::Desktop => FullscreenType::Off,
@@ -123,7 +107,7 @@ impl GameState for State {
                     _ => FullscreenType::Off,
                 };
 
-                app.window.set_fullscreen(new_fullscreen_state).unwrap();
+                window.set_fullscreen(new_fullscreen_state).unwrap();
             },
             _ => {}
         }

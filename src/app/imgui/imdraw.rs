@@ -1,5 +1,5 @@
 //use std::ffi::CString;
-use imgui::*;
+use crate::imgui::*;
 pub use imdraw_derive::ImDraw;
 
 pub trait ImDraw {
@@ -9,7 +9,7 @@ pub trait ImDraw {
 #[macro_export]
 macro_rules! im_str2 {
     ($e:tt) => ({
-        &$crate::ImString::new($e)
+        &$crate::imgui::ImString::new($e)
     });
 }
 

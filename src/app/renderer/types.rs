@@ -1,5 +1,3 @@
-//extern crate gl;
-
 pub use gl::types::*;
 pub use super::color::*;
 

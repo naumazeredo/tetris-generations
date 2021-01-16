@@ -4,15 +4,19 @@ use std::cmp::Ordering;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use crate::game_state::GameState;
+use crate::app::App;
+use crate::app::game_state::GameState;
 
-pub struct TaskSystem<'a> {
+type TaskFn<S> = dyn FnMut(u64, &mut S, &mut App<S>);
+
+pub struct TaskSystem<'a, S: GameState + ?Sized> {
     next_id: u64,
-    tasks: BinaryHeap<TaskInner<'a>>,
+    // @Refactor don't store whole structure in heap, only (id, execution_time)
+    tasks: BinaryHeap<TaskInner<'a, S>>,
     _tasks_cancelled: HashSet<u64>,
 }
 
-impl<'a> TaskSystem<'a> {
+impl<'a, S: GameState> TaskSystem<'a, S> {
     pub fn new() -> Self {
         let tasks = BinaryHeap::new();
         let _tasks_cancelled = HashSet::new();
@@ -22,14 +26,24 @@ impl<'a> TaskSystem<'a> {
             _tasks_cancelled,
         }
     }
+}
 
-    pub fn schedule<F: Fn(u64, u64) + 'a>(&mut self, execution_time: u64, callback: F) -> Task {
-        let id = self.next_id;
-        self.next_id += 1;
+pub struct Task(u64);
 
-        //let execution_time = if millis == 0 { 1 } else { millis * 1_000 };
+impl<'a, S: GameState> App<'a, S> {
+    // @TODO use a type safe duration type
+    pub fn schedule_task<F>(&mut self, time_delay: u64, callback: F) -> Task
+        where
+            //F: FnMut(u64, &mut S, &mut App<S>) + 'a,
+            F: TaskFn + 'a,
+    {
 
-        self.tasks.push(TaskInner {
+        let id = self.task_system.next_id;
+        self.task_system.next_id += 1;
+
+        let game_time = self.time.game_time;
+        let execution_time = if time_delay == 0 { game_time + 1 } else { game_time + time_delay };
+        self.task_system.tasks.push(TaskInner {
             id,
             execution_time,
             callback: Rc::new(RefCell::new(callback)),
@@ -38,55 +52,56 @@ impl<'a> TaskSystem<'a> {
         Task ( id )
     }
 
-    pub fn run<S: GameState>(&mut self, _state: &mut S, current_time: u64) {
-        while let Some(task) = self.tasks.peek() {
-            if task.execution_time > current_time {
+    pub fn run_tasks(&mut self, state: &mut S) {
+        let game_time = self.time.game_time;
+        while let Some(task) = self.task_system.tasks.peek() {
+            if task.execution_time > game_time {
                 break;
             }
 
-            let task = self.tasks.pop().unwrap();
+            let task = self.task_system.tasks.pop().unwrap();
 
             // @TODO check if task was cancelled or not
 
             let mut closure = task.callback.borrow_mut();
-            (&mut closure)(task.id, task.execution_time);
+            //(&mut closure)(task.id, task.execution_time);
+            (&mut closure)(task.id, state, self);
         }
     }
 }
 
-pub struct Task(u64);
-
 impl Task {
     #[allow(dead_code)]
-    pub fn cancel(&mut self, task_system: &mut TaskSystem) {
+    pub fn cancel<S: GameState>(&mut self, task_system: &mut TaskSystem<S>) {
         assert!(self.0 != 0);
         task_system._tasks_cancelled.insert(self.0);
         self.0 = 0;
     }
 }
 
-struct TaskInner<'a> {
+// @Refactor don't store whole structure in heap, only (id, execution_time)
+struct TaskInner<'a, S: GameState + ?Sized> {
     id: u64,
     execution_time: u64,
-    callback: Rc<RefCell<dyn Fn(u64, u64) + 'a>>,
+    callback: Rc<RefCell<dyn FnMut(u64, &mut S, &mut App<S>) + 'a>>,
 }
 
-impl<'a> Ord for TaskInner<'a> {
+impl<'a, S: GameState> Ord for TaskInner<'a, S> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.execution_time.cmp(&other.execution_time).then(self.id.cmp(&other.id)).reverse()
     }
 }
 
-impl<'a> PartialOrd for TaskInner<'a> {
+impl<'a, S: GameState> PartialOrd for TaskInner<'a, S> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a> PartialEq for TaskInner<'a> {
+impl<'a, S: GameState> PartialEq for TaskInner<'a, S> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id && self.execution_time == other.execution_time
     }
 }
 
-impl<'a> Eq for TaskInner<'a> {}
+impl<'a, S: GameState> Eq for TaskInner<'a, S> {}

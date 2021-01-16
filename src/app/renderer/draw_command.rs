@@ -1,8 +1,7 @@
-use crate::linalg::vec2::Vec2;
-use crate::linalg::vec2i::Vec2i;
+use crate::linalg::{Vec2, Vec2i};
 use super::types::*;
 use super::texture::{Texture, TextureFlip};
-use super::Render;
+use super::Renderer;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Command {
@@ -27,7 +26,8 @@ pub struct DrawCommand {
     pub cmd: Command,
 }
 
-impl Render {
+// @Refactor move to App
+impl Renderer {
     pub fn queue_draw_sprite(
         &mut self,
         program: Program,

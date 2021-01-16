@@ -1,12 +1,9 @@
-//extern crate bitflags;
-//extern crate gl;
-
 use std::path::Path;
 use gl::types::*;
 use sdl2::image::*;
 use imgui::{im_str, TreeNode};
 
-use crate::imdraw::ImDraw;
+use crate::app::imgui::ImDraw;
 
 pub type TextureObject  = GLuint;
 
