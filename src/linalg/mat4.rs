@@ -4,6 +4,9 @@ use std::ops::{Mul, MulAssign};
 use std::ops::{Div, DivAssign};
 use std::ops::Neg;
 
+use crate::imgui::*;
+use crate::app::imgui::*;
+
 use super::vec3::Vec3;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -112,6 +115,22 @@ pub fn ortho(
                 1.0
             ],
         ]
+    }
+}
+
+impl ImDraw for Mat4 {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            let id = ui.push_id(label);
+
+            Drag::new(im_str2!("[0]")).build_array(ui, &mut self.m[0]);
+            Drag::new(im_str2!("[1]")).build_array(ui, &mut self.m[1]);
+            Drag::new(im_str2!("[2]")).build_array(ui, &mut self.m[2]);
+            Drag::new(im_str2!("[3]")).build_array(ui, &mut self.m[3]);
+
+            id.pop(ui);
+        });
     }
 }
 

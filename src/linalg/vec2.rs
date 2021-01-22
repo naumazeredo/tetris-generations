@@ -6,6 +6,7 @@ use std::ops::Neg;
 
 use crate::app::imgui::ImDraw;
 
+// @XXX Create ImDrawInline for small structures
 #[derive(PartialEq, Debug, Copy, Clone, ImDraw)]
 pub struct Vec2 {
     pub x: f32,

@@ -10,9 +10,10 @@
 //
 
 pub mod draw_command;
+pub mod color;
+pub mod sprite;
 pub mod texture;
 pub mod types;
-pub mod color;
 
 use std::ptr;
 use std::str;
@@ -24,6 +25,7 @@ use crate::linalg::*;
 
 pub use color::*;
 pub use draw_command::*;
+pub use sprite::*;
 pub use texture::*;
 pub use types::*;
 
@@ -291,6 +293,7 @@ impl Renderer {
             let w;
             let h;
             let texture_object;
+            let pivot;
 
             //let mut us = vec![0., 1., 1., 0.];
             //let mut vs = vec![0., 0., 1., 1.];
@@ -298,9 +301,11 @@ impl Renderer {
             let mut vs;
 
             match draw_cmd.cmd {
-                Command::DrawSprite { size, texture, texture_flip, uvs } => {
+                Command::DrawSprite { texture, texture_flip, uvs, pivot: piv, size } => {
+                    pivot = piv;
                     w = size.x;
                     h = size.y;
+
                     texture_object = texture.obj;
 
                     let u_scale = if texture.w != 0 { texture.w as f32 } else { 1. };
@@ -381,7 +386,7 @@ impl Renderer {
                     y: draw_cmd.pos.y,
                     z: (draw_cmd.layer as f32) / 10. + 0.1,
                 },
-                pivot: draw_cmd.pivot,
+                pivot,
                 rot: draw_cmd.rot,
                 texture_object,
             });

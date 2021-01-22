@@ -1,22 +1,15 @@
 // Remove console on Windows if not in debug build
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[macro_use]
-extern crate bitflags;
+#[macro_use] extern crate bitflags;
 extern crate sdl2;
 extern crate imgui;
 extern crate imgui_opengl_renderer;
 
-mod app;
+#[macro_use] mod app;
 mod linalg;
 
-use app::{
-    App,
-    imgui::*,
-    renderer::*,
-    game_state::GameState,
-};
-
+use app::*;
 use linalg::*;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -27,29 +20,59 @@ fn main() {
 
 #[derive(ImDraw)]
 struct State {
-    x: f32, y: f32,
-    r: f32,
-    px: f32, py: f32,
-    w: f32, h: f32,
-    c: Color,
-    l: i32,
-    texture: Texture,
-    texture_flip: TextureFlip,
-    test_imdraw: Vec2,
+    transform: Transform,
+    sprite: Sprite,
+    animator: Animator,
 }
 
 impl GameState for State {
-    fn new(_app: &mut App<'_, Self>) -> Self {
+    fn new(app: &mut App<'_, Self>) -> Self {
+        let texture = load_texture("assets/gfx/template-anim-128x32-4frames.png");
+
+        let mut build_frame = |x, y| {
+            app.build_frame(
+                Sprite {
+                    texture,
+                    texture_flip: TextureFlip::NO,
+                    uvs: (Vec2i { x, y }, Vec2i { x: 32 + x, y: 32 + y }),
+                    pivot: Vec2 { x: 16., y: 16. },
+                    size: Vec2 { x: 32., y: 32. },
+                },
+                1_000_000,
+            )
+        };
+
+        let frame_0 = build_frame(0, 0);
+        let frame_1 = build_frame(32, 0);
+        let frame_2 = build_frame(64, 0);
+        let frame_3 = build_frame(96, 0);
+
+        let animation_0 = app.build_animation(vec![frame_0, frame_2], Repetitions::Infinite);
+        let animation_1 = app.build_animation(vec![frame_0, frame_1, frame_2, frame_3],
+                                              Repetitions::Finite(5));
+
+        let animation_set = app.build_animation_set(vec![animation_0, animation_1]);
+
+        let transform = Transform {
+            pos: Vec2 { x: 100., y: 400. },
+            rot: 0.,
+            layer: 0,
+        };
+
+        let animator = app.build_animator(animation_set, transform);
+
+        animator.play(app);
+
         Self {
-            x: 100., y: 100.,
-            r: 0.,
-            px: 0., py: 0.,
-            w: 32., h: 32.,
-            c: color::WHITE,
-            l: 0,
-            texture: load_texture("assets/gfx/default.png"),
-            texture_flip: TextureFlip::NO,
-            test_imdraw: Vec2::new(),
+            transform,
+            sprite: Sprite {
+                texture: load_texture("assets/gfx/default.png"),
+                texture_flip: TextureFlip::NO,
+                uvs: (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 }),
+                pivot: Vec2 { x: 0., y: 0. },
+                size: Vec2 { x: 32., y: 32. },
+            },
+            animator: animator,
         }
     }
 
@@ -57,17 +80,16 @@ impl GameState for State {
     }
 
     fn render(&mut self, app: &mut App<'_, Self>) {
+        /*
         app.renderer.queue_draw_sprite(
             0 as Program,
-            self.l,
             self.c,
-            Vec2 { x: self.x, y: self.y }, Vec2 { x: self.w, y: self.h },
-            self.r,
-            Vec2 { x: self.px, y: self.py },
-            self.texture,
-            self.texture_flip,
-            (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 })
+            &self.transform,
+            &self.sprite,
         );
+        */
+
+        app.render_animators();
 
         app.renderer.render_queued_draws();
 
@@ -90,7 +112,7 @@ impl GameState for State {
             Event::KeyDown { keycode: Some(Keycode::Num1), .. } => {
                 app.schedule_task(1_000_000, |id, state, app| {
                     println!("task {} {}", id, app.time.game_time);
-                    state.x = 10.;
+                    state.transform.pos.x = 10.;
                 });
             },
             Event::KeyDown { keycode: Some(Keycode::F11), .. } => {

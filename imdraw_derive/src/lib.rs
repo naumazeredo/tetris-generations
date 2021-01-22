@@ -7,11 +7,15 @@ use syn::*;
 #[proc_macro_derive(ImDraw)]
 pub fn imdraw_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse(input).unwrap();
+    generate(ast)
+}
+
+fn generate(ast: DeriveInput) -> TokenStream {
     let name = &ast.ident;
 
     let fields = match ast.data {
-        Data::Struct(DataStruct { fields: Fields::Named(FieldsNamed { named: it, .. } ), .. })
-        //| Struct(DataStruct { fields: Fields::Unnamed(FieldsUnnamed { unnamed: it, .. } ), .. })
+        | Data::Struct(DataStruct { fields: Fields::Named(FieldsNamed { named: it, .. } ), .. })
+        | Data::Struct(DataStruct { fields: Fields::Unnamed(FieldsUnnamed { unnamed: it, .. } ), .. })
         => it,
 
         _ => unimplemented!()
@@ -23,7 +27,11 @@ pub fn imdraw_derive(input: TokenStream) -> TokenStream {
                 quote! { self.#ident.imdraw(stringify!(#ident), ui); }
             },
             None => {
-                quote! { self.#index.imdraw(stringify!(#index), ui); }
+                let field_index = syn::Index::from(index);
+                let field_name = format!("[{}]", index);
+                quote! {
+                    self.#field_index.imdraw(#field_name, ui);
+                }
             }
         }
     });
@@ -32,8 +40,8 @@ pub fn imdraw_derive(input: TokenStream) -> TokenStream {
         impl ImDraw for #name {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
                 imgui::TreeNode::new(crate::im_str2!(label)).build(ui, || {
-                    let mut id = ui.push_id(label);
-                    #(#expanded_fields ;)*
+                    let id = ui.push_id(label);
+                    #(#expanded_fields)*
                     id.pop(ui);
                 });
             }

@@ -1,27 +1,31 @@
 use crate::linalg::{Vec2, Vec2i};
-use super::types::*;
-use super::texture::{Texture, TextureFlip};
-use super::Renderer;
+use crate::app::Transform;
+use super::{
+    Renderer,
+    sprite::Sprite,
+    texture::{Texture, TextureFlip},
+    types::*,
+};
 
 #[derive(Copy, Clone, Debug)]
 pub enum Command {
     DrawSprite {
-        size: Vec2,
         texture: Texture,
         texture_flip: TextureFlip,
         uvs: (Vec2i, Vec2i),
+        pivot: Vec2,
+        size: Vec2,
     },
 }
 
 #[derive(Copy, Clone, Debug)]
 pub struct DrawCommand {
     pub program: Program,
-    pub layer: i32,
     pub color: Color,
 
     pub pos: Vec2,
-    pub pivot: Vec2,
     pub rot: f32,
+    pub layer: i32,
 
     pub cmd: Command,
 }
@@ -31,28 +35,22 @@ impl Renderer {
     pub fn queue_draw_sprite(
         &mut self,
         program: Program,
-        layer: i32,
         color: Color,
-        pos: Vec2,
-        size: Vec2,
-        rot: f32,
-        pivot: Vec2,
-        texture: Texture,
-        texture_flip: TextureFlip,
-        uvs: (Vec2i, Vec2i)
+        transform: &Transform,
+        sprite: &Sprite,
     ) {
         self.world_draw_cmds.push(DrawCommand {
             program,
-            layer,
+            layer: transform.layer,
             color,
-            pos,
-            pivot,
-            rot,
+            pos: transform.pos,
+            rot: transform.rot,
             cmd: Command::DrawSprite {
-                size,
-                texture,
-                texture_flip,
-                uvs,
+                texture: sprite.texture,
+                texture_flip: sprite.texture_flip,
+                uvs: sprite.uvs,
+                pivot: sprite.pivot,
+                size: sprite.size,
             },
         });
     }
