@@ -1,4 +1,9 @@
-// @Refactor use a timer wheel instead of a binary heap
+// Task system
+
+// [ ] 
+// [ ] add task logger
+// [ ] maybe refactor to timer wheel
+
 use std::collections::{BinaryHeap, HashSet};
 use std::cmp::Ordering;
 use std::rc::Rc;
@@ -18,17 +23,17 @@ pub struct TaskSystem<'a, S> {
     next_id: u64,
     // @Refactor don't store whole structure in heap, only (id, execution_time)
     tasks_scheduled: BinaryHeap<TaskData<'a, S>>,
-    _tasks_cancelled: HashSet<u64>,
+    tasks_cancelled: HashSet<u64>,
 }
 
 impl<'a, S: GameState> TaskSystem<'a, S> {
     pub fn new() -> Self {
         let tasks_scheduled = BinaryHeap::new();
-        let _tasks_cancelled = HashSet::new();
+        let tasks_cancelled = HashSet::new();
         Self {
             next_id: 1,
             tasks_scheduled,
-            _tasks_cancelled,
+            tasks_cancelled,
         }
     }
 }
@@ -44,14 +49,9 @@ impl Task {
         Self(None)
     }
 
-    #[allow(dead_code)]
-    pub fn cancel<S>(&mut self, tasks: &mut TaskSystem<S>) {
-        if let None = self.0 {
-            panic!("Trying to cancel an empty task");
-        }
-
-        let id = self.0.take().unwrap();
-        tasks._tasks_cancelled.insert(id);
+    pub fn cancel<S>(&mut self, task_system: &mut TaskSystem<S>) {
+        let id = self.0.take().expect("Trying to cancel an empty task");
+        task_system.tasks_cancelled.insert(id);
     }
 }
 
@@ -89,22 +89,25 @@ impl<'a, S: GameState> App<'a, S> {
             F: FnMut(u64, &mut S, &mut App<S>) + 'a,
             //F: TaskFn<S> + 'a,
     {
-        schedule_task(&mut self.tasks, &self.time, time_delay, callback)
+        schedule_task(&mut self.task_system, &self.time, time_delay, callback)
     }
 
     pub fn run_tasks(&mut self, state: &mut S) {
         let game_time = self.time.game_time;
-        while let Some(task) = self.tasks.tasks_scheduled.peek() {
+        while let Some(task) = self.task_system.tasks_scheduled.peek() {
             if task.execution_time > game_time {
                 break;
             }
 
-            let task = self.tasks.tasks_scheduled.pop().unwrap();
+            let task = self.task_system.tasks_scheduled.pop().unwrap();
 
-            // @TODO check if task was cancelled or not
+            // check if task was cancelled or not
+            if self.task_system.tasks_cancelled.remove(&task.id) {
+                continue;
+            }
 
             // @TODO logger (with envvar? with argv value?)
-            println!("executed task: {} at {}", task.id, game_time);
+            //println!("executed task: {} at {}", task.id, game_time);
 
             let mut closure = task.callback.borrow_mut();
             (&mut closure)(task.id, state, self);

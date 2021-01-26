@@ -5,10 +5,11 @@ pub mod animations;
 pub mod debug;
 pub mod entity;
 pub mod game_state;
+pub mod id_manager;
 #[macro_use] pub mod imgui;
 pub mod renderer;
 pub mod sdl;
-pub mod tasks;
+pub mod task_system;
 pub mod time;
 pub mod video;
 
@@ -17,10 +18,11 @@ pub use {
     debug::*,
     entity::*,
     game_state::*,
+    id_manager::*,
     self::imgui::*,
     renderer::*,
     sdl::*,
-    tasks::*,
+    task_system::*,
     time::*,
     video::*,
 };
@@ -34,7 +36,7 @@ pub struct App<'a, S> {
     pub time: Time,
     pub renderer: Renderer,
     pub debug: Debug,
-    pub tasks: TaskSystem<'a, S>,
+    pub task_system: TaskSystem<'a, S>,
 
     pub event_pump: sdl2::EventPump,
 
@@ -52,7 +54,7 @@ impl<'a, S: 'a + GameState> App<'a, S> {
         let time = Time::new(&sdl_context.timer_subsystem);
         let renderer = Renderer::new();
         let debug = Debug::new(&video.window);
-        let tasks = TaskSystem::new();
+        let task_system = TaskSystem::new();
 
         // @TODO input handler
         let event_pump = sdl_context.sdl.event_pump().unwrap();
@@ -64,7 +66,7 @@ impl<'a, S: 'a + GameState> App<'a, S> {
             time,
             renderer,
             debug,
-            tasks,
+            task_system,
             event_pump,
             running: true,
         }

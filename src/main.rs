@@ -1,5 +1,6 @@
 // Remove console on Windows if not in debug build
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(debug_assertions, allow(dead_code))]
 
 #[macro_use] extern crate bitflags;
 extern crate sdl2;
@@ -20,9 +21,8 @@ fn main() {
 
 #[derive(ImDraw)]
 struct State {
-    transform: Transform,
-    sprite: Sprite,
-    animator: Animator,
+    entity_container: EntityContainer,
+    entity: Entity,
 }
 
 impl GameState for State {
@@ -53,43 +53,54 @@ impl GameState for State {
 
         let animation_set = app.build_animation_set(vec![animation_0, animation_1]);
 
-        let transform = Transform {
-            pos: Vec2 { x: 100., y: 400. },
-            rot: 0.,
-            layer: 0,
-        };
+        // Entities
 
-        let animator = app.build_animator(animation_set, transform);
-
-        animator.play(app);
-
-        Self {
-            transform,
-            sprite: Sprite {
-                texture: load_texture("assets/gfx/default.png"),
+        let entity_container = EntityContainer::new();
+        let entity = entity_container.create_entity(
+            Transform {
+                pos: Vec2 { x: 100., y: 400. },
+                rot: 0.,
+                layer: 0,
+            },
+            Sprite {
+                texture,
                 texture_flip: TextureFlip::NO,
                 uvs: (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 }),
-                pivot: Vec2 { x: 0., y: 0. },
+                pivot: Vec2 { x: 16., y: 16. },
                 size: Vec2 { x: 32., y: 32. },
             },
-            animator: animator,
+        );
+
+
+        fn test(_id: u64, state: &mut State, app: &mut App<State>) {
+            println!("------------");
+            println!("all:      {}", state.entity_container.all().transforms().len());
+            println!("active:   {}", state.entity_container.active().transforms().len());
+            println!("inactive: {}", state.entity_container.inactive().transforms().len());
+            println!("visible:  {}", state.entity_container.visible().transforms().len());
+            println!("hidden:   {}", state.entity_container.hidden().transforms().len());
+
+            app.schedule_task(3_000_000, test);
+        }
+
+        app.schedule_task(3_000_000, test);
+
+        Self {
+            entity_container,
+            entity,
         }
     }
 
-    fn update(&mut self, _app: &mut App<'_, Self>) {
+    fn update(&mut self, app: &mut App<'_, Self>) {
+        let mut entities = self.entity_container.active_mut();
+        let transforms = entities.transforms_mut();
+        for transform in transforms.iter_mut() {
+            transform.pos.x += 10. * app.time.frame_duration();
+        }
     }
 
     fn render(&mut self, app: &mut App<'_, Self>) {
-        /*
-        app.renderer.queue_draw_sprite(
-            0 as Program,
-            self.c,
-            &self.transform,
-            &self.sprite,
-        );
-        */
-
-        app.render_animators();
+        self.entity_container.render(&mut app.renderer);
 
         app.renderer.render_queued_draws();
 
@@ -110,10 +121,19 @@ impl GameState for State {
                 app.running = false;
             },
             Event::KeyDown { keycode: Some(Keycode::Num1), .. } => {
-                app.schedule_task(1_000_000, |id, state, app| {
+                app.schedule_task(1_000_000, |id, _state, app| {
                     println!("task {} {}", id, app.time.game_time);
-                    state.transform.pos.x = 10.;
                 });
+            },
+            Event::KeyDown { keycode: Some(Keycode::K), .. } => {
+                self.entity.destroy();
+            },
+            Event::KeyDown { keycode: Some(Keycode::A), .. } => {
+                println!("active: {}", self.entity.is_active());
+                self.entity.set_active(true);
+            },
+            Event::KeyDown { keycode: Some(Keycode::V), .. } => {
+                self.entity.set_visible(true);
             },
             Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
                 use sdl2::video::FullscreenType;

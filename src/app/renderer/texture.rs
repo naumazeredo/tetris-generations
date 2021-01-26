@@ -7,9 +7,11 @@ use crate::app::imgui::ImDraw;
 
 pub type TextureObject  = GLuint;
 
+// @Maybe we should accept default in texture
+
 // @Refactor maybe own the object and free on Drop?
 //           or maybe just manage what's in GPU properly (not so safe, right?)
-#[derive(PartialEq, Copy, Clone, Debug, ImDraw)]
+#[derive(PartialEq, Copy, Clone, Debug, ImDraw, Default)]
 pub struct Texture {
     pub obj: TextureObject,
     pub w: u32,
@@ -17,7 +19,6 @@ pub struct Texture {
 }
 
 impl Texture {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             obj: 0 as GLuint,
@@ -28,6 +29,7 @@ impl Texture {
 }
 
 bitflags! {
+    #[derive(Default)]
     pub struct TextureFlip: u8 {
         const NO = 0b00;
         const X  = 0b01;

@@ -1,7 +1,16 @@
-//use std::ffi::CString;
+// ImDraw trait
+
+// [ ] change from &str to generic string type
+
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use core::fmt::Display;
+
 use crate::imgui::*;
 pub use imdraw_derive::ImDraw;
 
+// @Refactor use a template to any string type
 pub trait ImDraw {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui);
 }
@@ -13,8 +22,19 @@ macro_rules! im_str2 {
     });
 }
 
+#[macro_export]
+macro_rules! impl_imdraw_todo {
+    ($type:ident) => {
+        impl ImDraw for $type {
+            fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+                ui.text(format!("{}: (todo)", label));
+            }
+        }
+    };
+}
+
 // @Refactor use optionals to be able to join with and using
-macro_rules! impl_imdraw {
+macro_rules! impl_drag {
     ($type:ident using $cast:ident) => {
         impl ImDraw for $type {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
@@ -44,21 +64,23 @@ macro_rules! impl_imdraw {
     };
 }
 
-impl_imdraw!(u8);
-impl_imdraw!(u16);
-impl_imdraw!(u32);
-impl_imdraw!(u64);
+impl_drag!(u8);
+impl_drag!(u16);
+impl_drag!(u32);
+impl_drag!(u64);
 
-impl_imdraw!(i8);
-impl_imdraw!(i16);
-impl_imdraw!(i32);
-impl_imdraw!(i64);
+impl_drag!(i8);
+impl_drag!(i16);
+impl_drag!(i32);
+impl_drag!(i64);
 
-impl_imdraw!(f32 with speed(0.1));
-impl_imdraw!(f64 with speed(0.1));
+impl_drag!(f32 with speed(0.1));
+impl_drag!(f64 with speed(0.1));
 
-impl_imdraw!(usize using u64);
-impl_imdraw!(isize using i64);
+impl_drag!(usize using u64);
+impl_drag!(isize using i64);
+
+impl_imdraw_todo!(bool);
 
 // Tuples
 // we shouldn't need more than length 4
@@ -150,3 +172,87 @@ macro_rules! tuple_impl_imdraw {
 tuple_impl_imdraw!(A, B, C, D);
 */
 
+// option
+
+impl<T> ImDraw for Option<T>
+where
+    T: ImDraw
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        if self.is_none() {
+            ui.text(format!("{}: (None)", label));
+        } else {
+            let inner = self.as_mut().unwrap();
+            inner.imdraw(&format!("Some {}", label).to_owned(), ui);
+        }
+    }
+}
+
+// std pointers
+
+/*
+impl<T> ImDraw for Rc<T>
+where
+    T: ImDraw
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        //ui.text(format!("{}: (testing)", label));
+        T::imdraw(self, &format!("Rc {}", label).to_owned(), ui);
+    }
+}
+*/
+
+impl<T> ImDraw for Rc<RefCell<T>>
+where
+    T: ImDraw
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        self.borrow_mut().imdraw(&format!("Rc RefCell {}", label).to_owned(), ui);
+    }
+}
+
+// std containers
+
+impl<T> ImDraw for Vec<T>
+where
+    T: ImDraw
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            let id = ui.push_id(label);
+            for (i, value) in self.iter_mut().enumerate() {
+                value.imdraw(&format!("[{}]", i).to_owned(), ui);
+            }
+            id.pop(ui);
+        });
+    }
+}
+
+impl<A, B> ImDraw for HashMap<A, B>
+where
+    A: ImDraw + Display,
+    B: ImDraw,
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            let id = ui.push_id(label);
+
+            for (key, value) in self.iter_mut() {
+                value.imdraw(&format!("{}", key).to_owned(), ui);
+            }
+
+            id.pop(ui);
+        });
+    }
+}
+
+// std cells
+
+impl<T> ImDraw for RefCell<T>
+where
+    T: ImDraw
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        self.borrow_mut().imdraw(&format!("RefCell {}", label).to_owned(), ui);
+    }
+}

@@ -6,7 +6,7 @@ use std::ops::Neg;
 
 use crate::app::imgui::ImDraw;
 
-#[derive(PartialEq, Debug, Copy, Clone, ImDraw)]
+#[derive(PartialEq, Debug, Copy, Clone, ImDraw, Default)]
 pub struct Vec3 {
     pub x: f32,
     pub y: f32,

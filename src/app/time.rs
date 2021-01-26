@@ -1,3 +1,9 @@
+// Time System
+
+// [ ] rename to TimeSystem
+// [ ] maybe use std::time instead of SDL timer_subsystem
+// [ ] create newtype for duration intervals
+
 // @Refactor maybe use std::time?
 // @Refactor create a type to hold the USec, MSec, Sec (different types to be type checked)
 
@@ -29,6 +35,10 @@ impl Time {
             last_scale: 1.0,
         }
     }
+
+    pub fn frame_duration(&self) -> f32 {
+        self.game_frame_duration as f32 / 1_000_000.
+    }
 }
 
 fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
@@ -54,14 +64,12 @@ impl<S: GameState> App<'_, S> {
         time_system.game_time += time_system.game_frame_duration;
     }
 
-    #[allow(dead_code)]
     pub fn pause(&mut self) {
         let time_system = &mut self.time;
         time_system.last_scale = time_system.scale;
         time_system.scale = 0.0;
     }
 
-    #[allow(dead_code)]
     pub fn resume(&mut self) {
         let time_system = &mut self.time;
         time_system.scale = time_system.last_scale;

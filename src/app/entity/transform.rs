@@ -1,7 +1,7 @@
 use crate::linalg::Vec2;
 use crate::app::imgui::ImDraw;
 
-#[derive(Copy, Clone, Debug, ImDraw)]
+#[derive(Copy, Clone, Debug, ImDraw, Default)]
 pub struct Transform {
     pub pos: Vec2,
     //pub scale: Vec2,

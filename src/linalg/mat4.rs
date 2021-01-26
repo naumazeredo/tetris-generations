@@ -9,7 +9,7 @@ use crate::app::imgui::*;
 
 use super::vec3::Vec3;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone, Default)]
 pub struct Mat4 {
     pub m: [[f32; 4]; 4],
 }
