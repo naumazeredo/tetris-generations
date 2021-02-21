@@ -5,9 +5,8 @@ use super::{
 };
 
 // @Maybe we need to remove some of these fields from Sprite
-// @Maybe we shouldn't accept default
 
-#[derive(Copy, Clone, Debug, ImDraw, Default)]
+#[derive(Copy, Clone, Debug, Default, ImDraw)]
 pub struct Sprite {
     pub texture: Texture,
     pub texture_flip: TextureFlip,

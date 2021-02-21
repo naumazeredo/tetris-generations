@@ -1,13 +1,99 @@
 // Animation System
 
-// [ ] rename to animation_system.rs
-// [ ] refactor to use entity id (from entity_container)
+// [ ] make a module (animations/{animator, animation_container})
+// [ ] rename to animation_container.rs
+// [ ] rename to AnimationContainer
 
 use super::{
     App,
+    GameState,
     renderer::Sprite,
-    //task_system::Task,
+    imgui::ImDraw,
+    task_system::Task,
 };
+
+#[derive(Copy, Clone, Debug, ImDraw)]
+pub struct Animator {
+    animation_set: AnimationSet,
+
+    // @Refactor make this somehow safe with newtype idiom
+    current_animation: usize,
+    current_frame: usize,
+    current_repetition: Repetitions,
+
+    task: Option<Task>,
+}
+
+impl Animator {
+    pub fn new(animation_set: AnimationSet) -> Self {
+        Self {
+            animation_set,
+            current_animation: 0usize,
+            current_frame: 0usize,
+            current_repetition: Repetitions::Finite(0),
+            task: None,
+        }
+    }
+
+    // @Maybe animators shouldn't be allowed to change the animation set, only the animations
+    pub fn change_animation_set<S: GameState>(&mut self, animation_set: AnimationSet, app: &mut App<S>) {
+        self.animation_set = animation_set;
+        self.current_animation = 0usize;
+        self.current_frame = 0usize;
+        self.current_repetition = Repetitions::Finite(0);
+
+        if let Some(mut task) = self.task.take() {
+            task.cancel(&mut app.task_system);
+        }
+    }
+
+    pub fn next_frame<S: GameState>(&mut self, app: &App<S>) -> Option<()> {
+        assert!(self.task.is_some());
+
+        let (animation_data, _) = app.animation_system.get_animation_and_frame(self);
+
+        if self.current_frame + 1 < animation_data.frames.len() {
+            self.current_frame += 1;
+        } else {
+            if let Repetitions::Finite(total_repetitions) = animation_data.repetitions {
+                if let Repetitions::Finite(repetition) = self.current_repetition {
+                    if repetition == total_repetitions {
+                        return None;
+                    }
+
+                    self.current_repetition = Repetitions::Finite(repetition + 1);
+                }
+            }
+
+            self.current_frame = 0;
+        }
+
+        Some(())
+    }
+
+    pub fn get_current_sprite<S: GameState>(&self, app: &App<S>) -> Sprite {
+        let (_, frame_data) = app.animation_system.get_animation_and_frame(self);
+        frame_data.sprite
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.task.is_some()
+    }
+
+    pub fn stop<S: GameState>(&mut self, app: &mut App<S>) {
+        let mut task = self.task.take().unwrap();
+        task.cancel(&mut app.task_system);
+    }
+
+    pub fn play<'a, S: GameState, F>(&mut self, app: &mut App<'a, S>, callback: F)
+    where F: FnMut(u64, &mut S, &mut App<S>) + 'a,
+    {
+        let (_, frame_data) = app.animation_system.get_animation_and_frame(self);
+        let duration = frame_data.duration;
+        let task = app.schedule_task(duration, callback);
+        self.task.replace(task).expect_none("[animation] trying to play while already playing");
+    }
+}
 
 #[derive(Default)]
 pub struct AnimationSystem {
@@ -23,30 +109,28 @@ impl AnimationSystem {
 
     pub fn get_animation_and_frame<'a>(
         &'a self,
-        animation_set: AnimationSet,
-        current_animation: usize,
-        current_frame: usize
+        animator: &Animator
     ) -> (&'a AnimationData, &'a FrameData) {
-        let animation_set_data = &self.animation_sets[animation_set.0 as usize];
+        let animation_set_data = &self.animation_sets[animator.animation_set.0 as usize];
 
-        let animation = animation_set_data.animations[current_animation];
+        let animation = animation_set_data.animations[animator.current_animation];
         let animation_data = &self.animations[animation.0 as usize];
 
-        let frame = animation_data.frames[current_frame];
+        let frame = animation_data.frames[animator.current_frame];
         let frame_data = &self.frames[frame.0 as usize];
 
         (animation_data, frame_data)
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub struct AnimationSet(u64);
 pub struct AnimationSetData {
     pub(super) id: AnimationSet,
     pub animations: Vec<Animation>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub struct Animation(u64);
 pub struct AnimationData {
     pub(super) id: Animation,
@@ -66,6 +150,12 @@ pub struct FrameData {
 pub enum Repetitions {
     Infinite,
     Finite(u32),
+}
+
+impl ImDraw for Repetitions {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        ui.text(format!("{}: (todo)", label));
+    }
 }
 
 impl<S> App<'_, S> {
@@ -109,57 +199,4 @@ impl<S> App<'_, S> {
         });
         set
     }
-
-    /*
-    pub fn build_animator(
-        &mut self,
-        animation_set: AnimationSet,
-    ) -> Animator {
-
-        let system = &mut self.animation_system;
-
-        let id = system.animators_next_id;
-        system.animators_next_id += 1;
-
-        let animator = Animator(id);
-
-        system.animators_data.insert(animator, AnimatorData {
-            id: animator,
-            animation_set,
-
-            current_animation: 0usize,
-            current_frame: 0usize,
-            current_repetition: Repetitions::Finite(0),
-
-            is_playing: false,
-
-            task: Task::empty(),
-        });
-
-        animator
-    }
-    */
-}
-
-// -----
-// utils
-// -----
-
-fn get_data<'a>(
-    animation_sets: &'a mut Vec<AnimationSetData>,
-    animations: &'a mut Vec<AnimationData>,
-    frames: &'a mut Vec<FrameData>,
-    animation_set: AnimationSet,
-    current_animation: usize,
-    current_frame: usize
-) -> (&'a AnimationData, &'a FrameData) {
-    let animation_set_data = &animation_sets[animation_set.0 as usize];
-
-    let animation = animation_set_data.animations[current_animation];
-    let animation_data = &animations[animation.0 as usize];
-
-    let frame = animation_data.frames[current_frame];
-    let frame_data = &frames[frame.0 as usize];
-
-    (animation_data, frame_data)
 }

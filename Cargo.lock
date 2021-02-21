@@ -35,12 +35,22 @@ name = "codename-dash-rs"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "entity_macros",
  "gl",
  "imdraw_derive",
  "imgui",
  "imgui-opengl-renderer",
  "num-traits",
  "sdl2",
+]
+
+[[package]]
+name = "entity_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

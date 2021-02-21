@@ -7,13 +7,17 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use core::fmt::Display;
 
-use crate::imgui::*;
+use imgui::*;
 pub use imdraw_derive::ImDraw;
 
 // @Refactor use a template to any string type
 pub trait ImDraw {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui);
 }
+
+// ------
+// Macros
+// ------
 
 #[macro_export]
 macro_rules! im_str2 {
@@ -64,6 +68,8 @@ macro_rules! impl_drag {
     };
 }
 
+// ------
+
 impl_drag!(u8);
 impl_drag!(u16);
 impl_drag!(u32);
@@ -80,7 +86,11 @@ impl_drag!(f64 with speed(0.1));
 impl_drag!(usize using u64);
 impl_drag!(isize using i64);
 
-impl_imdraw_todo!(bool);
+impl ImDraw for bool {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        ui.checkbox(im_str2!(label), self);
+    }
+}
 
 // Tuples
 // we shouldn't need more than length 4

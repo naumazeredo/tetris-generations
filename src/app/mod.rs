@@ -3,26 +3,27 @@ extern crate imgui_opengl_renderer;
 
 pub mod animations;
 pub mod debug;
-pub mod entity;
 pub mod game_state;
 pub mod id_manager;
-#[macro_use] pub mod imgui;
+#[macro_use]
+pub mod imgui;
 pub mod renderer;
 pub mod sdl;
 pub mod task_system;
+pub mod transform;
 pub mod time;
 pub mod video;
 
 pub use {
     animations::*,
     debug::*,
-    entity::*,
     game_state::*,
     id_manager::*,
     self::imgui::*,
     renderer::*,
     sdl::*,
     task_system::*,
+    transform::*,
     time::*,
     video::*,
 };

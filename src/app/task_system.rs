@@ -1,6 +1,5 @@
 // Task system
 
-// [ ] 
 // [ ] add task logger
 // [ ] maybe refactor to timer wheel
 
@@ -13,6 +12,7 @@ use super::{
     App,
     game_state::GameState,
     time::Time,
+    imgui::ImDraw,
 };
 
 //#[feature(trait_alias)]
@@ -38,10 +38,8 @@ impl<'a, S: GameState> TaskSystem<'a, S> {
     }
 }
 
-// @Refactor Rc<RefCell<Option<u64>>>. After execution, the task should change the value on all
-//           references, so we should have to use this (or we can check if the task is running or
-//           exist.
-#[derive(Copy, Clone, Debug)]
+// @TODO implement a proper ImDraw
+#[derive(Copy, Clone, Debug, Default, ImDraw)]
 pub struct Task(Option<u64>);
 
 impl Task {
@@ -55,7 +53,7 @@ impl Task {
     }
 }
 
-pub fn schedule_task<'a, S: GameState, F>(
+fn schedule_task<'a, S: GameState, F>(
     task_system: &mut TaskSystem<'a, S>,
     time_system: &Time,
     time_delay: u64,
@@ -85,9 +83,7 @@ pub fn schedule_task<'a, S: GameState, F>(
 impl<'a, S: GameState> App<'a, S> {
     // @TODO use a type safe duration type
     pub fn schedule_task<F>(&mut self, time_delay: u64, callback: F) -> Task
-        where
-            F: FnMut(u64, &mut S, &mut App<S>) + 'a,
-            //F: TaskFn<S> + 'a,
+    where F: FnMut(u64, &mut S, &mut App<S>) + 'a, // @XXX F: TaskFn<S> + 'a,
     {
         schedule_task(&mut self.task_system, &self.time, time_delay, callback)
     }

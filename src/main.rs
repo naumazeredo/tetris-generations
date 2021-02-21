@@ -2,16 +2,21 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![cfg_attr(debug_assertions, allow(dead_code))]
 
+#![feature(option_expect_none)]
+
 #[macro_use] extern crate bitflags;
-extern crate sdl2;
 extern crate imgui;
 extern crate imgui_opengl_renderer;
 
 #[macro_use] mod app;
+#[macro_use] mod macros;
+mod entities;
 mod linalg;
 
 use app::*;
+use entities::*;
 use linalg::*;
+
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
@@ -20,9 +25,11 @@ fn main() {
 }
 
 #[derive(ImDraw)]
-struct State {
-    entity_container: EntityContainer,
-    entity: Entity,
+pub struct State {
+    pub entity_containers: EntityContainers,
+    pub entity_id: MyEntityId,
+    pub animated_entity_id: MyEntityId,
+    //pub animated_entity_id: AnimatedEntityId,
 }
 
 impl GameState for State {
@@ -55,8 +62,9 @@ impl GameState for State {
 
         // Entities
 
-        let entity_container = EntityContainer::new();
-        let entity = entity_container.create_entity(
+        let mut entity_containers = EntityContainers::new();
+
+        let entity_id = entity_containers.create::<MyEntity>(
             Transform {
                 pos: Vec2 { x: 100., y: 400. },
                 rot: 0.,
@@ -71,36 +79,35 @@ impl GameState for State {
             },
         );
 
+        //let animated_entity_id = entity_containers.create::<AnimatedEntity>(
+        let animated_entity_id = entity_containers.create_animated::<MyEntity>(
+            Transform {
+                pos: Vec2 { x: 100., y: 500. },
+                rot: 0.,
+                layer: 0,
+            },
+            animation_set
+        );
 
-        fn test(_id: u64, state: &mut State, app: &mut App<State>) {
-            println!("------------");
-            println!("all:      {}", state.entity_container.all().transforms().len());
-            println!("active:   {}", state.entity_container.active().transforms().len());
-            println!("inactive: {}", state.entity_container.inactive().transforms().len());
-            println!("visible:  {}", state.entity_container.visible().transforms().len());
-            println!("hidden:   {}", state.entity_container.hidden().transforms().len());
-
-            app.schedule_task(3_000_000, test);
-        }
-
-        app.schedule_task(3_000_000, test);
+        let animated_entity = entity_containers.get_mut(animated_entity_id).unwrap();
+        //animated_entity.change_animation_set(animation_set, app);
+        animated_entity.play_animation(app);
 
         Self {
-            entity_container,
-            entity,
+            entity_containers,
+            entity_id,
+            animated_entity_id,
         }
     }
 
     fn update(&mut self, app: &mut App<'_, Self>) {
-        let mut entities = self.entity_container.active_mut();
-        let transforms = entities.transforms_mut();
-        for transform in transforms.iter_mut() {
-            transform.pos.x += 10. * app.time.frame_duration();
+        if let Some(my_entity) = self.entity_containers.get_mut(self.entity_id) {
+            my_entity.entity_mut().transform.pos.x += 10.0 * app.time.frame_duration();
         }
     }
 
     fn render(&mut self, app: &mut App<'_, Self>) {
-        self.entity_container.render(&mut app.renderer);
+        self.entity_containers.render(&mut app.renderer);
 
         app.renderer.render_queued_draws();
 
@@ -126,14 +133,21 @@ impl GameState for State {
                 });
             },
             Event::KeyDown { keycode: Some(Keycode::K), .. } => {
-                self.entity.destroy();
+                self.entity_containers.destroy(self.entity_id);
             },
             Event::KeyDown { keycode: Some(Keycode::A), .. } => {
-                println!("active: {}", self.entity.is_active());
-                self.entity.set_active(true);
+                /*
+                println!("active: {:?}", self.my_entity_container.is_active(self.entity));
+                self.my_entity_container.set_active(self.entity, true);
+                println!("active: {:?}", self.my_entity_container.is_active(self.entity));
+                */
             },
             Event::KeyDown { keycode: Some(Keycode::V), .. } => {
-                self.entity.set_visible(true);
+                /*
+                println!("visible: {:?}", self.my_entity_container.is_visible(self.entity));
+                self.my_entity_container.set_visible(self.entity, true);
+                println!("visible: {:?}", self.my_entity_container.is_visible(self.entity));
+                */
             },
             Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
                 use sdl2::video::FullscreenType;

@@ -42,10 +42,10 @@ impl Time {
 }
 
 fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
-    let counter = timer_subsystem.performance_counter();
-    let frequency = timer_subsystem.performance_frequency();
+    let counter = timer_subsystem.performance_counter() as u128;
+    let frequency = timer_subsystem.performance_frequency() as u128;
 
-    counter * 1_000_000 / frequency
+    (counter * 1_000_000 / frequency) as u64
 }
 
 impl<S: GameState> App<'_, S> {

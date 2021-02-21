@@ -12,6 +12,7 @@ pub fn imdraw_derive(input: TokenStream) -> TokenStream {
 
 fn generate(ast: DeriveInput) -> TokenStream {
     let name = &ast.ident;
+    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
     let fields = match ast.data {
         | Data::Struct(DataStruct { fields: Fields::Named(FieldsNamed { named: it, .. } ), .. })
@@ -37,7 +38,7 @@ fn generate(ast: DeriveInput) -> TokenStream {
     });
 
     let gen = quote! {
-        impl ImDraw for #name {
+        impl #impl_generics ImDraw for #name #ty_generics #where_clause {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
                 imgui::TreeNode::new(crate::im_str2!(label)).build(ui, || {
                     let id = ui.push_id(label);

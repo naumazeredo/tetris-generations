@@ -1,45 +1,73 @@
+// [ ] rename to id_generator
+
 use super::imgui::imdraw::ImDraw;
 
-#[derive(Copy, Clone, Debug, ImDraw)]
-pub struct Id(usize);
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, ImDraw)]
+pub struct Id {
+    index: usize,
+    generation: u32,
+}
 
 impl Id {
-    pub fn get(self) -> usize {
-        self.0
+    pub fn index(self) -> usize {
+        self.index
     }
 }
 
-#[derive(Clone, Debug, ImDraw)]
-pub struct IdManager {
-    last_id: Id,
-    free_ids: Vec<Id>,
+pub trait IsId : Copy + Clone {
+    fn new(_id: Id) -> Self;
+    fn id(self) -> Id;
 }
 
-impl IdManager {
+#[derive(Clone, Debug, ImDraw)]
+pub struct IdGenerator {
+    ids: Vec<IdGeneratorEntry>,
+    free_indexes: Vec<usize>,
+}
+
+impl IdGenerator {
     pub fn new() -> Self {
         Self {
-            last_id: Id(0usize),
-            free_ids: vec![],
+            ids: Vec::new(),
+            free_indexes: Vec::new(),
         }
     }
 
     pub fn next(&mut self) -> Id {
-        if let Some(id) = self.free_ids.pop() {
-            return id;
+        if let Some(index) = self.free_indexes.pop() {
+            let mut id = self.ids[index];
+            id.generation += 1;
+            return Id { index, generation: id.generation };
         }
 
-        let id = self.last_id;
-        self.last_id = Id(id.0 + 1);
-        id
+        let index = self.ids.len();
+        self.ids.push(IdGeneratorEntry { is_live: true, generation: 0 });
+
+        Id { index, generation: 0 }
     }
 
-    // @TODO return result
     pub fn free(&mut self, id: Id) {
-        assert!(id.0 < self.last_id.0);
+        assert!(id.generation == self.ids[id.index].generation);
+        assert!(self.ids[id.index].is_live);
 
-        // @XXX we are not checking for double free
-        self.free_ids.push(id);
+        self.free_indexes.push(id.index);
     }
+
+    pub fn is_live(&self, id: Id) -> bool {
+        self.ids[id.index].is_live
+    }
+
+    pub fn len(&self) -> usize {
+        self.ids.len() - self.free_indexes.len()
+    }
+}
+
+// private
+
+#[derive(Copy, Clone, Debug, ImDraw)]
+struct IdGeneratorEntry {
+    is_live: bool,
+    generation: u32,
 }
 
 // utils
