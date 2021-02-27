@@ -9,6 +9,22 @@
 - [ ] Rename animations, time and tasks to *_system
 - [ ] Asset system
 - [ ] Input system
+  - [ ] Mapping
+  - [ ] Virtual button
+    - [x] Keyboard
+    - [ ] Mouse
+    - [ ] Controller button
+    - [ ] Controller axis
+    - [ ] (extra) Multimedia button
+  - [ ] Virtual axis
+    - [ ] Keyboard
+    - [ ] Mouse
+    - [ ] Controller button
+    - [ ] Controller axis
+    - [ ] (extra) Multimedia button
+  - [ ] Feedback
+    - [ ] Rumble normal
+    - [ ] Dualsense part (?)
 - [ ] [render]
   - [ ] Font rendering
   - [ ] Batch rendering
