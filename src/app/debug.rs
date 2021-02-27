@@ -47,7 +47,7 @@ impl<S: GameState> App<'_, S> {
         self.debug.imgui_sdl2.prepare_frame(
             self.debug.imgui.io_mut(),
             &self.video.window,
-            &self.event_pump.mouse_state()
+            &self.sdl_context.event_pump.mouse_state()
         );
 
         let ui = self.debug.imgui.frame();

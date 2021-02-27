@@ -3,6 +3,7 @@
 // [ ] rename to TimeSystem
 // [ ] maybe use std::time instead of SDL timer_subsystem
 // [ ] create newtype for duration intervals
+// [ ] clone timer_subsystem instead of referencing it
 
 // @Refactor maybe use std::time?
 // @Refactor create a type to hold the USec, MSec, Sec (different types to be type checked)

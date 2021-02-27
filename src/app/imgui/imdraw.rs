@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use core::fmt::Display;
 
 use imgui::*;
@@ -28,7 +28,7 @@ macro_rules! im_str2 {
 
 #[macro_export]
 macro_rules! impl_imdraw_todo {
-    ($type:ident) => {
+    ($type:path) => {
         impl ImDraw for $type {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
                 ui.text(format!("{}: (todo)", label));
@@ -238,10 +238,28 @@ where
     }
 }
 
-impl<A, B> ImDraw for HashMap<A, B>
+impl<K, V> ImDraw for HashMap<K, V>
 where
-    A: ImDraw + Display,
-    B: ImDraw,
+    K: Display,
+    V: ImDraw,
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            let id = ui.push_id(label);
+
+            for (key, value) in self.iter_mut() {
+                value.imdraw(&format!("{}", key).to_owned(), ui);
+            }
+
+            id.pop(ui);
+        });
+    }
+}
+
+impl<K, V> ImDraw for BTreeMap<K, V>
+where
+    K: Display,
+    V: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
         imgui::TreeNode::new(im_str2!(label)).build(ui, || {

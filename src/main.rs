@@ -9,7 +9,6 @@ extern crate imgui;
 extern crate imgui_opengl_renderer;
 
 #[macro_use] mod app;
-#[macro_use] mod macros;
 mod entities;
 mod linalg;
 
@@ -18,7 +17,7 @@ use entities::*;
 use linalg::*;
 
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::Scancode;
 
 fn main() {
     App::<State>::new().run();
@@ -29,7 +28,8 @@ pub struct State {
     pub entity_containers: EntityContainers,
     pub entity_id: MyEntityId,
     pub animated_entity_id: MyEntityId,
-    //pub animated_entity_id: AnimatedEntityId,
+
+    pub input_mapping: InputMapping,
 }
 
 impl GameState for State {
@@ -93,14 +93,35 @@ impl GameState for State {
         //animated_entity.change_animation_set(animation_set, app);
         animated_entity.play_animation(app);
 
+        // input
+        let mut input_mapping = InputMapping::new();
+
+        let mut button = Button::new();
+        button.add_key(Scancode::A);
+        button.add_key(Scancode::Z);
+
+        input_mapping.add_button_mapping("FIRE".to_string(), button);
+
         Self {
             entity_containers,
             entity_id,
             animated_entity_id,
+            input_mapping,
         }
     }
 
     fn update(&mut self, app: &mut App<'_, Self>) {
+        app.update_input_mapping(&mut self.input_mapping);
+
+        let button = self.input_mapping.button("FIRE".to_string());
+        let pressed = button.pressed();
+        let released = button.released();
+        let long_press = button.pressed_for(5_000_000, app.time.game_time);
+
+        if pressed { println!("pressed!"); }
+        if released { println!("released"); }
+        if long_press { println!("FIRE!"); }
+
         if let Some(my_entity) = self.entity_containers.get_mut(self.entity_id) {
             my_entity.entity_mut().transform.pos.x += 10.0 * app.time.frame_duration();
         }
@@ -124,32 +145,32 @@ impl GameState for State {
 
         match event {
             Event::Quit {..} |
-            Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+            Event::KeyDown { scancode: Some(Scancode::Escape), .. } => {
                 app.running = false;
             },
-            Event::KeyDown { keycode: Some(Keycode::Num1), .. } => {
+            Event::KeyDown { scancode: Some(Scancode::Num1), .. } => {
                 app.schedule_task(1_000_000, |id, _state, app| {
                     println!("task {} {}", id, app.time.game_time);
                 });
             },
-            Event::KeyDown { keycode: Some(Keycode::K), .. } => {
+            Event::KeyDown { scancode: Some(Scancode::K), .. } => {
                 self.entity_containers.destroy(self.entity_id);
             },
-            Event::KeyDown { keycode: Some(Keycode::A), .. } => {
+            Event::KeyDown { scancode: Some(Scancode::A), .. } => {
                 /*
                 println!("active: {:?}", self.my_entity_container.is_active(self.entity));
                 self.my_entity_container.set_active(self.entity, true);
                 println!("active: {:?}", self.my_entity_container.is_active(self.entity));
                 */
             },
-            Event::KeyDown { keycode: Some(Keycode::V), .. } => {
+            Event::KeyDown { scancode: Some(Scancode::V), .. } => {
                 /*
                 println!("visible: {:?}", self.my_entity_container.is_visible(self.entity));
                 self.my_entity_container.set_visible(self.entity, true);
                 println!("visible: {:?}", self.my_entity_container.is_visible(self.entity));
                 */
             },
-            Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
+            Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
                 use sdl2::video::FullscreenType;
 
                 let window = &mut app.video.window;
