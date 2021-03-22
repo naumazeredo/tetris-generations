@@ -16,9 +16,6 @@ use app::*;
 use entities::*;
 use linalg::*;
 
-use sdl2::event::Event;
-use sdl2::keyboard::Scancode;
-
 fn main() {
     App::<State>::new().run();
 }
@@ -97,8 +94,11 @@ impl GameState for State {
         let mut input_mapping = InputMapping::new();
 
         let mut button = Button::new();
-        button.add_key(Scancode::A);
-        button.add_key(Scancode::Z);
+        button.add_key(sdl2::keyboard::Scancode::A);
+        button.add_key(sdl2::keyboard::Scancode::Z);
+        button.add_mouse_button(sdl2::mouse::MouseButton::Right);
+        button.add_controller_button(0, sdl2::controller::Button::A);
+        button.add_controller_axis(0, sdl2::controller::Axis::TriggerRight, 0.5, true);
 
         input_mapping.add_button_mapping("FIRE".to_string(), button);
 
@@ -140,14 +140,13 @@ impl GameState for State {
         });
     }
 
-    fn handle_input(&mut self, app: &mut App<'_, Self>, event: &Event) -> bool {
+    fn handle_input(&mut self, app: &mut App<'_, Self>, event: &sdl2::event::Event) -> bool {
+        use sdl2::event::Event;
+        use sdl2::keyboard::Scancode;
+
         if app.handle_debug_event(&event) { return true; }
 
         match event {
-            Event::Quit {..} |
-            Event::KeyDown { scancode: Some(Scancode::Escape), .. } => {
-                app.running = false;
-            },
             Event::KeyDown { scancode: Some(Scancode::Num1), .. } => {
                 app.schedule_task(1_000_000, |id, _state, app| {
                     println!("task {} {}", id, app.time.game_time);
@@ -155,20 +154,6 @@ impl GameState for State {
             },
             Event::KeyDown { scancode: Some(Scancode::K), .. } => {
                 self.entity_containers.destroy(self.entity_id);
-            },
-            Event::KeyDown { scancode: Some(Scancode::A), .. } => {
-                /*
-                println!("active: {:?}", self.my_entity_container.is_active(self.entity));
-                self.my_entity_container.set_active(self.entity, true);
-                println!("active: {:?}", self.my_entity_container.is_active(self.entity));
-                */
-            },
-            Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                /*
-                println!("visible: {:?}", self.my_entity_container.is_visible(self.entity));
-                self.my_entity_container.set_visible(self.entity, true);
-                println!("visible: {:?}", self.my_entity_container.is_visible(self.entity));
-                */
             },
             Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
                 use sdl2::video::FullscreenType;
@@ -185,6 +170,7 @@ impl GameState for State {
 
                 window.set_fullscreen(new_fullscreen_state).unwrap();
             },
+
             _ => {}
         }
 

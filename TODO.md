@@ -10,17 +10,21 @@
 - [ ] Asset system
 - [ ] Input system
   - [ ] Mapping
-  - [ ] Virtual button
+  - [x] Virtual button
     - [x] Keyboard
-    - [ ] Mouse
-    - [ ] Controller button
-    - [ ] Controller axis
+    - [x] Mouse
+    - [x] Controller button
+    - [x] Controller axis
+    - [ ] Joystick button
+    - [ ] Joystick axis
     - [ ] (extra) Multimedia button
   - [ ] Virtual axis
     - [ ] Keyboard
     - [ ] Mouse
     - [ ] Controller button
     - [ ] Controller axis
+    - [ ] Joystick button
+    - [ ] Joystick axis
     - [ ] (extra) Multimedia button
   - [ ] Feedback
     - [ ] Rumble normal

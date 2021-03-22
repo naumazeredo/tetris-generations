@@ -102,29 +102,3 @@ impl<E: IsEntity + ImDraw> EntityContainer<E> {
         }
     }
 }
-
-// -----
-// tests
-// -----
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn create_entity_container() {
-        let entity_container = EntityContainer::<Entity>::new();
-        assert!(entity_container.len() == 0);
-    }
-
-    #[test]
-    fn create_entity() {
-        let mut entity_container = EntityContainer::<Entity>::new();
-        let entity_id = entity_container.create_entity(
-            Transform::default(),
-            Sprite::default(),
-        );
-
-        assert!(entity_container.len() == 1);
-    }
-}

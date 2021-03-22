@@ -2,9 +2,8 @@ use std::cmp::max;
 
 use crate::app::imdraw::ImDraw;
 use crate::app::sdl2::{
-    //controller::{Button, Axis},
-    //keyboard::{Keycode, Scancode},
     keyboard::Scancode,
+    mouse::MouseButton,
 };
 
 use super::InputSystem;
@@ -12,9 +11,9 @@ use super::InputSystem;
 #[derive(ImDraw)]
 pub struct Button {
     keys: Vec<KeyInput>,
-    //controller_buttons: Vec<ControllerButtonInput>,
-    //axis: Vec<AxisInput>,
-    //mouse_button: Vec<MouseButtonInput>,
+    mouse_buttons: Vec<MouseButtonInput>,
+    controller_buttons: Vec<ControllerButtonInput>,
+    controller_axes: Vec<ControllerAxisInput>,
 
     // @TODO bitflags
     down: bool,
@@ -25,10 +24,14 @@ pub struct Button {
 }
 
 impl Button {
-    // @XXX maybe create a succint way to initialize a button
+    // @XXX maybe create a succint way to initialize a button with a list of keys, buttons, etc
     pub fn new() -> Self {
         Self {
             keys: Vec::new(),
+            mouse_buttons: Vec::new(),
+            controller_buttons: Vec::new(),
+            controller_axes: Vec::new(),
+
             down: false,
             pressed: false,
             released: false,
@@ -36,8 +39,83 @@ impl Button {
         }
     }
 
+    // Keyboard keys
+    // @Maybe abstract Scancode
     pub fn add_key(&mut self, code: Scancode) {
-        self.keys.push(KeyInput { code });
+        if self.keys.iter().any(|elem| elem.0 == code) {
+            panic!("[button add_key] trying to add repeated key to Button");
+        }
+
+        self.keys.push(KeyInput(code));
+    }
+
+    pub fn rem_key(&mut self, code: Scancode) {
+        // @TODO debug check if we are trying to remove a key not present
+        self.keys.retain(|elem| elem.0 != code);
+    }
+
+    // Mouse buttons
+    pub fn add_mouse_button(&mut self, button: MouseButton) {
+        if self.mouse_buttons.iter().any(|elem| elem.0 == button) {
+            panic!("[button add_mouse_button] trying to add repeated mouse button to Button");
+        }
+
+        self.mouse_buttons.push(MouseButtonInput(button));
+    }
+
+    pub fn rem_mouse_button(&mut self, button: MouseButton) {
+        self.mouse_buttons.retain(|elem| elem.0 != button);
+    }
+
+    // Controller buttons
+    // @TODO add the controller id to the input mapping instead of the specific button
+    pub fn add_controller_button(&mut self, controller_index: usize, button: sdl2::controller::Button) {
+        if self.controller_buttons.iter().any(|elem| {
+            elem.controller_index == controller_index && elem.button == button
+        }) {
+            panic!("[button add_controller_button] trying to add repeated controller button to Button");
+        }
+
+        self.controller_buttons.push(ControllerButtonInput{ controller_index, button });
+    }
+
+    pub fn rem_controller_button(&mut self, controller_index: usize, button: sdl2::controller::Button) {
+        self.controller_buttons.retain(|elem| {
+            elem.controller_index != controller_index || elem.button != button
+        });
+    }
+
+    // Controller axis
+    pub fn add_controller_axis(
+        &mut self,
+        controller_index: usize,
+        axis: sdl2::controller::Axis,
+        threshold: f32,
+        greater_than: bool
+    ) {
+        if self.controller_axes.iter().any(|elem| {
+            elem.controller_index == controller_index && elem.axis == axis
+        }) {
+            panic!("[button add_controller_button] trying to add repeated controller button to Button");
+        }
+
+        self.controller_axes.push(
+            ControllerAxisInput{
+                controller_index,
+                axis,
+                threshold,
+                greater_than,
+
+                last_update_value: false,
+                last_change_timestamp: 0,
+            }
+        );
+    }
+
+    pub fn rem_controller_axis(&mut self, controller_index: usize, axis: sdl2::controller::Axis) {
+        self.controller_axes.retain(|elem| {
+            elem.controller_index != controller_index || elem.axis != axis
+        });
     }
 
     pub(super) fn update(&mut self, input_system: &InputSystem, timestamp: u64) {
@@ -46,12 +124,61 @@ impl Button {
 
         let mut total_down = 0;
 
+        // Keyboard keys
         for key in self.keys.iter() {
-            let key_state = input_system.keyboard.get(key.code);
+            let key_state = input_system.keyboard.button_state(key.0);
 
             total_down += key_state.down as i32;
             last_pressed = max(last_pressed, (key_state.down as u64) * key_state.timestamp);
             last_released = max(last_released, (!key_state.down as u64) * key_state.timestamp);
+        }
+
+        // Mouse buttons
+        for button in self.mouse_buttons.iter() {
+            let button_state = input_system.mouse.button_state(button.0);
+
+            total_down += button_state.down as i32;
+            last_pressed = max(last_pressed, (button_state.down as u64) * button_state.timestamp);
+            last_released = max(last_released, (!button_state.down as u64) * button_state.timestamp);
+        }
+
+        // Controller buttons
+        for button in self.controller_buttons.iter() {
+            match input_system.controllers.controller_state(button.controller_index) {
+                Some(controller_state) => {
+                    let button_state = controller_state.button_state(button.button);
+
+                    total_down += button_state.down as i32;
+                    last_pressed = max(last_pressed, (button_state.down as u64) * button_state.timestamp);
+                    last_released = max(last_released, (!button_state.down as u64) * button_state.timestamp);
+                },
+                None => {}
+            }
+        }
+
+        // Controller axis
+        // Requires extra logic since we want to map the button as pressed only when it crosses the
+        // threshold. We can't put this logic in the axis itself since it can be used in multiple
+        // buttons with different thresholds
+        for axis in self.controller_axes.iter_mut() {
+            match input_system.controllers.controller_state(axis.controller_index) {
+                Some(controller_state) => {
+                    let axis_state = controller_state.axis_state(axis.axis);
+
+                    let axis_down = axis_state.pressed(axis.threshold, axis.greater_than);
+
+                    let changed_state = axis_down ^ axis.last_update_value;
+                    if changed_state {
+                        axis.last_change_timestamp = timestamp;
+                    }
+                    axis.last_update_value = axis_down;
+
+                    total_down += axis_down as i32;
+                    last_pressed = max(last_pressed, (axis_down as u64) * axis.last_change_timestamp);
+                    last_released = max(last_released, (!axis_down as u64) * axis.last_change_timestamp);
+                },
+                None => {}
+            }
         }
 
         // Multiple keys per button logic
@@ -97,24 +224,72 @@ impl Button {
 }
 
 #[derive(ImDraw)]
-struct KeyInput {
-    code: Scancode,
-}
+struct KeyInput(Scancode);
 
-/*
+#[derive(ImDraw)]
+struct MouseButtonInput(MouseButton);
+
+#[derive(ImDraw)]
 struct ControllerButtonInput {
-    controller_index: u32,
-    key: Keycode,
+    controller_index: usize,
+    button: sdl2::controller::Button,
 }
 
-struct AxisInput {
-    controller_index: u32,
-    axis: Axis,
+#[derive(ImDraw)]
+struct ControllerAxisInput {
+    controller_index: usize,
+    axis: sdl2::controller::Axis,
     threshold: f32,
-    positive: bool,
+    greater_than: bool,
+
+    // Required to handle the last time it changed the threshold boundary
+    last_update_value: bool,
+    last_change_timestamp: u64,
 }
 
-struct MouseButtonInput {
-    button: MouseButton,
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_button_keys() {
+        let mut button = Button::new();
+
+        assert_eq!(button.keys.len(), 0);
+
+        button.add_key(Scancode::A);
+
+        assert_eq!(button.keys.len(), 1);
+
+        button.rem_key(Scancode::A);
+
+        assert_eq!(button.keys.len(), 0);
+
+        button.add_key(Scancode::A);
+        button.add_key(Scancode::B);
+        button.rem_key(Scancode::A);
+
+        assert_eq!(button.keys.len(), 1);
+    }
+
+    #[test]
+    fn test_button_mouse_buttons() {
+        let mut button = Button::new();
+
+        assert_eq!(button.mouse_buttons.len(), 0);
+
+        button.add_mouse_button(MouseButton::Left);
+
+        assert_eq!(button.mouse_buttons.len(), 1);
+
+        button.rem_mouse_button(MouseButton::Left);
+
+        assert_eq!(button.mouse_buttons.len(), 0);
+
+        button.add_mouse_button(MouseButton::Left);
+        button.add_mouse_button(MouseButton::Right);
+        button.rem_mouse_button(MouseButton::Left);
+
+        assert_eq!(button.mouse_buttons.len(), 1);
+    }
 }
-*/

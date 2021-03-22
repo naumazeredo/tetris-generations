@@ -124,7 +124,6 @@ pub fn generate(struct_ast: ItemStruct, container: Option<Ident>) -> Result<Toke
                     animator.play(
                         app,
                         move |id, state, app| {
-                            println!("animation task called: {}", id);
                             let entity = state.entity_containers.get_mut(entity_id)
                                 .expect("[animator task] no entity with id");
 

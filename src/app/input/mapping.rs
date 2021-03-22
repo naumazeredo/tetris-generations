@@ -6,16 +6,29 @@ use super::button::Button;
 // @XXX Somehow we should be able to verify if the last key pressed was on the keyboard/mouse
 //      or gamepad
 
+/*
+// @TODO bind the controller to the input mapping, instead of to the button
+enum ControllerBind {
+    No,
+    Any,
+    Index(usize),
+}
+
+impl_imdraw_todo!(ControllerBind);
+*/
+
 // @TODO use hashed string
 #[derive(ImDraw)]
 pub struct InputMapping {
     pub(super) button_mapping: BTreeMap<String, Button>,
+    //controller_bind: ControllerBind,
 }
 
 impl InputMapping {
     pub fn new() -> Self {
         Self {
             button_mapping: BTreeMap::new(),
+            //controller_bind: ControllerBind::No,
         }
     }
 
@@ -29,7 +42,7 @@ impl InputMapping {
         }
     }
 
-    pub fn button<'a>(&'a self, name: String) -> &'a Button {
+    pub fn button(&self, name: String) -> &Button {
         self.button_mapping.get(&name).unwrap()
     }
 }

@@ -54,8 +54,8 @@ impl<'a, S: 'a + GameState> App<'a, S> {
         let sdl_context = SdlContext::new();
         let video= Video::new(&sdl_context);
 
-        let input = InputSystem::new();
-        let time = Time::new(&sdl_context.timer_subsystem);
+        let input = InputSystem::new(sdl_context.controller_subsystem.clone());
+        let time = Time::new(&sdl_context.timer_subsystem); // @TODO clone subsystem instead of using a reference
         let renderer = Renderer::new();
 
         let animation_system = AnimationSystem::new();
@@ -88,8 +88,6 @@ impl<'a, S: 'a + GameState> App<'a, S> {
 
             let events: Vec<Event> = self.sdl_context.event_pump.poll_iter().collect();
             for event in events.into_iter() {
-                // @TODO abstract the backend SDL events to game state
-
                 // Handle game input first to allow it consuming the input
                 // This can be useful if the game has some meta components, like
                 // not allowing you to close the window, or changing how it handles
