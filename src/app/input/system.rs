@@ -1,6 +1,6 @@
 // Input System
 
-// [ ] InputMapping
+// Externally we only have access to controller index. Id will be used only internally
 
 use std::collections::BTreeMap;
 
@@ -87,25 +87,31 @@ impl InputSystem {
                 let index = *which;
 
                 match self.controller_subsystem.open(index) {
-                    Ok(c) => self.controllers.add(index, c),
+                    Ok(c) => self.controllers.connect(index, c),
                     Err(_) => println!("connect failed ({})", which)
                 };
             },
 
             Event::ControllerDeviceRemoved { which, .. } => {
                 let id = *which;
-                self.controllers.remove(id);
+                self.controllers.disconnect(id);
             },
 
             // Buttons
             Event::ControllerButtonDown { which, button, .. } => {
                 let id = *which;
-                self.controllers.press_button(id, *button, timestamp);
+                match self.controllers.controller_state_from_id(id) {
+                    Some(c) => c.press_button(*button, timestamp),
+                    None => {}
+                }
             },
 
             Event::ControllerButtonUp { which, button, .. } => {
                 let id = *which;
-                self.controllers.release_button(id, *button, timestamp);
+                match self.controllers.controller_state_from_id(id) {
+                    Some(c) => c.release_button(*button, timestamp),
+                    None => {}
+                }
             },
 
             // Axis
@@ -118,12 +124,28 @@ impl InputSystem {
                     (*value) as f32 / (i16::MIN as f32)
                 };
 
-                self.controllers.update_axis(id, axis, value, timestamp);
+                match self.controllers.controller_state_from_id(id) {
+                    Some(c) => c.update_axis(axis, value, timestamp),
+                    None => {}
+                }
             },
 
             // Touchpad (not supported in rust-sdl2)
 
             _ => {}
+        }
+    }
+
+    pub fn set_controller_rumble(
+        &mut self,
+        controller_index: usize,
+        low_frequency: u16,
+        high_frequency: u16,
+        duration: u32
+    ) {
+        match self.controllers.controller_state_mut(controller_index) {
+            Some(c) => c.set_rumble(low_frequency, high_frequency, duration),
+            None => {}
         }
     }
 
@@ -269,48 +291,51 @@ impl MouseState {
 
 #[derive(Default)]
 pub(super) struct ControllerStateContainer {
-    pub(super) controllers: [ControllerState; MAX_CONTROLLERS],
+    pub(super) controller_states: [ControllerState; MAX_CONTROLLERS],
     id_to_index: BTreeMap<u32, usize>,
 }
 
 impl ControllerStateContainer {
-    fn add(&mut self, index: u32, controller: sdl2::controller::GameController) {
+    fn connect(&mut self, index: u32, controller: sdl2::controller::GameController) {
         let id = controller.instance_id();
-        println!("connected ({}, {}): {}", index, id, controller.name());
-        self.controllers[index as usize].connect(controller);
+        self.controller_states[index as usize].connect(controller);
 
         self.id_to_index.insert(id, index as usize);
     }
 
-    fn remove(&mut self, id: u32) {
-        println!("disconnected: {}", id);
-        let index = *self.id_to_index.get(&id)
-            .expect("trying to remove an unmapped controller id");
-        self.controllers[index].disconnect();
-        self.id_to_index.remove(&id);
+    fn disconnect(&mut self, id: u32) {
+        match self.id_to_index.get(&id) {
+            Some(&index) => {
+                self.controller_states[index].disconnect();
+                self.id_to_index.remove(&id);
+            },
+            None => {
+                // @TODO log
+                println!(
+                    "[input_system controller_state_container] tried to disconnect unmapped controller id {}",
+                    id
+                );
+            }
+        }
     }
 
-    fn press_button(&mut self, id: u32, button: sdl2::controller::Button, timestamp: u64) {
-        let index = *self.id_to_index.get(&id)
-            .expect("trying to press on an unmapped controller id");
-        self.controllers[index].press_button(button, timestamp);
+    fn controller_state_from_id(&mut self, id: u32) -> Option<&mut ControllerState> {
+        match self.id_to_index.get(&id) {
+            Some(&index) => Some(&mut self.controller_states[index]),
+            None => None
+        }
     }
 
-    fn release_button(&mut self, id: u32, button: sdl2::controller::Button, timestamp: u64) {
-        let index = *self.id_to_index.get(&id)
-            .expect("trying to release on an unmapped controller id");
-        self.controllers[index].release_button(button, timestamp);
-    }
-
-    fn update_axis(&mut self, id: u32, axis: sdl2::controller::Axis, value: f32, timestamp: u64) {
-        let index = *self.id_to_index.get(&id)
-            .expect("trying to release on an unmapped controller id");
-        self.controllers[index].update_axis(axis, value, timestamp);
+    fn controller_state_mut(&mut self, index: usize) -> Option<&mut ControllerState> {
+        match self.controller_states[index].controller {
+            Some(_) => Some(&mut self.controller_states[index]),
+            None => None,
+        }
     }
 
     pub(super) fn controller_state(&self, index: usize) -> Option<&ControllerState> {
-        match self.controllers[index].controller {
-            Some(_) => Some(&self.controllers[index]),
+        match self.controller_states[index].controller {
+            Some(_) => Some(&self.controller_states[index]),
             None => None,
         }
     }
@@ -327,11 +352,13 @@ pub(super) struct ControllerState {
 impl ControllerState {
     fn connect(&mut self, controller: sdl2::controller::GameController) {
         assert!(!self.is_connected());
+        println!("controller connected: {}", controller.name() );
         self.controller = Some(controller);
     }
 
     fn disconnect(&mut self) {
         assert!(self.is_connected());
+        println!("controller disconnected: {}", self.controller.as_ref().unwrap().name());
         self.controller.take();
     }
 
@@ -352,6 +379,23 @@ impl ControllerState {
     fn update_axis(&mut self, axis: sdl2::controller::Axis, value: f32, timestamp: u64) {
         assert!(self.is_connected());
         self.axes[axis as usize].update_value(value, timestamp);
+    }
+
+    fn set_rumble(
+        &mut self,
+        low_frequency: u16,
+        high_frequency: u16,
+        duration: u32
+    ) {
+        assert!(self.is_connected());
+        let controller_mut = self.controller.as_mut().unwrap();
+        match controller_mut.set_rumble(low_frequency, high_frequency, duration) {
+            Ok(_) => {},
+            Err(e) => {
+                // @TODO log
+                println!("[input_system controller_state set_rumble] {}", e);
+            }
+        }
     }
 
     pub(super) fn button_state(&self, button: sdl2::controller::Button) -> &ButtonState {

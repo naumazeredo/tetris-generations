@@ -27,14 +27,15 @@
     - [ ] Joystick axis
     - [ ] (extra) Multimedia button
   - [ ] Feedback
-    - [ ] Rumble normal
-    - [ ] Dualsense part (?)
+    - [x] Rumble normal
+    - [ ] Dualsense extra feedbacks
 - [ ] [render]
   - [ ] Font rendering
   - [ ] Batch rendering
   - [ ] Shader struct
   - [ ] Render to framebuffer + post render effects
   - [ ] verify gl errors
+- [ ] Test all parts
 - [ ] [ui] Command buffer "immediate mode"
 - [ ] [debug] imgui architecture make it not possible to pass App down to callbacks
 - [ ] [debug] rename to Editor and implement an Immediate Mode GUI from scratch (or use the, to be
@@ -47,3 +48,8 @@
 - [ ] Download Windows SDL2 binaries automatically
 - [ ] Cleanup binary dependencies
   - [ ] Maybe use stb_image instead of SDL_image
+
+# Issues
+
+- [ ] [input system] controller shouldn't panic on not connected, only check (axis motion events can
+        happen at the same time the controller disconnects)

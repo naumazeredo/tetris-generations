@@ -116,11 +116,14 @@ impl GameState for State {
         let button = self.input_mapping.button("FIRE".to_string());
         let pressed = button.pressed();
         let released = button.released();
-        let long_press = button.pressed_for(5_000_000, app.time.game_time);
+        let long_press = button.pressed_for(1_000_000, app.time.game_time);
 
         if pressed { println!("pressed!"); }
         if released { println!("released"); }
-        if long_press { println!("FIRE!"); }
+        if long_press {
+            println!("FIRE!");
+            app.input.set_controller_rumble(0, 0x7fff, 0x7fff, 1_000);
+        }
 
         if let Some(my_entity) = self.entity_containers.get_mut(self.entity_id) {
             my_entity.entity_mut().transform.pos.x += 10.0 * app.time.frame_duration();

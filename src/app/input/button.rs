@@ -1,5 +1,4 @@
 use std::cmp::max;
-
 use crate::app::imdraw::ImDraw;
 use crate::app::sdl2::{
     keyboard::Scancode,
