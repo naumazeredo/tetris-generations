@@ -43,6 +43,7 @@ impl InputMapping {
     }
 
     pub fn button(&self, name: String) -> &Button {
-        self.button_mapping.get(&name).unwrap()
+        self.button_mapping.get(&name)
+            .expect(&format!("[input_system mapping] No mapping found for button: {}", name))
     }
 }

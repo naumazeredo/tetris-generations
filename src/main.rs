@@ -93,14 +93,58 @@ impl GameState for State {
         // input
         let mut input_mapping = InputMapping::new();
 
-        let mut button = Button::new();
-        button.add_key(sdl2::keyboard::Scancode::A);
-        button.add_key(sdl2::keyboard::Scancode::Z);
-        button.add_mouse_button(sdl2::mouse::MouseButton::Right);
-        button.add_controller_button(0, sdl2::controller::Button::A);
-        button.add_controller_axis(0, sdl2::controller::Axis::TriggerRight, 0.5, true);
+        {
+            let mut button = Button::new();
+            button.add_key(sdl2::keyboard::Scancode::W);
+            button.add_controller_button(0, sdl2::controller::Button::DPadUp);
+            button.add_controller_axis(
+                0,
+                sdl2::controller::Axis::LeftY,
+                ControllerAxisThreshold::lesser_than(-0.5)
+            );
 
-        input_mapping.add_button_mapping("FIRE".to_string(), button);
+            input_mapping.add_button_mapping("UP".to_string(), button);
+        }
+
+        {
+            let mut button = Button::new();
+            button.add_key(sdl2::keyboard::Scancode::S);
+            button.add_controller_button(0, sdl2::controller::Button::DPadDown);
+            button.add_controller_axis(
+                0,
+                sdl2::controller::Axis::LeftY,
+                ControllerAxisThreshold::greater_than(0.5)
+            );
+
+            input_mapping.add_button_mapping("DOWN".to_string(), button);
+        }
+
+        {
+            let mut button = Button::new();
+            button.add_key(sdl2::keyboard::Scancode::D);
+            button.add_controller_button(0, sdl2::controller::Button::DPadRight);
+            button.add_controller_axis(
+                0,
+                sdl2::controller::Axis::LeftX,
+                ControllerAxisThreshold::greater_than(0.5)
+            );
+
+            input_mapping.add_button_mapping("RIGHT".to_string(), button);
+        }
+
+        {
+            let mut button = Button::new();
+            button.add_key(sdl2::keyboard::Scancode::A);
+            button.add_controller_button(0, sdl2::controller::Button::DPadLeft);
+            button.add_controller_axis(
+                0,
+                sdl2::controller::Axis::LeftX,
+                ControllerAxisThreshold::lesser_than(-0.5)
+            );
+
+            input_mapping.add_button_mapping("LEFT".to_string(), button);
+        }
+
 
         Self {
             entity_containers,
@@ -113,20 +157,18 @@ impl GameState for State {
     fn update(&mut self, app: &mut App<'_, Self>) {
         app.update_input_mapping(&mut self.input_mapping);
 
-        let button = self.input_mapping.button("FIRE".to_string());
-        let pressed = button.pressed();
-        let released = button.released();
-        let long_press = button.pressed_for(1_000_000, app.time.game_time);
-
-        if pressed { println!("pressed!"); }
-        if released { println!("released"); }
-        if long_press {
-            println!("FIRE!");
-            app.input.set_controller_rumble(0, 0x7fff, 0x7fff, 1_000);
-        }
+        let u_button = self.input_mapping.button("UP".to_string()).down();
+        let d_button = self.input_mapping.button("DOWN".to_string()).down();
+        let r_button = self.input_mapping.button("RIGHT".to_string()).down();
+        let l_button = self.input_mapping.button("LEFT".to_string()).down();
+        let move_direction = Vec2 {
+            x: ((r_button as i32) - (l_button as i32)) as f32,
+            y: ((d_button as i32) - (u_button as i32)) as f32,
+        };
 
         if let Some(my_entity) = self.entity_containers.get_mut(self.entity_id) {
-            my_entity.entity_mut().transform.pos.x += 10.0 * app.time.frame_duration();
+            my_entity.entity_mut().transform.pos +=
+                100.0 * app.time_system.frame_duration() * move_direction;
         }
     }
 
@@ -152,7 +194,7 @@ impl GameState for State {
         match event {
             Event::KeyDown { scancode: Some(Scancode::Num1), .. } => {
                 app.schedule_task(1_000_000, |id, _state, app| {
-                    println!("task {} {}", id, app.time.game_time);
+                    println!("task {} {}", id, app.time_system.game_time);
                 });
             },
             Event::KeyDown { scancode: Some(Scancode::K), .. } => {
@@ -161,7 +203,7 @@ impl GameState for State {
             Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
                 use sdl2::video::FullscreenType;
 
-                let window = &mut app.video.window;
+                let window = &mut app.video_system.window;
                 let new_fullscreen_state = match window.fullscreen_state() {
                     //FullscreenType::Off => FullscreenType::True,
                     //FullscreenType::True => FullscreenType::Desktop,

@@ -46,7 +46,7 @@ impl<S: GameState> App<'_, S> {
     ) {
         self.debug.imgui_sdl2.prepare_frame(
             self.debug.imgui.io_mut(),
-            &self.video.window,
+            &self.video_system.window,
             &self.sdl_context.event_pump.mouse_state()
         );
 
@@ -62,7 +62,7 @@ impl<S: GameState> App<'_, S> {
                 render_info(&ui, state);
             });
 
-        self.debug.imgui_sdl2.prepare_render(&ui, &self.video.window);
+        self.debug.imgui_sdl2.prepare_render(&ui, &self.video_system.window);
         self.debug.imgui_renderer.render(ui);
     }
 }

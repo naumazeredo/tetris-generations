@@ -1,7 +1,7 @@
 // Entity Container
 
 use crate::app::{
-    animations::AnimationSet,
+    animation_system::AnimationSet,
     id_manager::{IsId, IdGenerator},
     imgui::imdraw::ImDraw,
     renderer::{

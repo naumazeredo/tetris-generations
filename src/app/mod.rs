@@ -1,34 +1,34 @@
 extern crate sdl2;
 extern crate imgui_opengl_renderer;
 
-pub mod animations;
+pub mod animation_system;
 pub mod debug;
 pub mod game_state;
 pub mod id_manager;
 #[macro_use] pub mod imgui;
-pub mod input;
+pub mod input_system;
 pub mod renderer;
 pub mod sdl;
 pub mod task_system;
 pub mod transform;
-pub mod time;
+pub mod time_system;
 pub mod utils;
-pub mod video;
+pub mod video_system;
 
 pub use {
-    animations::*,
+    animation_system::*,
     debug::*,
     game_state::*,
     id_manager::*,
-    input::*,
+    input_system::*,
     self::imgui::*,
     renderer::*,
     sdl::*,
     task_system::*,
     transform::*,
-    time::*,
-    video::*,
+    time_system::*,
     utils::*,
+    video_system::*,
 };
 
 use sdl2::event::Event;
@@ -37,9 +37,9 @@ use sdl2::keyboard::Scancode;
 pub struct App<'a, S> {
     pub animation_system: AnimationSystem,
     pub sdl_context: SdlContext,
-    pub video: Video,
-    pub time: Time,
-    pub input: InputSystem,
+    pub video_system: VideoSystem,
+    pub time_system: TimeSystem,
+    pub input_system: InputSystem,
     pub renderer: Renderer,
     pub debug: Debug,
     pub task_system: TaskSystem<'a, S>,
@@ -52,24 +52,24 @@ impl<'a, S: 'a + GameState> App<'a, S> {
         // @TODO check results
 
         let sdl_context = SdlContext::new();
-        let video= Video::new(&sdl_context);
+        let video_system = VideoSystem::new(sdl_context.video_subsystem.clone());
 
-        let input = InputSystem::new(sdl_context.controller_subsystem.clone());
-        let time = Time::new(&sdl_context.timer_subsystem); // @TODO clone subsystem instead of using a reference
+        let input_system = InputSystem::new(sdl_context.controller_subsystem.clone());
+        let time_system = TimeSystem::new(sdl_context.timer_subsystem.clone());
         let renderer = Renderer::new();
 
         let animation_system = AnimationSystem::new();
-        let debug = Debug::new(&video.window);
+        let debug = Debug::new(&video_system.window);
         let task_system = TaskSystem::new();
 
         Self {
             animation_system,
 
             sdl_context,
-            video,
+            video_system,
 
-            input,
-            time,
+            input_system,
+            time_system,
             renderer,
 
             debug,
@@ -102,12 +102,12 @@ impl<'a, S: 'a + GameState> App<'a, S> {
             // Render
             self.renderer.prepare_render();
             state.render(self);
-            self.video.present();
+            self.video_system.present();
         }
     }
 
     fn handle_input(&mut self, event: &Event) {
-        let timestamp = self.time.game_time;
+        let timestamp = self.time_system.game_time;
 
         match event {
             Event::Quit {..}
@@ -118,6 +118,6 @@ impl<'a, S: 'a + GameState> App<'a, S> {
             _ => {}
         }
 
-        self.input.handle_input(&event, timestamp);
+        self.input_system.handle_input(&event, timestamp);
     }
 }

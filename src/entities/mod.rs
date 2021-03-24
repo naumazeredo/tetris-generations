@@ -7,7 +7,7 @@ pub use container::*;
 use crate::State;
 use crate::app::{
     App,
-    animations::{Animator, AnimationSet},
+    animation_system::{Animator, AnimationSet},
     id_manager::Id,
     imgui::ImDraw,
     renderer::Renderer,

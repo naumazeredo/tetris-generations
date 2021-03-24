@@ -5,7 +5,33 @@ use crate::app::sdl2::{
     mouse::MouseButton,
 };
 
-use super::InputSystem;
+use super::{
+    ControllerAxisThreshold,
+    InputSystem,
+};
+
+/*
+    let mut button = Button::new();
+    button.add_key(sdl2::keyboard::Scancode::W);
+    button.add_controller_button(0, sdl2::controller::Button::DPadUp);
+    button.add_controller_axis(
+        0,
+        sdl2::controller::Axis::LeftY,
+        ControllerAxisThreshold::lesser_than(-0.5)
+    );
+
+    input_mapping.add_button_mapping("UP".to_string(), button);
+
+    let down = button.down();
+    let pressed = button.pressed();
+    let released = button.released();
+    let long_press = button.pressed_for(1_000_000, app.time_system.game_time);
+
+    if down { println!("down!"); }
+    if pressed { println!("pressed!"); }
+    if released { println!("released"); }
+    if long_press { println!("long_press"); }
+*/
 
 #[derive(ImDraw)]
 pub struct Button {
@@ -89,21 +115,21 @@ impl Button {
         &mut self,
         controller_index: usize,
         axis: sdl2::controller::Axis,
-        threshold: f32,
-        greater_than: bool
+        threshold: ControllerAxisThreshold,
     ) {
         if self.controller_axes.iter().any(|elem| {
-            elem.controller_index == controller_index && elem.axis == axis
+            elem.controller_index == controller_index &&
+            elem.axis == axis &&
+            elem.threshold.direction == threshold.direction
         }) {
             panic!("[button add_controller_button] trying to add repeated controller button to Button");
         }
 
         self.controller_axes.push(
-            ControllerAxisInput{
+            ControllerAxisInput {
                 controller_index,
                 axis,
                 threshold,
-                greater_than,
 
                 last_update_value: false,
                 last_change_timestamp: 0,
@@ -164,7 +190,7 @@ impl Button {
                 Some(controller_state) => {
                     let axis_state = controller_state.axis_state(axis.axis);
 
-                    let axis_down = axis_state.pressed(axis.threshold, axis.greater_than);
+                    let axis_down = axis_state.pressed(axis.threshold);
 
                     let changed_state = axis_down ^ axis.last_update_value;
                     if changed_state {
@@ -238,8 +264,7 @@ struct ControllerButtonInput {
 struct ControllerAxisInput {
     controller_index: usize,
     axis: sdl2::controller::Axis,
-    threshold: f32,
-    greater_than: bool,
+    threshold: ControllerAxisThreshold,
 
     // Required to handle the last time it changed the threshold boundary
     last_update_value: bool,

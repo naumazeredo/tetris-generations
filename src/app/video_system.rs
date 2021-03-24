@@ -1,16 +1,14 @@
-use super::sdl::SdlContext;
-
-pub struct Video {
+pub struct VideoSystem {
     pub window: sdl2::video::Window,
     pub gl_context: sdl2::video::GLContext,
 }
 
-impl Video {
-    pub fn new(sdl_context: &SdlContext) -> Self {
+impl VideoSystem {
+    pub fn new(video_subsystem: sdl2::VideoSubsystem) -> Self {
         // OpenGL setup
         // @Refactor move to window struct
 
-        let gl_attr = sdl_context.video_subsystem.gl_attr();
+        let gl_attr = video_subsystem.gl_attr();
 
         // Don't use deprecated OpenGL functions
         gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
@@ -24,29 +22,29 @@ impl Video {
         gl_attr.set_multisample_samples(4);
 
         // @TODO use config info
-        let window = sdl_context.video_subsystem.window("Codename Dash", 1280, 960)
+        let window = video_subsystem.window("Codename Dash", 1280, 960)
             .opengl()
             .position_centered()
             .build()
             .unwrap();
 
         let gl_context = window.gl_create_context().unwrap();
-        gl::load_with(|name| sdl_context.video_subsystem.gl_get_proc_address(name) as *const _);
+        gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
 
         window.gl_make_current(&gl_context).unwrap();
 
         // @TODO video system
         // @XXX testing how to get some display info
-        let video_driver = sdl_context.video_subsystem.current_video_driver();
+        let video_driver = video_subsystem.current_video_driver();
         println!("Video driver: {}", video_driver);
 
-        let num_video_displays = sdl_context.video_subsystem.num_video_displays().unwrap();
+        let num_video_displays = video_subsystem.num_video_displays().unwrap();
         println!("Video displays: {}", num_video_displays);
 
         for i in 0..num_video_displays {
-            let display_mode = sdl_context.video_subsystem.desktop_display_mode(i).unwrap();
-            let display_name = sdl_context.video_subsystem.display_name(i).unwrap();
-            let display_dpi  = sdl_context.video_subsystem.display_dpi(i).unwrap();
+            let display_mode = video_subsystem.desktop_display_mode(i).unwrap();
+            let display_name = video_subsystem.display_name(i).unwrap();
+            let display_dpi  = video_subsystem.display_dpi(i).unwrap();
             println!(
                 "{}: {}x{} @ {} Hz dpi:({}, {}, {})",
                 display_name,

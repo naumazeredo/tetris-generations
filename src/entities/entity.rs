@@ -1,6 +1,6 @@
 use super::EntityContainers;
 pub use crate::app::{
-    animations::{Animator, AnimationSet},
+    animation_system::{Animator, AnimationSet},
     id_manager::IsId,
     imgui::imdraw::ImDraw,
     renderer::Sprite,

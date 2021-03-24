@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use super::{
     App,
     game_state::GameState,
-    time::Time,
+    time_system::TimeSystem,
     imgui::ImDraw,
 };
 
@@ -55,7 +55,7 @@ impl Task {
 
 fn schedule_task<'a, S: GameState, F>(
     task_system: &mut TaskSystem<'a, S>,
-    time_system: &Time,
+    time_system: &TimeSystem,
     time_delay: u64,
     callback: F
 ) -> Task
@@ -85,11 +85,11 @@ impl<'a, S: GameState> App<'a, S> {
     pub fn schedule_task<F>(&mut self, time_delay: u64, callback: F) -> Task
     where F: FnMut(u64, &mut S, &mut App<S>) + 'a, // @XXX F: TaskFn<S> + 'a,
     {
-        schedule_task(&mut self.task_system, &self.time, time_delay, callback)
+        schedule_task(&mut self.task_system, &self.time_system, time_delay, callback)
     }
 
     pub fn run_tasks(&mut self, state: &mut S) {
-        let game_time = self.time.game_time;
+        let game_time = self.time_system.game_time;
         while let Some(task) = self.task_system.tasks_scheduled.peek() {
             if task.execution_time > game_time {
                 break;

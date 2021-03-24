@@ -10,8 +10,7 @@
 
 use super::{App, GameState};
 
-// @Rename Time -> TimeSystem
-pub struct Time {
+pub struct TimeSystem {
     pub frame_count: u32,
     pub real_time: u64,
     pub real_frame_duration: u64,
@@ -23,8 +22,8 @@ pub struct Time {
     last_scale: f64,
 }
 
-impl Time {
-    pub fn new(timer_subsystem: &sdl2::TimerSubsystem) -> Self {
+impl TimeSystem {
+    pub fn new(timer_subsystem: sdl2::TimerSubsystem) -> Self {
         Self {
             frame_count: 0,
             real_time: 0,
@@ -32,7 +31,7 @@ impl Time {
             game_time: 0,
             game_frame_duration: 0,
             scale: 1.0,
-            last_time: system_time(timer_subsystem),
+            last_time: system_time(&timer_subsystem),
             last_scale: 1.0,
         }
     }
@@ -51,7 +50,7 @@ fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
 
 impl<S: GameState> App<'_, S> {
     pub fn new_frame(&mut self) {
-        let time_system = &mut self.time;
+        let time_system = &mut self.time_system;
 
         time_system.frame_count += 1;
 
@@ -66,13 +65,13 @@ impl<S: GameState> App<'_, S> {
     }
 
     pub fn pause(&mut self) {
-        let time_system = &mut self.time;
+        let time_system = &mut self.time_system;
         time_system.last_scale = time_system.scale;
         time_system.scale = 0.0;
     }
 
     pub fn resume(&mut self) {
-        let time_system = &mut self.time;
+        let time_system = &mut self.time_system;
         time_system.scale = time_system.last_scale;
     }
 }

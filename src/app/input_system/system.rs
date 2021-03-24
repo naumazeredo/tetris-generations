@@ -14,7 +14,11 @@ use crate::app::sdl2::{
     keyboard::Scancode,
 };
 
-use super::mapping::InputMapping;
+use super::{
+    ControllerAxisDirection,
+    ControllerAxisThreshold,
+    mapping::InputMapping,
+};
 
 const MAX_KEYBOARD_KEYS      : usize = 512;
 const MAX_MOUSE_BUTTONS      : usize = 16;
@@ -121,7 +125,7 @@ impl InputSystem {
                 let value = if *value > 0 {
                     (*value) as f32 / (i16::MAX as f32)
                 } else {
-                    (*value) as f32 / (i16::MIN as f32)
+                    - ((*value) as f32 / (i16::MIN as f32))
                 };
 
                 match self.controllers.controller_state_from_id(id) {
@@ -158,8 +162,8 @@ impl InputSystem {
 
 impl<'a, S: GameState> App<'a, S> {
     pub fn update_input_mapping(&mut self, mapping: &mut InputMapping) {
-        let timestamp = self.time.game_time;
-        self.input.update_input_mapping(mapping, timestamp);
+        let timestamp = self.time_system.game_time;
+        self.input_system.update_input_mapping(mapping, timestamp);
     }
 }
 
@@ -203,9 +207,10 @@ impl AxisState {
         self.value = value;
     }
 
-    pub fn pressed(&self, threshold: f32, greater_than: bool) -> bool {
+    pub fn pressed(&self, threshold: ControllerAxisThreshold) -> bool {
         // if greater_than { return self.value > threshold; } else { return self.value < threshold; }
-        (greater_than && (self.value > threshold)) as bool
+        let greater_than = threshold.direction == ControllerAxisDirection::GreaterThan;
+        greater_than ^ (self.value < threshold.value)
     }
 }
 
