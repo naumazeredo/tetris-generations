@@ -1,6 +1,15 @@
 use crate::linalg::{Vec2, Vec2i};
-use crate::app::imgui::ImDraw;
+
+use crate::app::{
+    imgui::ImDraw,
+    transform::Transform,
+};
+
 use super::{
+    Program,
+    Renderer,
+    color::Color,
+    draw_command::{Command, DrawCommand},
     texture::{Texture, TextureFlip},
 };
 
@@ -13,4 +22,30 @@ pub struct Sprite {
     pub uvs: (Vec2i, Vec2i),
     pub pivot: Vec2,
     pub size: Vec2,
+}
+
+// @Refactor move to App
+impl Renderer {
+    pub fn queue_draw_sprite(
+        &mut self,
+        program: Program,
+        transform: &Transform,
+        sprite: &Sprite,
+        color: Color,
+    ) {
+        self.world_draw_cmds.push(DrawCommand {
+            program,
+            layer: transform.layer,
+            color,
+            pos: transform.pos,
+            rot: transform.rot,
+            cmd: Command::DrawSprite {
+                texture: sprite.texture,
+                texture_flip: sprite.texture_flip,
+                uvs: sprite.uvs,
+                pivot: sprite.pivot,
+                size: sprite.size,
+            },
+        });
+    }
 }

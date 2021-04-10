@@ -22,15 +22,27 @@ fn main() {
 
 #[derive(ImDraw)]
 pub struct State {
+    pub texture: Texture,
+
     pub entity_containers: EntityContainers,
     pub entity_id: MyEntityId,
     pub animated_entity_id: MyEntityId,
 
     pub input_mapping: InputMapping,
+
+    pub font: Font,
+    pub text: String,
+    pub text_transform: Transform,
+    pub font_size: f32,
+
 }
 
 impl GameState for State {
     fn new(app: &mut App<'_, Self>) -> Self {
+        // Fonts
+        let font = Font::bake("assets/fonts/Monocons.ttf", &app.sdl_context.ttf_context).unwrap();
+
+        // Animation
         let texture = load_texture("assets/gfx/template-anim-128x32-4frames.png");
 
         let mut build_frame = |x, y| {
@@ -79,7 +91,7 @@ impl GameState for State {
         //let animated_entity_id = entity_containers.create::<AnimatedEntity>(
         let animated_entity_id = entity_containers.create_animated::<MyEntity>(
             Transform {
-                pos: Vec2 { x: 100., y: 500. },
+                pos: Vec2 { x: 100., y: 200. },
                 rot: 0.,
                 layer: 0,
             },
@@ -145,12 +157,23 @@ impl GameState for State {
             input_mapping.add_button_mapping("LEFT".to_string(), button);
         }
 
-
         Self {
+            texture,
+
             entity_containers,
             entity_id,
             animated_entity_id,
+
             input_mapping,
+
+            font,
+            text: "Hello World".to_owned(),
+            text_transform: Transform {
+                pos: Vec2 { x: 200., y: 200. },
+                rot: 0.,
+                layer: 0,
+            },
+            font_size: 32.,
         }
     }
 
@@ -174,6 +197,13 @@ impl GameState for State {
 
     fn render(&mut self, app: &mut App<'_, Self>) {
         self.entity_containers.render(&mut app.renderer);
+        app.renderer.queue_draw_text(
+            &self.text,
+            &self.font,
+            &self.text_transform,
+            self.font_size,
+            WHITE
+        );
 
         app.renderer.render_queued_draws();
 
@@ -199,6 +229,22 @@ impl GameState for State {
             },
             Event::KeyDown { scancode: Some(Scancode::K), .. } => {
                 self.entity_containers.destroy(self.entity_id);
+            },
+            Event::KeyDown { scancode: Some(Scancode::J), .. } => {
+                self.entity_id = self.entity_containers.create::<MyEntity>(
+                    Transform {
+                        pos: Vec2 { x: 100., y: 400. },
+                        rot: 0.,
+                        layer: 0,
+                    },
+                    Sprite {
+                        texture: self.texture,
+                        texture_flip: TextureFlip::NO,
+                        uvs: (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 }),
+                        pivot: Vec2 { x: 16., y: 16. },
+                        size: Vec2 { x: 32., y: 32. },
+                    },
+                );
             },
             Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
                 use sdl2::video::FullscreenType;

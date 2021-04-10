@@ -9,25 +9,31 @@
 // [ ] Add error checking for gl functions
 //
 
-pub mod draw_command;
 pub mod color;
+pub mod draw_command;
+pub mod font;
 pub mod sprite;
 pub mod texture;
-pub mod types;
 
 use std::ptr;
 use std::str;
 use std::mem;
 use std::ffi::CString;
 use std::path::Path;
-
+use gl::types::*;
 use crate::linalg::*;
 
 pub use color::*;
 pub use draw_command::*;
+pub use font::*;
 pub use sprite::*;
 pub use texture::*;
-pub use types::*;
+
+pub type VertexArray    = GLuint;
+pub type BufferObject   = GLuint;
+pub type Program        = GLuint;
+pub type Shader         = GLuint;
+pub type ShaderLocation = GLuint;
 
 // TODO move compiling, link
 // TODO return Option/Result?

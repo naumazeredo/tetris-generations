@@ -1,10 +1,9 @@
 use crate::linalg::{Vec2, Vec2i};
-use crate::app::Transform;
 use super::{
     Renderer,
-    sprite::Sprite,
+    Program,
+    color::Color,
     texture::{Texture, TextureFlip},
-    types::*,
 };
 
 #[derive(Copy, Clone, Debug)]
@@ -28,30 +27,4 @@ pub struct DrawCommand {
     pub layer: i32,
 
     pub cmd: Command,
-}
-
-// @Refactor move to App
-impl Renderer {
-    pub fn queue_draw_sprite(
-        &mut self,
-        program: Program,
-        color: Color,
-        transform: &Transform,
-        sprite: &Sprite,
-    ) {
-        self.world_draw_cmds.push(DrawCommand {
-            program,
-            layer: transform.layer,
-            color,
-            pos: transform.pos,
-            rot: transform.rot,
-            cmd: Command::DrawSprite {
-                texture: sprite.texture,
-                texture_flip: sprite.texture_flip,
-                uvs: sprite.uvs,
-                pivot: sprite.pivot,
-                size: sprite.size,
-            },
-        });
-    }
 }

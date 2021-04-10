@@ -16,7 +16,8 @@
   - [x] Feedback
     - [x] Rumble normal
 - [ ] [render]
-  - [ ] Font rendering
+  - [x] Font rendering
+  - [ ] Improve batch rendering performance
 - [ ] Asset system
 - [ ] Logger system
 

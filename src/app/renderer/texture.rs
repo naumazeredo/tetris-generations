@@ -38,30 +38,7 @@ bitflags! {
     }
 }
 
-impl ImDraw for TextureFlip {
-    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        TreeNode::new(im_str2!(label)).build(ui, || {
-            let mut flip_x = self.contains(TextureFlip::X);
-            ui.checkbox(im_str!("flip x"), &mut flip_x);
-
-            let mut flip_y = self.contains(TextureFlip::Y);
-            ui.checkbox(im_str!("flip y"), &mut flip_y);
-
-            let mut texture_flip = TextureFlip::NO;
-            if flip_x { texture_flip |= TextureFlip::X; }
-            if flip_y { texture_flip |= TextureFlip::Y; }
-            *self = texture_flip;
-        });
-    }
-}
-
-pub fn load_texture<P: AsRef<Path> + Copy + std::fmt::Display>(path: P) -> Texture {
-    use sdl2::surface::Surface;
-    let surface = Surface::from_file(path)
-        .unwrap_or_else(|err| {
-            panic!(format!("Surface could not be loaded: {}", err))
-        });
-
+pub fn load_texture_from_surface(surface: sdl2::surface::Surface) -> Texture {
     //let format = surface.pixel_format_enum();
     let w = surface.width();
     let h = surface.height();
@@ -94,8 +71,35 @@ pub fn load_texture<P: AsRef<Path> + Copy + std::fmt::Display>(path: P) -> Textu
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
     });
 
-    println!("Texture loaded: {}", path);
-
     Texture { obj, w, h }
 }
 
+pub fn load_texture<P: AsRef<Path> + Copy>(path: P) -> Texture {
+    use sdl2::surface::Surface;
+    let surface = Surface::from_file(path)
+        .unwrap_or_else(|err| {
+            panic!(format!("Surface could not be loaded: {}", err))
+        });
+
+    load_texture_from_surface(surface)
+}
+
+// ------
+// ImDraw
+// ------
+impl ImDraw for TextureFlip {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        TreeNode::new(im_str2!(label)).build(ui, || {
+            let mut flip_x = self.contains(TextureFlip::X);
+            ui.checkbox(im_str!("flip x"), &mut flip_x);
+
+            let mut flip_y = self.contains(TextureFlip::Y);
+            ui.checkbox(im_str!("flip y"), &mut flip_y);
+
+            let mut texture_flip = TextureFlip::NO;
+            if flip_x { texture_flip |= TextureFlip::X; }
+            if flip_y { texture_flip |= TextureFlip::Y; }
+            *self = texture_flip;
+        });
+    }
+}

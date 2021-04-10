@@ -17,4 +17,4 @@ entity_macros = { path = "entity_macros" }
 [dependencies.sdl2]
 version = "0.34"
 default-features = false
-features = ["image"]
+features = ["image", "ttf"]

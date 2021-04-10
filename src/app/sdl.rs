@@ -6,6 +6,7 @@ pub struct SdlContext {
     pub video_subsystem: sdl2::VideoSubsystem,
     pub timer_subsystem: sdl2::TimerSubsystem,
     pub controller_subsystem: sdl2::GameControllerSubsystem,
+    pub ttf_context: sdl2::ttf::Sdl2TtfContext,
 
     // Hidden since we don't need to use it directly but dropping it closes the subsystem
     _sdl_image_context: sdl2::image::Sdl2ImageContext,
@@ -20,6 +21,7 @@ impl SdlContext {
         let video_subsystem = sdl.video().unwrap();
         let timer_subsystem = sdl.timer().unwrap();
         let controller_subsystem = sdl.game_controller().unwrap();
+        let ttf_context = sdl2::ttf::init().unwrap();
 
         let _sdl_image_context = sdl2::image::init(sdl2::image::InitFlag::PNG).unwrap();
 
@@ -29,6 +31,7 @@ impl SdlContext {
             video_subsystem,
             timer_subsystem,
             controller_subsystem,
+            ttf_context,
             _sdl_image_context,
         }
     }

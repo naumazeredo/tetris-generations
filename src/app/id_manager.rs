@@ -35,7 +35,8 @@ impl IdGenerator {
 
     pub fn next(&mut self) -> Id {
         if let Some(index) = self.free_indexes.pop() {
-            let mut id = self.ids[index];
+            let mut id = &mut self.ids[index];
+            id.is_live = true;
             id.generation += 1;
             return Id { index, generation: id.generation };
         }
@@ -50,6 +51,7 @@ impl IdGenerator {
         assert!(id.generation == self.ids[id.index].generation);
         assert!(self.ids[id.index].is_live);
 
+        self.ids[id.index].is_live = false;
         self.free_indexes.push(id.index);
     }
 

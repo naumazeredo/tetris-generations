@@ -92,6 +92,14 @@ impl ImDraw for bool {
     }
 }
 
+impl ImDraw for String {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        let mut im_str = self.clone().into();
+        imgui::InputText::new(ui, im_str2!(label), &mut im_str).build();
+        *self = im_str.to_string();
+    }
+}
+
 // Tuples
 // we shouldn't need more than length 4
 

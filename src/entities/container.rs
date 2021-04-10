@@ -5,10 +5,10 @@ use crate::app::{
     id_manager::{IsId, IdGenerator},
     imgui::imdraw::ImDraw,
     renderer::{
+        Program,
         Renderer,
         Sprite,
         color,
-        types::*,
     },
     transform::Transform,
 };
@@ -46,7 +46,8 @@ impl<E: IsEntity + ImDraw> EntityContainer<E> {
     }
 
     pub fn create_entity(&mut self, transform: Transform, sprite: Sprite) -> E::IdType {
-        let entity_id = E::IdType::new(self.id_gen.next());
+        let id = self.id_gen.next();
+        let entity_id = E::IdType::new(id);
 
         let entity = E::new(
             entity_id,
@@ -58,12 +59,19 @@ impl<E: IsEntity + ImDraw> EntityContainer<E> {
             }
         );
 
-        self.entities.push(Some(entity));
+        let index = id.index();
+        if self.entities.len() < index + 1 {
+            self.entities.push(Some(entity));
+        } else {
+            self.entities[index] = Some(entity);
+        }
+
         entity_id
     }
 
     pub fn create_entity_animated(&mut self, transform: Transform, animation_set: AnimationSet) -> E::IdType {
-        let entity_id = E::IdType::new(self.id_gen.next());
+        let id = self.id_gen.next();
+        let entity_id = E::IdType::new(id);
 
         let entity = E::new_animated(
             entity_id,
@@ -76,7 +84,13 @@ impl<E: IsEntity + ImDraw> EntityContainer<E> {
             animation_set
         );
 
-        self.entities.push(Some(entity));
+        let index = id.index();
+        if self.entities.len() < index + 1 {
+            self.entities.push(Some(entity));
+        } else {
+            self.entities[index] = Some(entity);
+        }
+
         entity_id
     }
 
@@ -95,9 +109,9 @@ impl<E: IsEntity + ImDraw> EntityContainer<E> {
         for entity in visible_entities {
             renderer.queue_draw_sprite(
                 0 as Program,
-                color::WHITE,
                 &entity.transform,
-                &entity.sprite
+                &entity.sprite,
+                color::WHITE
             );
         }
     }
