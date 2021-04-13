@@ -8,13 +8,9 @@ use crate::{
 };
 
 use super::{
-    Program,
     Renderer,
     color::Color,
-    draw_command::{
-        Command,
-        DrawCommand,
-    },
+    sprite::Sprite,
     texture::{
         Texture,
         TextureFlip,
@@ -93,20 +89,17 @@ impl Renderer {
                     y: char_data.metrics.h as f32 * scale
                 };
 
-                self.world_draw_cmds.push(DrawCommand {
-                    program: 0 as Program,
-                    layer: transform.layer,
-                    color,
-                    pos: transform.pos,
-                    rot: transform.rot,
-                    cmd: Command::DrawSprite {
+                self.queue_draw_sprite(
+                    transform,
+                    &Sprite {
                         texture: font.texture,
                         texture_flip: TextureFlip::NO,
                         uvs,
                         pivot: - (pos + char_top_left),
                         size,
                     },
-                });
+                    color,
+                );
 
                 let advance = char_data.metrics.advance as f32 * scale;
                 pos.x += advance;
@@ -278,8 +271,6 @@ impl From<sdl2::ttf::GlyphMetrics> for Metrics {
         }
     }
 }
-
-impl_imdraw_todo!(sdl2::ttf::GlyphMetrics);
 
 #[derive(Clone, Debug, ImDraw)]
 struct CharData {

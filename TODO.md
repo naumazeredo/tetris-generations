@@ -15,9 +15,9 @@
     - [x] Controller axis
   - [x] Feedback
     - [x] Rumble normal
-- [ ] [render]
+- [x] [render]
   - [x] Font rendering
-  - [ ] Improve batch rendering performance
+  - [x] Improve rendering performance
 - [ ] Asset system
 - [ ] Logger system
 
@@ -26,6 +26,7 @@
 - [x] Rename animations, time and tasks to *_system
 - [x] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of the app
     code
+
 
 ## backlog
 
@@ -56,6 +57,7 @@
   - [ ] Render to framebuffer + post render effects
   - [ ] verify gl errors
 - [ ] Test all parts
+- [ ] [entities] gen_containers: add len for entity type
 
 ### Game
 

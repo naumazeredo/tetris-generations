@@ -5,7 +5,6 @@ use crate::app::{
     id_manager::{IsId, IdGenerator},
     imgui::imdraw::ImDraw,
     renderer::{
-        Program,
         Renderer,
         Sprite,
         color,
@@ -108,7 +107,6 @@ impl<E: IsEntity + ImDraw> EntityContainer<E> {
 
         for entity in visible_entities {
             renderer.queue_draw_sprite(
-                0 as Program,
                 &entity.transform,
                 &entity.sprite,
                 color::WHITE

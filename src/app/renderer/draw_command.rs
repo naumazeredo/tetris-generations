@@ -1,6 +1,5 @@
 use crate::linalg::{Vec2, Vec2i};
 use super::{
-    Renderer,
     Program,
     color::Color,
     texture::{Texture, TextureFlip},
@@ -9,7 +8,6 @@ use super::{
 #[derive(Copy, Clone, Debug)]
 pub enum Command {
     DrawSprite {
-        texture: Texture,
         texture_flip: TextureFlip,
         uvs: (Vec2i, Vec2i),
         pivot: Vec2,
@@ -20,6 +18,7 @@ pub enum Command {
 #[derive(Copy, Clone, Debug)]
 pub struct DrawCommand {
     pub program: Program,
+    pub texture: Texture,
     pub color: Color,
 
     pub pos: Vec2,

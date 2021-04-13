@@ -231,20 +231,24 @@ impl GameState for State {
                 self.entity_containers.destroy(self.entity_id);
             },
             Event::KeyDown { scancode: Some(Scancode::J), .. } => {
-                self.entity_id = self.entity_containers.create::<MyEntity>(
-                    Transform {
-                        pos: Vec2 { x: 100., y: 400. },
-                        rot: 0.,
-                        layer: 0,
-                    },
-                    Sprite {
-                        texture: self.texture,
-                        texture_flip: TextureFlip::NO,
-                        uvs: (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 }),
-                        pivot: Vec2 { x: 16., y: 16. },
-                        size: Vec2 { x: 32., y: 32. },
-                    },
-                );
+                let count = self.entity_containers.my_entity_container.len();
+
+                for _ in 0..(2000 - count) {
+                    self.entity_id = self.entity_containers.create::<MyEntity>(
+                        Transform {
+                            pos: Vec2 { x: 100., y: 400. },
+                            rot: 0.,
+                            layer: 0,
+                        },
+                        Sprite {
+                            texture: self.texture,
+                            texture_flip: TextureFlip::NO,
+                            uvs: (Vec2i { x: 0, y: 0 }, Vec2i { x: 32, y: 32 }),
+                            pivot: Vec2 { x: 16., y: 16. },
+                            size: Vec2 { x: 32., y: 32. },
+                        },
+                    );
+                }
             },
             Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
                 use sdl2::video::FullscreenType;

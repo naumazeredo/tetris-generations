@@ -16,6 +16,7 @@ use crate::app::{
 
 use entity_macros::*;
 
+// @TODO add len by entity type
 #[gen_containers]
 pub struct EntityContainers {
     pub my_entity_container: EntityContainer<MyEntity>,

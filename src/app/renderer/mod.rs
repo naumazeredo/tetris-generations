@@ -12,10 +12,10 @@
 pub mod color;
 pub mod draw_command;
 pub mod font;
+mod shader;
 pub mod sprite;
 pub mod texture;
 
-use std::ptr;
 use std::str;
 use std::mem;
 use std::ffi::CString;
@@ -26,6 +26,7 @@ use crate::linalg::*;
 pub use color::*;
 pub use draw_command::*;
 pub use font::*;
+use shader::*;
 pub use sprite::*;
 pub use texture::*;
 
@@ -35,102 +36,9 @@ pub type Program        = GLuint;
 pub type Shader         = GLuint;
 pub type ShaderLocation = GLuint;
 
-// TODO move compiling, link
-// TODO return Option/Result?
-fn compile_shader(src: &str, shader_type: GLenum) -> Shader {
-    let shader;
-    unsafe {
-        shader = gl::CreateShader(shader_type);
-
-        // Try to compile
-        let c_str = CString::new(src.as_bytes()).unwrap();
-        gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
-        gl::CompileShader(shader);
-
-        // Check compilation status
-        let mut status = gl::FALSE as GLint;
-        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status);
-
-        // Fail on error
-        if status != (gl::TRUE as GLint) {
-            let mut len = 0;
-            gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-
-            let mut buf = Vec::with_capacity(len as usize);
-            buf.set_len((len as usize) - 1);
-            gl::GetShaderInfoLog(
-                shader,
-                len,
-                ptr::null_mut(),
-                buf.as_mut_ptr() as *mut GLchar,
-            );
-
-            panic!(
-                "{}",
-                str::from_utf8(&buf)
-                    .ok()
-                    .expect("ShaderInfoLog not valid utf8")
-            );
-        }
-    }
-    shader
-}
-
-fn compile_shader_from_file<P: AsRef<Path>>(path: P, shader_type: GLenum) -> Shader {
-    let buffer = std::fs::read_to_string(path)
-        //.expect(&format!("File {} not found", path.display()));
-        .expect("File not found");
-
-    compile_shader(&buffer, shader_type)
-}
-
-fn link_shader_program(vs: Shader, fs: Shader) -> Program {
-    let program;
-    unsafe {
-        program = gl::CreateProgram();
-        gl::AttachShader(program, vs);
-        gl::AttachShader(program, fs);
-        gl::LinkProgram(program);
-
-        // Get link status
-        let mut status = gl::FALSE as GLint;
-        gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
-
-        if status != (gl::TRUE as GLint) {
-            let mut len: GLint = 0;
-            gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut len);
-
-            let mut buf = Vec::with_capacity(len as usize);
-            buf.set_len((len as usize) - 1);
-            gl::GetProgramInfoLog(
-                program,
-                len,
-                ptr::null_mut(),
-                buf.as_mut_ptr() as *mut GLchar,
-            );
-
-            panic!(
-                "{}",
-                str::from_utf8(&buf)
-                    .ok()
-                    .expect("ProgramInfoLog not valid utf8")
-            );
-        }
-    }
-    program
-}
-
-fn create_shader_program<P: AsRef<Path>>(vs_path: P, fs_path: P) -> Program {
-    let vs = compile_shader_from_file(vs_path, gl::VERTEX_SHADER);
-    let fs = compile_shader_from_file(fs_path, gl::FRAGMENT_SHADER);
-    let program = link_shader_program(vs, fs);
-    program
-}
-
 #[derive(Debug)]
 pub struct Renderer {
-    current_program: Program,
-    current_texture_object: TextureObject,
+    default_program: Program,
 
     view_mat: Mat4,
     proj_mat: Mat4,
@@ -142,6 +50,9 @@ pub struct Renderer {
     uv_buffer_object:      BufferObject,
     element_buffer_object: BufferObject,
 
+    // @Refactor don't use Vec since debug push performance is so bad. We can add a frame allocator
+    //           instead and pack the different info in contiguous memory (create a struct and use
+    //           offset_of)
     // @Refactor maybe use only one vbo? Not sure the cost of doing this
     vertex_buffer:  Vec<f32>,
     color_buffer:   Vec<f32>,
@@ -149,16 +60,20 @@ pub struct Renderer {
     element_buffer: Vec<u32>,
 
     world_draw_cmds: Vec<DrawCommand>,
+
+    // ----
+    model_mat_buffer_object: BufferObject,
+    model_mat_buffer: Vec<f32>,
 }
 
 impl Renderer {
     pub fn new() -> Self {
         let mut vao = 0;
-        let mut bo = [0; 4];
+        let mut bo = [0; 5];
 
         unsafe {
             gl::GenVertexArrays(1, &mut vao);
-            gl::GenBuffers(4, &mut bo[0]);
+            gl::GenBuffers(5, &mut bo[0]);
         }
 
         let view_mat = mat4::IDENTITY;
@@ -166,11 +81,29 @@ impl Renderer {
 
         // @TODO move this (to asset manager maybe)
         // Create GLSL shaders
-        let program = create_shader_program("assets/shaders/default.vert", "assets/shaders/default.frag");
+        let default_program = create_shader_program("assets/shaders/default.vert", "assets/shaders/default.frag");
+
+
+        // Reserve a lot of space -> 2000 quads
+        // @TODO use a frame allocator to avoid extra allocations
+        let mut vertex_buffer = vec![];
+        vertex_buffer.reserve(4 * 3 * 2000);
+
+        let mut color_buffer = vec![];
+        color_buffer.reserve(4 * 4 * 2000);
+
+        let mut uv_buffer = vec![];
+        uv_buffer.reserve(4 * 2 * 2000);
+
+        let mut element_buffer = vec![];
+        element_buffer.reserve(6 * 2000);
+
+        let mut model_mat_buffer = vec![];
+        model_mat_buffer.reserve(6 * 2000);
 
         Self {
-            current_program: program,
-            current_texture_object: 0,
+            default_program,
+
             view_mat,
             proj_mat,
 
@@ -180,12 +113,16 @@ impl Renderer {
             uv_buffer_object: bo[2],
             element_buffer_object: bo[3],
 
-            vertex_buffer: vec![],
-            color_buffer: vec![],
-            uv_buffer: vec![],
-            element_buffer: vec![],
+            vertex_buffer,
+            color_buffer,
+            uv_buffer,
+            element_buffer,
 
             world_draw_cmds: vec![],
+
+            // ----
+            model_mat_buffer_object: bo[4],
+            model_mat_buffer
         }
     }
 
@@ -208,7 +145,7 @@ impl Renderer {
     // @Refactor use a framebuffer to be able to do post processing or custom stuff
     pub fn render_queued_draws(&mut self) {
         if self.world_draw_cmds.len() > 0 {
-            self.bind_arrays();
+            //self.bind_arrays();
             self.flush_draw_cmds();
         }
     }
@@ -220,7 +157,7 @@ impl Renderer {
             // positions
             let pos_cstr = CString::new("position").unwrap();
             let pos_attr = gl::GetAttribLocation(
-                self.current_program,
+                self.default_program,
                 pos_cstr.as_ptr()
             ) as ShaderLocation;
 
@@ -232,13 +169,13 @@ impl Renderer {
                 gl::FLOAT,
                 gl::FALSE as GLboolean,
                 0,
-                ptr::null()
+                0 as _
             );
 
             // colors
             let color_cstr = CString::new("color").unwrap();
             let color_attr = gl::GetAttribLocation(
-                self.current_program,
+                self.default_program,
                 color_cstr.as_ptr()
             ) as ShaderLocation;
 
@@ -250,13 +187,13 @@ impl Renderer {
                 gl::FLOAT,
                 gl::FALSE as GLboolean,
                 0,
-                ptr::null()
+                0 as _
             );
 
             // uvs
             let uv_cstr = CString::new("uv").unwrap();
             let uv_attr = gl::GetAttribLocation(
-                self.current_program,
+                self.default_program,
                 uv_cstr.as_ptr()
             ) as ShaderLocation;
 
@@ -268,7 +205,58 @@ impl Renderer {
                 gl::FLOAT,
                 gl::FALSE as GLboolean,
                 0,
-                ptr::null()
+                0 as _
+            );
+
+            // model matrix info
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.model_mat_buffer_object);
+
+            let pivot_cstr = CString::new("pivot").unwrap();
+            let pivot_attr = gl::GetAttribLocation(
+                self.default_program,
+                pivot_cstr.as_ptr()
+            ) as ShaderLocation;
+
+            gl::EnableVertexAttribArray(pivot_attr);
+            gl::VertexAttribPointer(
+                pivot_attr,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                (6 * mem::size_of::<GLfloat>()) as _,
+                0 as _
+            );
+
+            let rotation_cstr = CString::new("rotation").unwrap();
+            let rotation_attr = gl::GetAttribLocation(
+                self.default_program,
+                rotation_cstr.as_ptr()
+            ) as ShaderLocation;
+
+            gl::EnableVertexAttribArray(rotation_attr);
+            gl::VertexAttribPointer(
+                rotation_attr,
+                1,
+                gl::FLOAT,
+                gl::FALSE,
+                (6 * mem::size_of::<GLfloat>()) as _,
+                (2 * mem::size_of::<GLfloat>()) as _
+            );
+
+            let translation_cstr = CString::new("translation").unwrap();
+            let translation_attr = gl::GetAttribLocation(
+                self.default_program,
+                translation_cstr.as_ptr()
+            ) as ShaderLocation;
+
+            gl::EnableVertexAttribArray(translation_attr);
+            gl::VertexAttribPointer(
+                translation_attr,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                (6 * mem::size_of::<GLfloat>()) as _,
+                (3 * mem::size_of::<GLfloat>()) as _
             );
 
             // element buffer
@@ -280,25 +268,42 @@ impl Renderer {
     }
 
     fn flush_draw_cmds(&mut self) {
-        self.change_shader_program(self.current_program);
+        if self.world_draw_cmds.is_empty() {
+            return;
+        }
 
         let mut draw_calls = vec![];
         let mut start = 0usize;
+        let mut count = 0usize;
+
+        let mut current_program = self.world_draw_cmds[0].program;
+        let mut current_texture_object = self.world_draw_cmds[0].texture.obj;
 
         let draw_cmds = std::mem::replace(&mut self.world_draw_cmds, vec![]);
-
         for draw_cmd in draw_cmds {
-            // @TODO remove the zero check after we have access to programs outside render
-            if draw_cmd.program != 0 &&
-               draw_cmd.program != self.current_program {
 
-                // TODO render_queued_cmds
-                self.change_shader_program(draw_cmd.program);
+            // @TODO remove the zero check after we have access to programs outside render
+            if draw_cmd.program != current_program ||
+               draw_cmd.texture.obj != current_texture_object {
+
+                if count != 0 {
+                    draw_calls.push(DrawCall {
+                        program: current_program,
+                        texture_object: current_texture_object,
+                        start,
+                        count,
+                    });
+
+                    current_program = draw_cmd.program;
+                    current_texture_object = draw_cmd.texture.obj;
+
+                    start += count;
+                    count = 0;
+                }
             }
 
             let w;
             let h;
-            let texture_object;
             let pivot;
 
             //let mut us = vec![0., 1., 1., 0.];
@@ -307,15 +312,13 @@ impl Renderer {
             let mut vs;
 
             match draw_cmd.cmd {
-                Command::DrawSprite { texture, texture_flip, uvs, pivot: piv, size } => {
+                Command::DrawSprite { texture_flip, uvs, pivot: piv, size } => {
                     pivot = piv;
                     w = size.x;
                     h = size.y;
 
-                    texture_object = texture.obj;
-
-                    let u_scale = if texture.w != 0 { texture.w as f32 } else { 1. };
-                    let v_scale = if texture.h != 0 { texture.h as f32 } else { 1. };
+                    let u_scale = if draw_cmd.texture.w != 0 { draw_cmd.texture.w as f32 } else { 1. };
+                    let v_scale = if draw_cmd.texture.h != 0 { draw_cmd.texture.h as f32 } else { 1. };
 
                     us = vec![
                         uvs.0.x as f32 / u_scale, uvs.1.x as f32 / u_scale,
@@ -383,61 +386,63 @@ impl Renderer {
             self.uv_buffer.push(us[2]); self.uv_buffer.push(vs[2]);
             self.uv_buffer.push(us[3]); self.uv_buffer.push(vs[3]);
 
-            // add draw call
+            // model matrix info
+            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+            self.model_mat_buffer.push(draw_cmd.rot);
+            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
+
+            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+            self.model_mat_buffer.push(draw_cmd.rot);
+            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
+
+            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+            self.model_mat_buffer.push(draw_cmd.rot);
+            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
+
+            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+            self.model_mat_buffer.push(draw_cmd.rot);
+            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
+
+            count += 6;
+        }
+
+        if count != 0 {
             draw_calls.push(DrawCall {
+                program: current_program,
+                texture_object: current_texture_object,
                 start,
-                count: 6,
-                translation: Vec3 {
-                    x: draw_cmd.pos.x,
-                    y: draw_cmd.pos.y,
-                    z: (draw_cmd.layer as f32) / 10. + 0.1,
-                },
-                pivot,
-                rot: draw_cmd.rot,
-                texture_object,
+                count,
             });
 
-            //start += 6;
-
-            // TODO remove this
-            self.render_draw_calls(&mut draw_calls);
-            start = 0;
+            self.render_draw_calls(draw_calls);
         }
     }
 
-    fn render_draw_calls(&mut self, draw_calls: &mut Vec<DrawCall>) {
+    fn render_draw_calls(&mut self, draw_calls: Vec<DrawCall>) {
+        self.change_shader_program(draw_calls[0].program);
+        self.change_texture(draw_calls[0].texture_object);
+
+        self.bind_arrays();
         self.create_buffer_data();
 
-        // @Refactor do a single draw call here (glDrawElementsIntanced + glVertAttribDivisor)
+        // @TODO improve this, somehow
+        let mut current_program = draw_calls[0].program;
+        let mut current_texture_object = draw_calls[0].texture_object;
+
+        // @Refactor do a single draw call here (glDrawElementsIntanced + glVertexAttribDivisor)
         for call in draw_calls.iter() {
-            if call.texture_object != self.current_texture_object {
-                self.change_texture(call.texture_object);
+            // @TODO remove the zero check after we have access to programs outside render
+            if call.program != current_program {
+                self.change_shader_program(call.program);
+                current_program = call.program;
             }
 
-            let model_mat =
-                mat4::translation(Vec3 { x: -call.pivot.x, y: -call.pivot.y, z: 0. }) *
-                mat4::rotation(call.rot.to_radians(), vec3::FORWARD) *
-                mat4::translation(Vec3 {
-                    x: call.translation.x,
-                    y: call.translation.y,
-                    z: call.translation.z,
-                });
+            if call.texture_object != current_texture_object {
+                self.change_texture(call.texture_object);
+                current_texture_object = call.texture_object;
+            }
 
             unsafe {
-                // @TODO send pivot, rotation and translation to shader and do a single draw call
-                let model_mat_cstr = CString::new("model_mat").unwrap();
-                let model_mat_uniform = gl::GetUniformLocation(
-                    self.current_program,
-                    model_mat_cstr.as_ptr()
-                );
-
-                gl::UniformMatrix4fv(
-                    model_mat_uniform,
-                    1,
-                    gl::FALSE as GLboolean,
-                    mem::transmute(&model_mat.m[0])
-                );
-
                 gl::DrawElements(
                     gl::TRIANGLES,
                     call.count as i32,
@@ -451,10 +456,14 @@ impl Renderer {
         self.color_buffer.clear();
         self.uv_buffer.clear();
         self.element_buffer.clear();
-        draw_calls.clear();
+        self.model_mat_buffer.clear();
     }
 
     fn create_buffer_data(&mut self) {
+        if self.vertex_buffer.is_empty() {
+            return;
+        }
+
         assert!(!self.vertex_buffer.is_empty());
         assert!(!self.color_buffer.is_empty());
         assert!(!self.uv_buffer.is_empty());
@@ -485,6 +494,14 @@ impl Renderer {
                 gl::STATIC_DRAW
             );
 
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.model_mat_buffer_object);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (self.model_mat_buffer.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                mem::transmute(&self.model_mat_buffer[0]),
+                gl::STATIC_DRAW
+            );
+
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.element_buffer_object);
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
@@ -496,17 +513,13 @@ impl Renderer {
     }
 
     fn change_shader_program(&mut self, new_program: Program) {
-        //if self.current_program == new_program { return; }
-
-        self.current_program = new_program;
-
         unsafe {
-            gl::UseProgram(self.current_program);
+            gl::UseProgram(new_program);
 
             // TODO verify errors in case names are incorrect
             let texture_uniform_cstr = CString::new("tex").unwrap();
             let texture_uniform = gl::GetUniformLocation(
-                self.current_program,
+                new_program,
                 texture_uniform_cstr.as_ptr()
             );
 
@@ -514,7 +527,7 @@ impl Renderer {
 
             let view_mat_cstr = CString::new("view_mat").unwrap();
             let view_mat_uniform = gl::GetUniformLocation(
-                self.current_program,
+                new_program,
                 view_mat_cstr.as_ptr()
             );
 
@@ -527,7 +540,7 @@ impl Renderer {
 
             let proj_mat_cstr = CString::new("proj_mat").unwrap();
             let proj_mat_uniform = gl::GetUniformLocation(
-                self.current_program,
+                new_program,
                 proj_mat_cstr.as_ptr()
             );
 
@@ -541,9 +554,8 @@ impl Renderer {
     }
 
     fn change_texture(&mut self, new_texture_object: TextureObject) {
-        self.current_texture_object = new_texture_object;
         unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, self.current_texture_object);
+            gl::BindTexture(gl::TEXTURE_2D, new_texture_object);
         }
     }
 }
@@ -563,10 +575,8 @@ impl Drop for Renderer {
 // TODO move this
 #[derive(Copy, Clone, Debug)]
 struct DrawCall {
+    program: Program,
+    texture_object: TextureObject,
     start: usize,
     count: usize,
-    translation: Vec3,
-    pivot: Vec2,
-    rot: f32,
-    texture_object: TextureObject,
 }
