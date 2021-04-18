@@ -2,6 +2,7 @@ extern crate sdl2;
 extern crate imgui_opengl_renderer;
 
 pub mod animation_system;
+pub mod asset_system;
 pub mod debug;
 pub mod game_state;
 pub mod id_manager;
@@ -16,6 +17,7 @@ pub mod utils;
 pub mod video_system;
 
 pub use {
+    asset_system::*,
     animation_system::*,
     debug::*,
     game_state::*,
@@ -35,6 +37,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 
 pub struct App<'a, S> {
+    pub asset_system: AssetSystem,
     pub animation_system: AnimationSystem,
     pub sdl_context: SdlContext,
     pub video_system: VideoSystem,
@@ -63,6 +66,7 @@ impl<'a, S: 'a + GameState> App<'a, S> {
         let task_system = TaskSystem::new();
 
         Self {
+            asset_system: AssetSystem::new(),
             animation_system,
 
             sdl_context,

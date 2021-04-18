@@ -38,7 +38,7 @@ bitflags! {
     }
 }
 
-pub fn load_texture_from_surface(surface: sdl2::surface::Surface) -> Texture {
+pub(in crate::app) fn load_texture_from_surface(surface: sdl2::surface::Surface) -> Texture {
     //let format = surface.pixel_format_enum();
     let w = surface.width();
     let h = surface.height();
@@ -74,7 +74,7 @@ pub fn load_texture_from_surface(surface: sdl2::surface::Surface) -> Texture {
     Texture { obj, w, h }
 }
 
-pub fn load_texture<P: AsRef<Path> + Copy>(path: P) -> Texture {
+pub(in crate::app) fn load_texture<P: AsRef<Path>>(path: P) -> Texture {
     use sdl2::surface::Surface;
     let surface = Surface::from_file(path)
         .unwrap_or_else(|err| {

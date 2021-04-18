@@ -43,7 +43,7 @@ impl GameState for State {
         let font = Font::bake("assets/fonts/Monocons.ttf", &app.sdl_context.ttf_context).unwrap();
 
         // Animation
-        let texture = load_texture("assets/gfx/template-anim-128x32-4frames.png");
+        let texture = app.get_texture("assets/gfx/template-anim-128x32-4frames.png");
 
         let mut build_frame = |x, y| {
             app.build_frame(
@@ -233,7 +233,7 @@ impl GameState for State {
             Event::KeyDown { scancode: Some(Scancode::J), .. } => {
                 let count = self.entity_containers.my_entity_container.len();
 
-                for _ in 0..(2000 - count) {
+                for _ in 0..(10000 - count) {
                     self.entity_id = self.entity_containers.create::<MyEntity>(
                         Transform {
                             pos: Vec2 { x: 100., y: 400. },
