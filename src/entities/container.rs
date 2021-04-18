@@ -1,11 +1,11 @@
 // Entity Container
 
 use crate::app::{
+    App,
     animation_system::AnimationSet,
     id_manager::{IsId, IdGenerator},
     imgui::imdraw::ImDraw,
     renderer::{
-        Renderer,
         Sprite,
         color,
     },
@@ -100,13 +100,13 @@ impl<E: IsEntity + ImDraw> EntityContainer<E> {
         self.id_gen.free(id);
     }
 
-    pub fn render(&self, renderer: &mut Renderer) {
+    pub fn render<'a, S>(&self, app: &mut App<'a, S>) {
         let visible_entities = self.entities.iter().flatten()
             .filter(|entity| entity.entity().is_visible)
             .map(|entity| entity.entity());
 
         for entity in visible_entities {
-            renderer.queue_draw_sprite(
+            app.queue_draw_sprite(
                 &entity.transform,
                 &entity.sprite,
                 color::WHITE

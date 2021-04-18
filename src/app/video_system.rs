@@ -1,10 +1,11 @@
+// @Maybe refactor? Giving public access to be able to mess with window freely
 pub struct VideoSystem {
     pub window: sdl2::video::Window,
-    pub gl_context: sdl2::video::GLContext,
+    pub(in crate::app) gl_context: sdl2::video::GLContext,
 }
 
 impl VideoSystem {
-    pub fn new(video_subsystem: sdl2::VideoSubsystem) -> Self {
+    pub(in crate::app) fn new(video_subsystem: sdl2::VideoSubsystem) -> Self {
         // OpenGL setup
         // @Refactor move to window struct
 
@@ -59,7 +60,7 @@ impl VideoSystem {
         }
     }
 
-    pub fn present(&self) {
+    pub(in crate::app) fn swap_buffers(&self) {
         self.window.gl_swap_window();
     }
 }

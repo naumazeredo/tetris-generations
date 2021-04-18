@@ -2,13 +2,15 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::{
-    app::imgui::ImDraw,
+    app::{
+        App,
+        imgui::ImDraw,
+    },
     linalg::{Vec2, Vec2i},
     transform::Transform,
 };
 
 use super::{
-    Renderer,
     color::Color,
     sprite::Sprite,
     texture::{
@@ -26,7 +28,7 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn bake<P: AsRef<Path>>(
+    pub(super) fn bake<P: AsRef<Path>>(
         path: P,
         ttf_context: &sdl2::ttf::Sdl2TtfContext
     ) -> Option<Self> {
@@ -63,7 +65,11 @@ impl Font {
     }
 }
 
-impl Renderer {
+impl<S> App<'_, S>{
+    pub fn bake_font<P: AsRef<Path>>(&self, path: P) -> Option<Font> {
+        Font::bake(path, &self.sdl_context.ttf_context)
+    }
+
     pub fn queue_draw_text(
         &mut self,
         //program: Program,

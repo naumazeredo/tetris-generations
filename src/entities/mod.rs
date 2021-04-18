@@ -10,7 +10,6 @@ use crate::app::{
     animation_system::{Animator, AnimationSet},
     id_manager::Id,
     imgui::ImDraw,
-    renderer::Renderer,
     transform::Transform,
 };
 

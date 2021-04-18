@@ -40,7 +40,7 @@ pub struct State {
 impl GameState for State {
     fn new(app: &mut App<'_, Self>) -> Self {
         // Fonts
-        let font = Font::bake("assets/fonts/Monocons.ttf", &app.sdl_context.ttf_context).unwrap();
+        let font = app.bake_font("assets/fonts/Monocons.ttf").unwrap();
 
         // Animation
         let texture = app.get_texture("assets/gfx/template-anim-128x32-4frames.png");
@@ -191,13 +191,13 @@ impl GameState for State {
 
         if let Some(my_entity) = self.entity_containers.get_mut(self.entity_id) {
             my_entity.entity_mut().transform.pos +=
-                100.0 * app.time_system.frame_duration() * move_direction;
+                100.0 * app.last_frame_duration() * move_direction;
         }
     }
 
     fn render(&mut self, app: &mut App<'_, Self>) {
-        self.entity_containers.render(&mut app.renderer);
-        app.renderer.queue_draw_text(
+        self.entity_containers.render(app);
+        app.queue_draw_text(
             &self.text,
             &self.font,
             &self.text_transform,
@@ -205,7 +205,7 @@ impl GameState for State {
             WHITE
         );
 
-        app.renderer.render_queued_draws();
+        app.render_queued();
 
         // @Refactor maybe this debug info really should be managed by the App. This way
         //           we don't have to explicitly call render_queued, which seems way cleaner.
@@ -224,7 +224,7 @@ impl GameState for State {
         match event {
             Event::KeyDown { scancode: Some(Scancode::Num1), .. } => {
                 app.schedule_task(1_000_000, |id, _state, app| {
-                    println!("task {} {}", id, app.time_system.game_time);
+                    println!("task {} {}", id, app.game_time());
                 });
             },
             Event::KeyDown { scancode: Some(Scancode::K), .. } => {

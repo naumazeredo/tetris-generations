@@ -22,6 +22,7 @@ use std::ffi::CString;
 use std::path::Path;
 use gl::types::*;
 use crate::linalg::*;
+use crate::app::App;
 
 pub use color::*;
 pub use draw_command::*;
@@ -37,7 +38,7 @@ pub type Shader         = GLuint;
 pub type ShaderLocation = GLuint;
 
 #[derive(Debug)]
-pub struct Renderer {
+pub(in crate::app) struct Renderer {
     default_program: Program,
 
     view_mat: Mat4,
@@ -127,7 +128,7 @@ impl Renderer {
     }
 
     // @Refactor create methods in App to remap this
-    pub fn prepare_render(&mut self) {
+    pub(in crate::app) fn prepare_render(&mut self) {
         unsafe {
             gl::ClearColor(0.3, 0.3, 0.3, 1.0);
             //gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -143,7 +144,7 @@ impl Renderer {
 
     // @Refactor create methods in App to remap this
     // @Refactor use a framebuffer to be able to do post processing or custom stuff
-    pub fn render_queued_draws(&mut self) {
+    fn render_queued(&mut self) {
         if self.world_draw_cmds.len() > 0 {
             //self.bind_arrays();
             self.flush_draw_cmds();
@@ -569,6 +570,12 @@ impl Drop for Renderer {
             gl::DeleteBuffers(1, &mut self.uv_buffer_object);
             gl::DeleteBuffers(1, &mut self.element_buffer_object);
         }
+    }
+}
+
+impl<S> App<'_, S> {
+    pub fn render_queued(&mut self) {
+        self.renderer.render_queued();
     }
 }
 

@@ -4,11 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::app::{
-    App,
-    GameState,
-};
-
+use crate::app::App;
 use crate::app::sdl2::{
     event::Event,
     keyboard::Scancode,
@@ -26,7 +22,7 @@ const MAX_CONTROLLER_BUTTONS : usize = 16;
 const MAX_CONTROLLER_AXIS    : usize = 16;
 const MAX_CONTROLLERS        : usize = 16;
 
-pub struct InputSystem {
+pub(in crate::app) struct InputSystem {
     controller_subsystem: sdl2::GameControllerSubsystem,
     pub(super) keyboard: KeyboardState,
     pub(super) mouse: MouseState,
@@ -140,7 +136,13 @@ impl InputSystem {
         }
     }
 
-    pub fn set_controller_rumble(
+    fn update_input_mapping(&mut self, mapping: &mut InputMapping, timestamp: u64) {
+        for button in mapping.button_mapping.values_mut() {
+            button.update(self, timestamp);
+        }
+    }
+
+    fn set_controller_rumble(
         &mut self,
         controller_index: usize,
         low_frequency: u16,
@@ -152,18 +154,27 @@ impl InputSystem {
             None => {}
         }
     }
-
-    pub fn update_input_mapping(&mut self, mapping: &mut InputMapping, timestamp: u64) {
-        for button in mapping.button_mapping.values_mut() {
-            button.update(self, timestamp);
-        }
-    }
 }
 
-impl<'a, S: GameState> App<'a, S> {
+impl<S> App<'_, S> {
     pub fn update_input_mapping(&mut self, mapping: &mut InputMapping) {
         let timestamp = self.time_system.game_time;
         self.input_system.update_input_mapping(mapping, timestamp);
+    }
+
+    pub fn set_controller_rumble(
+        &mut self,
+        controller_index: usize,
+        low_frequency: u16,
+        high_frequency: u16,
+        duration: u32
+    ) {
+        self.input_system.set_controller_rumble(
+            controller_index,
+            low_frequency,
+            high_frequency,
+            duration
+        );
     }
 }
 

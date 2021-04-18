@@ -7,7 +7,7 @@ use crate::app::sdl2::{
 
 use super::{
     ControllerAxisThreshold,
-    InputSystem,
+    system::InputSystem,
 };
 
 /*

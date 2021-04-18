@@ -20,7 +20,7 @@ pub fn generate(struct_ast: ItemStruct) -> Result<TokenStream> {
     let fields_render = fields.clone()
         .map(|field| {
             let ident = field.ident.unwrap();
-            quote!{ self.#ident.render(renderer); }
+            quote!{ self.#ident.render(app); }
         });
 
     let struct_gen = quote! {
@@ -70,7 +70,7 @@ pub fn generate(struct_ast: ItemStruct) -> Result<TokenStream> {
                 id.destroy_entity(self);
             }
 
-            pub fn render(&self, renderer: &mut Renderer) {
+            pub fn render<'a, S>(&self, app: &mut App<'a, S>) {
                 #(#fields_render)*
             }
         }

@@ -1,6 +1,7 @@
 use crate::linalg::{Vec2, Vec2i};
 
 use crate::app::{
+    App,
     imgui::ImDraw,
     transform::Transform,
 };
@@ -25,7 +26,7 @@ pub struct Sprite {
 
 // @Refactor move to App
 impl Renderer {
-    pub fn queue_draw_sprite(
+    fn queue_draw_sprite(
         &mut self,
         transform: &Transform,
         sprite: &Sprite,
@@ -45,5 +46,16 @@ impl Renderer {
                 size: sprite.size,
             },
         });
+    }
+}
+
+impl<S> App<'_, S> {
+    pub fn queue_draw_sprite(
+        &mut self,
+        transform: &Transform,
+        sprite: &Sprite,
+        color: Color,
+    ) {
+        self.renderer.queue_draw_sprite(transform, sprite, color);
     }
 }

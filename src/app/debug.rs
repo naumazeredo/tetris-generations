@@ -1,18 +1,20 @@
 // @Refactor remove debug with ImGui and create our own editor immediate gui (or not immediate)
 
-use crate::app::imgui::imgui_sdl2;
 use imgui::*;
-use super::{App, GameState};
+use crate::app::{
+    App,
+    imgui::imgui_sdl2,
+};
 
 // TODO move all this to Render?
-pub struct Debug {
+pub(super) struct Debug {
     imgui: imgui::Context,
     imgui_sdl2: imgui_sdl2::ImguiSdl2,
     imgui_renderer: imgui_opengl_renderer::Renderer,
 }
 
 impl Debug {
-    pub fn new(window: &sdl2::video::Window) -> Self {
+    pub(super) fn new(window: &sdl2::video::Window) -> Self {
         let mut imgui = imgui::Context::create();
         imgui.set_ini_filename(None);
 
@@ -33,7 +35,7 @@ impl Debug {
     }
 }
 
-impl<S: GameState> App<'_, S> {
+impl<S> App<'_, S> {
     pub fn handle_debug_event(&mut self, event: &sdl2::event::Event) -> bool {
         self.debug.imgui_sdl2.handle_event(&mut self.debug.imgui, event);
         return self.debug.imgui_sdl2.ignore_event(&event);

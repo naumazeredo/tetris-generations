@@ -20,7 +20,7 @@
   - [x] Improve rendering performance
 - [ ] Asset system
 - [ ] Logger system
-- [ ] Refactor systems to match
+- [x] Refactor systems to match
 
 ### Issues
 

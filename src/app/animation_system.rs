@@ -43,7 +43,7 @@ impl Animator {
         self.current_repetition = Repetitions::Finite(0);
 
         if let Some(mut task) = self.task.take() {
-            task.cancel(&mut app.task_system);
+            task.cancel(app);
         }
     }
 
@@ -80,9 +80,9 @@ impl Animator {
         self.task.is_some()
     }
 
-    pub fn stop<S: GameState>(&mut self, app: &mut App<S>) {
+    pub fn stop<S>(&mut self, app: &mut App<S>) {
         let mut task = self.task.take().unwrap();
-        task.cancel(&mut app.task_system);
+        task.cancel(app);
     }
 
     pub fn play<'a, S: GameState, F>(&mut self, app: &mut App<'a, S>, callback: F)
@@ -96,18 +96,18 @@ impl Animator {
 }
 
 #[derive(Default)]
-pub struct AnimationSystem {
+pub(super) struct AnimationSystem {
     pub(super) animation_sets: Vec<AnimationSetData>,
     pub(super) animations: Vec<AnimationData>,
     pub(super) frames: Vec<FrameData>,
 }
 
 impl AnimationSystem {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self::default()
     }
 
-    pub fn get_animation_and_frame<'a>(
+    fn get_animation_and_frame<'a>(
         &'a self,
         animator: &Animator
     ) -> (&'a AnimationData, &'a FrameData) {

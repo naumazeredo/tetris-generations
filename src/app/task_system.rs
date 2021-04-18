@@ -1,16 +1,15 @@
 // Task system
 
-// [ ] add task logger
-// [ ] maybe refactor to timer wheel
+// [ ] Refactor to timer wheel
+// [ ] Add next frame scheduling
 
 use std::collections::{BinaryHeap, HashSet};
 use std::cmp::Ordering;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-use super::{
+use crate::app::{
     App,
-    game_state::GameState,
     time_system::TimeSystem,
     imgui::ImDraw,
 };
@@ -18,16 +17,15 @@ use super::{
 //#[feature(trait_alias)]
 //trait TaskFn<S> = FnMut(u64, &mut S, &mut App<S>);
 
-// @Rename maybe rename to Tasks (or rename all systems to *System)
-pub struct TaskSystem<'a, S> {
+pub(in crate::app) struct TaskSystem<'a, S> {
     next_id: u64,
     // @Refactor don't store whole structure in heap, only (id, execution_time)
     tasks_scheduled: BinaryHeap<TaskData<'a, S>>,
     tasks_cancelled: HashSet<u64>,
 }
 
-impl<'a, S: GameState> TaskSystem<'a, S> {
-    pub fn new() -> Self {
+impl<'a, S> TaskSystem<'a, S> {
+    pub(in crate::app) fn new() -> Self {
         let tasks_scheduled = BinaryHeap::new();
         let tasks_cancelled = HashSet::new();
         Self {
@@ -47,13 +45,13 @@ impl Task {
         Self(None)
     }
 
-    pub fn cancel<S>(&mut self, task_system: &mut TaskSystem<S>) {
+    pub fn cancel<S>(&mut self, app: &mut App<S>) {
         let id = self.0.take().expect("Trying to cancel an empty task");
-        task_system.tasks_cancelled.insert(id);
+        app.task_system.tasks_cancelled.insert(id);
     }
 }
 
-fn schedule_task<'a, S: GameState, F>(
+fn schedule_task<'a, S, F>(
     task_system: &mut TaskSystem<'a, S>,
     time_system: &TimeSystem,
     time_delay: u64,
@@ -80,7 +78,7 @@ fn schedule_task<'a, S: GameState, F>(
     Task ( Some(id) )
 }
 
-impl<'a, S: GameState> App<'a, S> {
+impl<'a, S> App<'a, S> {
     // @TODO use a type safe duration type
     pub fn schedule_task<F>(&mut self, time_delay: u64, callback: F) -> Task
     where F: FnMut(u64, &mut S, &mut App<S>) + 'a, // @XXX F: TaskFn<S> + 'a,
@@ -119,22 +117,22 @@ struct TaskData<'a, S> {
     //callback: Rc<RefCell<dyn TaskFn<S> + 'a>>,
 }
 
-impl<'a, S: GameState> Ord for TaskData<'a, S> {
+impl<'a, S> Ord for TaskData<'a, S> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.execution_time.cmp(&other.execution_time).then(self.id.cmp(&other.id)).reverse()
     }
 }
 
-impl<'a, S: GameState> PartialOrd for TaskData<'a, S> {
+impl<'a, S> PartialOrd for TaskData<'a, S> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a, S: GameState> PartialEq for TaskData<'a, S> {
+impl<'a, S> PartialEq for TaskData<'a, S> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id && self.execution_time == other.execution_time
     }
 }
 
-impl<'a, S: GameState> Eq for TaskData<'a, S> {}
+impl<'a, S> Eq for TaskData<'a, S> {}

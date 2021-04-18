@@ -7,7 +7,7 @@ pub mod debug;
 pub mod game_state;
 pub mod id_manager;
 #[macro_use] pub mod imgui;
-pub mod input_system;
+pub mod input;
 pub mod renderer;
 pub mod sdl;
 pub mod task_system;
@@ -17,18 +17,14 @@ pub mod utils;
 pub mod video_system;
 
 pub use {
-    asset_system::*,
     animation_system::*,
-    debug::*,
     game_state::*,
     id_manager::*,
-    input_system::*,
+    input::*,
     self::imgui::*,
     renderer::*,
-    sdl::*,
     task_system::*,
     transform::*,
-    time_system::*,
     utils::*,
     video_system::*,
 };
@@ -36,21 +32,28 @@ pub use {
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 
-pub struct App<'a, S> {
-    pub asset_system: AssetSystem,
-    pub animation_system: AnimationSystem,
-    pub sdl_context: SdlContext,
-    pub video_system: VideoSystem,
-    pub time_system: TimeSystem,
-    pub input_system: InputSystem,
-    pub renderer: Renderer,
-    pub debug: Debug,
-    pub task_system: TaskSystem<'a, S>,
+use asset_system::*;
+use debug::*;
+use sdl::*;
+use time_system::*;
 
-    pub running: bool,
+pub struct App<'a, S> {
+    asset_system: AssetSystem,
+    animation_system: AnimationSystem,
+    debug: Debug,
+    input_system: InputSystem,
+    renderer: Renderer,
+    sdl_context: SdlContext,
+    task_system: TaskSystem<'a, S>,
+    time_system: TimeSystem,
+
+    running: bool,
+
+    // @Maybe refactor? Giving public access to be able to mess with window freely
+    pub video_system: VideoSystem,
 }
 
-impl<'a, S: 'a + GameState> App<'a, S> {
+impl<'a, S: GameState> App<'a, S> {
     pub fn new() -> Self {
         // @TODO check results
 
@@ -106,8 +109,12 @@ impl<'a, S: 'a + GameState> App<'a, S> {
             // Render
             self.renderer.prepare_render();
             state.render(self);
-            self.video_system.present();
+            self.video_system.swap_buffers();
         }
+    }
+
+    pub fn exit(&mut self) {
+        self.running = false;
     }
 
     fn handle_input(&mut self, event: &Event) {

@@ -1,19 +1,19 @@
 use crate::app::imgui::ImDraw;
 
-pub struct SdlContext {
-    pub sdl: sdl2::Sdl,
-    pub event_pump: sdl2::EventPump,
-    pub video_subsystem: sdl2::VideoSubsystem,
-    pub timer_subsystem: sdl2::TimerSubsystem,
-    pub controller_subsystem: sdl2::GameControllerSubsystem,
-    pub ttf_context: sdl2::ttf::Sdl2TtfContext,
+pub(in crate::app) struct SdlContext {
+    pub(in crate::app) sdl: sdl2::Sdl,
+    pub(in crate::app) event_pump: sdl2::EventPump,
+    pub(in crate::app) video_subsystem: sdl2::VideoSubsystem,
+    pub(in crate::app) timer_subsystem: sdl2::TimerSubsystem,
+    pub(in crate::app) controller_subsystem: sdl2::GameControllerSubsystem,
+    pub(in crate::app) ttf_context: sdl2::ttf::Sdl2TtfContext,
 
     // Hidden since we don't need to use it directly but dropping it closes the subsystem
     _sdl_image_context: sdl2::image::Sdl2ImageContext,
 }
 
 impl SdlContext {
-    pub fn new() -> Self {
+    pub(in crate::app) fn new() -> Self {
         // @TODO check results
 
         let sdl = sdl2::init().unwrap();

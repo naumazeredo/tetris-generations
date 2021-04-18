@@ -4,9 +4,10 @@ pub mod system;
 
 pub use button::*;
 pub use mapping::*;
-pub use system::*;
+pub(in crate::app) use system::*; // @XXX how to avoid this???
 
 use crate::app::imdraw::ImDraw;
+
 
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub struct ControllerAxisThreshold {

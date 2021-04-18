@@ -8,22 +8,22 @@
 // @Refactor maybe use std::time?
 // @Refactor create a type to hold the USec, MSec, Sec (different types to be type checked)
 
-use super::{App, GameState};
+use crate::app::App;
 
-pub struct TimeSystem {
-    pub frame_count: u32,
-    pub real_time: u64,
-    pub real_frame_duration: u64,
-    pub game_time: u64,
-    pub game_frame_duration: u64,
-    pub scale: f64,
+pub(in crate::app) struct TimeSystem {
+    pub(in crate::app) frame_count: u32,
+    pub(in crate::app) real_time: u64,
+    pub(in crate::app) real_frame_duration: u64,
+    pub(in crate::app) game_time: u64,
+    pub(in crate::app) game_frame_duration: u64,
+    pub(in crate::app) scale: f64,
 
     last_time: u64,
     last_scale: f64,
 }
 
 impl TimeSystem {
-    pub fn new(timer_subsystem: sdl2::TimerSubsystem) -> Self {
+    pub(in crate::app) fn new(timer_subsystem: sdl2::TimerSubsystem) -> Self {
         Self {
             frame_count: 0,
             real_time: 0,
@@ -35,20 +35,9 @@ impl TimeSystem {
             last_scale: 1.0,
         }
     }
-
-    pub fn frame_duration(&self) -> f32 {
-        self.game_frame_duration as f32 / 1_000_000.
-    }
 }
 
-fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
-    let counter = timer_subsystem.performance_counter() as u128;
-    let frequency = timer_subsystem.performance_frequency() as u128;
-
-    (counter * 1_000_000 / frequency) as u64
-}
-
-impl<S: GameState> App<'_, S> {
+impl<S> App<'_, S> {
     pub fn new_frame(&mut self) {
         let time_system = &mut self.time_system;
 
@@ -74,4 +63,24 @@ impl<S: GameState> App<'_, S> {
         let time_system = &mut self.time_system;
         time_system.scale = time_system.last_scale;
     }
+
+    pub fn last_frame_duration(&self) -> f32 {
+        to_seconds(self.time_system.game_frame_duration)
+    }
+
+    pub fn game_time(&self) -> f32 {
+        to_seconds(self.time_system.game_time)
+    }
+}
+
+fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
+    let counter = timer_subsystem.performance_counter() as u128;
+    let frequency = timer_subsystem.performance_frequency() as u128;
+
+    (counter * 1_000_000 / frequency) as u64
+}
+
+// @Refactor use types for time/duration
+fn to_seconds(usecs: u64) -> f32 {
+    usecs as f32 / 1_000_000.
 }
