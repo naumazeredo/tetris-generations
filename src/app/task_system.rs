@@ -3,6 +3,24 @@
 // [ ] Refactor to timer wheel
 // [ ] Add next frame scheduling
 
+/*
+
+// construction
+
+let task_system = TaskSystem::new();
+
+// scheduling
+
+let task = app.schedule_task(1_000_000, |id, _state, app| {
+    println!("task {} {}", id, app.game_time());
+});
+
+// cancel
+
+app.cancel_task(&mut task);
+
+*/
+
 use std::collections::{BinaryHeap, HashSet};
 use std::cmp::Ordering;
 use std::rc::Rc;
@@ -41,13 +59,10 @@ impl<'a, S> TaskSystem<'a, S> {
 pub struct Task(Option<u64>);
 
 impl Task {
-    pub fn empty() -> Self {
-        Self(None)
-    }
-
-    pub fn cancel<S>(&mut self, app: &mut App<S>) {
+    // @TODO return Option/Result
+    fn cancel<S>(&mut self, task_system: &mut TaskSystem<S>) {
         let id = self.0.take().expect("Trying to cancel an empty task");
-        app.task_system.tasks_cancelled.insert(id);
+        task_system.tasks_cancelled.insert(id);
     }
 }
 
@@ -84,6 +99,11 @@ impl<'a, S> App<'a, S> {
     where F: FnMut(u64, &mut S, &mut App<S>) + 'a, // @XXX F: TaskFn<S> + 'a,
     {
         schedule_task(&mut self.task_system, &self.time_system, time_delay, callback)
+    }
+
+    // @TODO return Option/Result
+    pub fn cancel_task(&mut self, task: &mut Task) {
+        task.cancel(&mut self.task_system);
     }
 
     pub fn run_tasks(&mut self, state: &mut S) {

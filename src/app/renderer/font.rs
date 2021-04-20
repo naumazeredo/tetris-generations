@@ -1,3 +1,24 @@
+/* Usage
+
+// construction
+
+let font = app.bake_font("assets/fonts/Monocons.ttf").unwrap();
+
+// render
+
+app.queue_draw_text(
+    "Hello world",
+    &self.font,
+    &Transform {
+        pos: Vec2 { x: 200., y: 200. },
+        rot: 0.,
+        layer: 0,
+    },
+    32.,
+    WHITE
+);
+*/
+
 use std::collections::BTreeMap;
 use std::path::Path;
 

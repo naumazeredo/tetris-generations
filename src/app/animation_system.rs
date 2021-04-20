@@ -4,6 +4,35 @@
 // [ ] rename to animation_container.rs
 // [ ] rename to AnimationContainer
 
+/* Usage
+
+let texture = app.get_texture("assets/gfx/template-anim-128x32-4frames.png");
+
+let mut build_frame = |x, y| {
+    app.build_frame(
+        Sprite {
+            texture,
+            texture_flip: TextureFlip::NO,
+            uvs: (Vec2i { x, y }, Vec2i { x: 32 + x, y: 32 + y }),
+            pivot: Vec2 { x: 16., y: 16. },
+            size: Vec2 { x: 32., y: 32. },
+        },
+        1_000_000,
+    )
+};
+
+let frame_0 = build_frame(0, 0);
+let frame_1 = build_frame(32, 0);
+let frame_2 = build_frame(64, 0);
+let frame_3 = build_frame(96, 0);
+
+let animation_0 = app.build_animation(vec![frame_0, frame_2], Repetitions::Infinite);
+let animation_1 = app.build_animation(vec![frame_0, frame_1, frame_2, frame_3],
+                                      Repetitions::Finite(5));
+
+let animation_set = app.build_animation_set(vec![animation_0, animation_1]);
+*/
+
 use super::{
     App,
     GameState,
@@ -43,7 +72,7 @@ impl Animator {
         self.current_repetition = Repetitions::Finite(0);
 
         if let Some(mut task) = self.task.take() {
-            task.cancel(app);
+            app.cancel_task(&mut task);
         }
     }
 
@@ -82,7 +111,7 @@ impl Animator {
 
     pub fn stop<S>(&mut self, app: &mut App<S>) {
         let mut task = self.task.take().unwrap();
-        task.cancel(app);
+        app.cancel_task(&mut task);
     }
 
     pub fn play<'a, S: GameState, F>(&mut self, app: &mut App<'a, S>, callback: F)
