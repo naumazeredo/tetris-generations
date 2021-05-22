@@ -22,7 +22,7 @@ use linalg::*;
 use game::{
     input::*,
     piece::PieceType,
-    playfield::Playfield,
+    playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
     randomizer::*,
     rules::{ Rules, RotationSystem },
 };
@@ -106,11 +106,11 @@ impl GameState for State {
         let pixel_scale = Vec2 { x: 5.0, y: 5.0 };
 
         // playfield positioning
-        let playfield_size = Vec2i { x: 10, y: 20 };
+        let playfield_grid_size = Vec2i { x: 10, y: 40 };
 
         let playfield_pixel_size = Vec2i {
-            x: (pixel_scale.x * BLOCK_SCALE * playfield_size.x as f32) as i32,
-            y: (pixel_scale.y * BLOCK_SCALE * playfield_size.y as f32) as i32,
+            x: (pixel_scale.x * BLOCK_SCALE * playfield_grid_size.x as f32) as i32,
+            y: (pixel_scale.y * BLOCK_SCALE * playfield_grid_size.y as f32) as i32,
         };
 
         let window_size = app.video_system.window.size();
@@ -120,13 +120,10 @@ impl GameState for State {
             y: 100
         };
 
-        // allocate blocks
-
-        let mut blocks = Vec::new();
-        blocks.resize((playfield_size.x * playfield_size.y) as usize, false);
+        let playfield = Playfield::new(playfield_pos, playfield_grid_size);
 
         // rng
-        let mut randomizer: Randomizer = RandomizerType::Sequential.into();
+        let mut randomizer: Randomizer = RandomizerType::Random7Bag.into();
         let first_piece = randomizer.next_piece();
 
         Self {
@@ -143,16 +140,12 @@ impl GameState for State {
                 block,
             },
             pixel_scale,
-            playfield: Playfield {
-                pos: playfield_pos,
-                size: playfield_size,
-                blocks
-            },
+            playfield,
             // @Refactor this will be calculated in the update method, since we don't just drop
             //           into the Tetris gameplay, we will have a menu and such
             piece: Piece {
                 type_: first_piece,
-                pos: Vec2i { x: playfield_size.x / 2 - 2, y: -4 },
+                pos: Vec2i { x: playfield_grid_size.x / 2 - 2, y: 24 },
                 rot: 0,
             },
             rules: RotationSystem::SRS.into(),
@@ -262,8 +255,8 @@ impl GameState for State {
 impl State {
     fn new_piece(&mut self) {
         self.piece.pos = Vec2i {
-            x: self.playfield.size.x / 2 - 2,
-            y: -4
+            x: self.playfield.grid_size.x / 2 - 2,
+            y: 24
         };
 
         self.piece.rot = 0;
@@ -282,7 +275,7 @@ impl State {
     }
 
     fn hard_drop_piece(&mut self) {
-        while self.try_move_piece(0, 1) {}
+        while self.try_move_piece(0, -1) {}
 
         self.lock_piece();
         self.new_piece();
@@ -314,8 +307,6 @@ impl State {
         true
     }
 
-    // @Refactor this shouldn't be this general unless it has more usability outside of just
-    //           drawing the current piece. Or, at least, this should be outside the State
     fn draw_piece_in_playfield(
         &self,
         piece: &Piece,
@@ -326,17 +317,22 @@ impl State {
         }
     }
 
-    // @Refactor this should be outside of State
+    // @Refactor this should be outside of State (maybe in game/playfield. The annoying part is the
+    //           need to include App and State)
     fn draw_block_in_playfield(&self, pos_x: i32, pos_y: i32, app: &mut App<'_, Self>) {
-        if pos_x < 0 || pos_x >= self.playfield.size.x ||
-           pos_y < 0 || pos_y >= self.playfield.size.y {
+        if pos_x < 0 || pos_x >= self.playfield.grid_size.x ||
+           //pos_y < 0 || pos_y >= self.playfield.grid_size.y {
+           pos_y < 0 || pos_y >= PLAYFIELD_VISIBLE_HEIGHT { // @TODO store this value somewhere?
 
             return;
         }
 
+        let bottom = self.playfield.pos.y as f32 +
+            BLOCK_SCALE * self.pixel_scale.y * PLAYFIELD_VISIBLE_HEIGHT as f32;
+
         let pos = Vec2 {
             x: self.playfield.pos.x as f32 + BLOCK_SCALE * self.pixel_scale.x * pos_x as f32,
-            y: self.playfield.pos.y as f32 + BLOCK_SCALE * self.pixel_scale.y * pos_y as f32,
+            y: bottom - BLOCK_SCALE * self.pixel_scale.y * (pos_y + 1) as f32,
         };
 
         app.queue_draw_sprite(
@@ -355,7 +351,7 @@ impl State {
         let pos = Vec2::from(self.playfield.pos) - self.pixel_scale;
         let scale = Vec2 {
             x: self.pixel_scale.x,
-            y: self.pixel_scale.y * (2.0 + BLOCK_SCALE * self.playfield.size.y as f32),
+            y: self.pixel_scale.y * (2.0 + BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32),
         };
         app.queue_draw_sprite(
             &TransformBuilder::new().pos(pos).scale(scale).build(),
@@ -365,7 +361,7 @@ impl State {
 
         // right
         let pos = Vec2::from(self.playfield.pos) + Vec2 {
-            x: BLOCK_SCALE * self.pixel_scale.x * self.playfield.size.x as f32,
+            x: BLOCK_SCALE * self.pixel_scale.x * self.playfield.grid_size.x as f32,
             y: -self.pixel_scale.y
         };
         app.queue_draw_sprite(
@@ -377,7 +373,7 @@ impl State {
         // top
         let pos = Vec2::from(self.playfield.pos) - self.pixel_scale;
         let scale = Vec2 {
-            x: self.pixel_scale.x * (2.0 + BLOCK_SCALE * self.playfield.size.x as f32),
+            x: self.pixel_scale.x * (2.0 + BLOCK_SCALE * self.playfield.grid_size.x as f32),
             y: self.pixel_scale.y,
         };
         app.queue_draw_sprite(
@@ -389,7 +385,7 @@ impl State {
         // bottom
         let pos = Vec2::from(self.playfield.pos) + Vec2 {
             x: -self.pixel_scale.x,
-            y: BLOCK_SCALE * self.pixel_scale.y * self.playfield.size.y as f32,
+            y: BLOCK_SCALE * self.pixel_scale.y * PLAYFIELD_VISIBLE_HEIGHT as f32,
         };
         app.queue_draw_sprite(
             &TransformBuilder::new().pos(pos).scale(scale).build(),
@@ -400,8 +396,8 @@ impl State {
         // bg
         let pos = Vec2::from(self.playfield.pos);
         let scale = BLOCK_SCALE * Vec2 {
-            x: self.pixel_scale.x * self.playfield.size.x as f32,
-            y: self.pixel_scale.y * self.playfield.size.y as f32,
+            x: self.pixel_scale.x * self.playfield.grid_size.x as f32,
+            y: self.pixel_scale.y * PLAYFIELD_VISIBLE_HEIGHT as f32,
         };
         app.queue_draw_sprite(
             // @TODO fix layer negative not showing
@@ -413,8 +409,8 @@ impl State {
         // blocks
 
         // @Refactor cache playfield/draw to framebuffer
-        for i in 0..self.playfield.size.y {
-            for j in 0..self.playfield.size.x {
+        for i in 0..PLAYFIELD_VISIBLE_HEIGHT {
+            for j in 0..self.playfield.grid_size.x {
                 if self.playfield.block(j, i) {
                     self.draw_block_in_playfield(j, i, app);
                 }
@@ -426,7 +422,7 @@ impl State {
 // Move functions
 
 fn classic_move(_: u64, state: &mut State, app: &mut App<State>) {
-    if !state.try_move_piece(0, 1) {
+    if !state.try_move_piece(0, -1) {
         state.lock_piece();
         state.new_piece();
     }

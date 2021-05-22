@@ -4,8 +4,8 @@
 
 ### Game
 
-- [ ] Playfield
-  - [ ] Height 40 (starts from bottom)
+- [x] Playfield
+  - [x] Height 40 (starts from bottom)
 - [ ] Rules
   - [ ] Rotation systems
     - [ ] Original
