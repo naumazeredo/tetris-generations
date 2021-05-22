@@ -38,6 +38,7 @@ impl Renderer {
             layer: transform.layer,
             color,
             pos: transform.pos,
+            scale: transform.scale,
             rot: transform.rot,
             cmd: Command::DrawSprite {
                 texture_flip: sprite.texture_flip,

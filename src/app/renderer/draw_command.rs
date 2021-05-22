@@ -22,6 +22,7 @@ pub struct DrawCommand {
     pub color: Color,
 
     pub pos: Vec2,
+    pub scale: Vec2,
     pub rot: f32,
     pub layer: i32,
 

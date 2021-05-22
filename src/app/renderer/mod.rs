@@ -131,14 +131,13 @@ impl Renderer {
     pub(in crate::app) fn prepare_render(&mut self) {
         unsafe {
             gl::ClearColor(0.3, 0.3, 0.3, 1.0);
-            //gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
-            //gl::Enable(gl::DEPTH_TEST);
-            //gl::DepthFunc(gl::LEQUAL);
+            gl::Enable(gl::DEPTH_TEST);
+            gl::DepthFunc(gl::LEQUAL);
         }
     }
 
@@ -314,9 +313,9 @@ impl Renderer {
 
             match draw_cmd.cmd {
                 Command::DrawSprite { texture_flip, uvs, pivot: piv, size } => {
-                    pivot = piv;
-                    w = size.x;
-                    h = size.y;
+                    pivot = Vec2 { x: piv.x * draw_cmd.scale.x, y: piv.y * draw_cmd.scale.y };
+                    w = size.x * draw_cmd.scale.x;
+                    h = size.y * draw_cmd.scale.y;
 
                     let u_scale = if draw_cmd.texture.w != 0 { draw_cmd.texture.w as f32 } else { 1. };
                     let v_scale = if draw_cmd.texture.h != 0 { draw_cmd.texture.h as f32 } else { 1. };

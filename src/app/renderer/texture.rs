@@ -78,7 +78,7 @@ pub(in crate::app) fn load_texture<P: AsRef<Path>>(path: P) -> Texture {
     use sdl2::surface::Surface;
     let surface = Surface::from_file(path)
         .unwrap_or_else(|err| {
-            panic!(format!("Surface could not be loaded: {}", err))
+            panic!("Surface could not be loaded: {}", err)
         });
 
     load_texture_from_surface(surface)

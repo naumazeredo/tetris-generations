@@ -53,6 +53,10 @@ impl<S> App<'_, S> {
         time_system.game_time += time_system.game_frame_duration;
     }
 
+    pub fn is_paused(&self) -> bool {
+        self.time_system.scale == 0.0
+    }
+
     pub fn pause(&mut self) {
         let time_system = &mut self.time_system;
         time_system.last_scale = time_system.scale;

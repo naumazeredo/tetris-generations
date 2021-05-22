@@ -120,7 +120,10 @@ impl Animator {
         let (_, frame_data) = app.animation_system.get_animation_and_frame(self);
         let duration = frame_data.duration;
         let task = app.schedule_task(duration, callback);
-        self.task.replace(task).expect_none("[animation] trying to play while already playing");
+        match self.task.replace(task) {
+            None => panic!("[animation] trying to play while already playing"),
+            Some(_) => {},
+        }
     }
 }
 

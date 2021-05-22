@@ -1,3 +1,5 @@
+use super::AppConfig;
+
 // @Maybe refactor? Giving public access to be able to mess with window freely
 pub struct VideoSystem {
     pub window: sdl2::video::Window,
@@ -5,7 +7,7 @@ pub struct VideoSystem {
 }
 
 impl VideoSystem {
-    pub(in crate::app) fn new(video_subsystem: sdl2::VideoSubsystem) -> Self {
+    pub(in crate::app) fn new(config: AppConfig, video_subsystem: sdl2::VideoSubsystem) -> Self {
         // OpenGL setup
         // @Refactor move to window struct
 
@@ -23,7 +25,12 @@ impl VideoSystem {
         gl_attr.set_multisample_samples(4);
 
         // @TODO use config info
-        let window = video_subsystem.window("Codename Dash", 1280, 960)
+        let window =
+            video_subsystem.window(
+                &config.window_name,
+                config.window_size.0,
+                config.window_size.1
+            )
             .opengl()
             .position_centered()
             .build()

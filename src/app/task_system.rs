@@ -2,24 +2,23 @@
 
 // [ ] Refactor to timer wheel
 // [ ] Add next frame scheduling
+// [ ] Add repeating task
 
-/*
-
-// construction
-
-let task_system = TaskSystem::new();
-
-// scheduling
-
-let task = app.schedule_task(1_000_000, |id, _state, app| {
-    println!("task {} {}", id, app.game_time());
-});
-
-// cancel
-
-app.cancel_task(&mut task);
-
-*/
+///
+/// // construction
+///
+/// let task_system = TaskSystem::new();
+///
+/// // scheduling
+///
+/// let task = app.schedule_task(1_000_000, |id, _state, app| {
+///    println!("task {} {}", id, app.game_time());
+/// });
+///
+/// // cancel
+///
+/// app.cancel_task(&mut task);
+///
 
 use std::collections::{BinaryHeap, HashSet};
 use std::cmp::Ordering;
@@ -55,6 +54,8 @@ impl<'a, S> TaskSystem<'a, S> {
 }
 
 // @TODO implement a proper ImDraw
+// @Refactor maybe we shouldn't implement Copy or Clone
+// @Refactor maybe we should implement a method 'new'
 #[derive(Copy, Clone, Debug, Default, ImDraw)]
 pub struct Task(Option<u64>);
 
@@ -130,6 +131,7 @@ impl<'a, S> App<'a, S> {
 }
 
 // @Refactor don't store whole structure in heap, only (id, execution_time)
+// @Refactor maybe we don't need Rc<RefCell<>>
 struct TaskData<'a, S> {
     id: u64,
     execution_time: u64,

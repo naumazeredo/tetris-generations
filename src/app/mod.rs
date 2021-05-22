@@ -54,11 +54,11 @@ pub struct App<'a, S> {
 }
 
 impl<'a, S: GameState> App<'a, S> {
-    pub fn new() -> Self {
+    pub fn new(config: AppConfig) -> Self {
         // @TODO check results
 
         let sdl_context = SdlContext::new();
-        let video_system = VideoSystem::new(sdl_context.video_subsystem.clone());
+        let video_system = VideoSystem::new(config, sdl_context.video_subsystem.clone());
 
         let input_system = InputSystem::new(sdl_context.controller_subsystem.clone());
         let time_system = TimeSystem::new(sdl_context.timer_subsystem.clone());
@@ -131,4 +131,9 @@ impl<'a, S: GameState> App<'a, S> {
 
         self.input_system.handle_input(&event, timestamp);
     }
+}
+
+pub struct AppConfig {
+    pub window_name: String,
+    pub window_size: (u32, u32),
 }
