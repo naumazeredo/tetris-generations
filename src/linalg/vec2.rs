@@ -27,6 +27,10 @@ impl Vec2 {
         Self { x: 0.0, y: 0.0 }
     }
 
+    pub fn identity() -> Self {
+        Self { x: 1.0, y: 1.0 }
+    }
+
     pub fn mag(&self) -> f32 {
         let x = self.x;
         let y = self.y;
@@ -158,6 +162,15 @@ impl Neg for Vec2 {
     }
 }
 
+impl From<super::Vec2i> for Vec2 {
+    fn from(v: super::Vec2i) -> Self {
+        Self {
+            x: v.x as f32,
+            y: v.y as f32,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,6 +179,8 @@ mod tests {
     fn test_new() {
         assert_eq!(Vec2::new(), Vec2 { x: 0.0, y: 0.0 });
     }
+
+    // @TODO test identity
 
     #[test]
     fn test_add() {

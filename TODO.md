@@ -2,6 +2,38 @@
 
 ## v0.1
 
+### Game
+
+- [ ] Playfield
+  - [ ] Height 40 (starts from bottom)
+- [ ] Rules
+  - [ ] Rotation systems
+    - [ ] Original
+    - [ ] SRS
+      - [ ] Wall kick SRS
+  - [ ] General Mechanics
+    - [ ] Drop
+      - [ ] Gravity
+    - [ ] Soft drop
+    - [ ] Hard drop
+    - [ ] Hold
+      - [ ] Reset rotation
+    - [ ] Ghost piece
+    - [ ] Spawn drop
+    - [ ] Spawn row
+    - [ ] ARE
+    - [ ] Lock delay
+    - [ ] Preview
+    - [ ] Extended orientations
+  - [ ] Randomizer
+    - [ ] Full random
+    - [ ] Random Generator (7-Bag)
+  - [ ] Top out
+    - [ ] Block out
+    - [ ] Lock out
+- [ ] Input mapping from guideline
+- [ ] DAS
+
 ### Engine
 
 - [x] Create imgui macro to draw structs
@@ -13,6 +45,7 @@
     - [x] Mouse
     - [x] Controller button
     - [x] Controller axis
+    - [ ] Key repeat
   - [x] Feedback
     - [x] Rumble normal
 - [x] [render]
@@ -21,15 +54,50 @@
 - [ ] Asset system
 - [ ] Logger system
 - [x] Refactor systems to match
+- [ ] ImDraw derive to enums
 
-### Issues
+#### Issues
 
 - [x] Rename animations, time and tasks to *_system
 - [x] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of the app
     code
 
+## Backlog
 
-## backlog
+### Game
+
+- [ ] Rules
+  - [ ] Rotation systems
+    - [ ] Nintendo - Left Handed
+    - [ ] Nintendo - Right Handed
+    - [ ] Sega
+    - [ ] ARS
+    - [ ] DTET
+  - [ ] General Mechanics
+    - [ ] Soft drop speed
+    - [ ] Firm drop
+    - [ ] IRS
+    - [ ] IHS
+    - [ ] General piece positioning
+      - [ ] Round left
+      - [ ] Right handed
+      - [ ] Flat side up/down
+    - [ ] Wall kick rules
+      - [ ] Original
+      - [ ] TGM
+      - [ ] TGM3
+      - [ ] DX
+      - [ ] DTET
+  - [ ] Randomizer
+    - [ ] TGMACE
+    - [ ] TGM1
+    - [ ] TGM
+    - [ ] TGM3
+  - [ ] Top out
+    - [ ] Partial lock out
+    - [ ] Garbage out
+
+### Engine
 
 - [ ] Input system
   - [ ] Mapping
@@ -59,10 +127,7 @@
   - [ ] verify gl errors
 - [ ] Test all parts
 - [ ] [entities] gen_containers: add len for entity type
-
-### Game
-
-- [ ] Start game!
+- [ ] [imdraw derive] implement for enums
 
 ### Build system
 
