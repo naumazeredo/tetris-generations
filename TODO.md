@@ -25,9 +25,9 @@
     - [ ] Lock delay
     - [ ] Preview
     - [ ] Extended orientations
-  - [ ] Randomizer
-    - [ ] Full random
-    - [ ] Random Generator (7-Bag)
+  - [x] Randomizer
+    - [x] Full random
+    - [x] Random Generator (7-Bag)
   - [ ] Top out
     - [ ] Block out
     - [ ] Lock out

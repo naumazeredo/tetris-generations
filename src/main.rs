@@ -72,7 +72,7 @@ pub struct Piece {
 #[derive(ImDraw)]
 pub struct Test {
     pub movement_delay: u64,
-    pub rng: RandomizerRandomGenerator,
+    pub randomizer: Randomizer,
 }
 
 const BLOCK_SCALE : f32 = 8.0;
@@ -125,10 +125,14 @@ impl GameState for State {
         let mut blocks = Vec::new();
         blocks.resize((playfield_size.x * playfield_size.y) as usize, false);
 
+        // rng
+        let mut randomizer: Randomizer = RandomizerType::Sequential.into();
+        let first_piece = randomizer.next_piece();
+
         Self {
             test: Test {
                 movement_delay: 250_000,
-                rng: RandomizerRandomGenerator::new(),
+                randomizer,
             },
 
             show_debug: false,
@@ -144,9 +148,10 @@ impl GameState for State {
                 size: playfield_size,
                 blocks
             },
+            // @Refactor this will be calculated in the update method, since we don't just drop
+            //           into the Tetris gameplay, we will have a menu and such
             piece: Piece {
-                // @XXX This is wrong! We should be calling the rng next_piece
-                type_: PieceType::S,
+                type_: first_piece,
                 pos: Vec2i { x: playfield_size.x / 2 - 2, y: -4 },
                 rot: 0,
             },
@@ -263,7 +268,7 @@ impl State {
 
         self.piece.rot = 0;
 
-        self.piece.type_ = self.test.rng.next_piece();
+        self.piece.type_ = self.test.randomizer.next_piece();
     }
 
     fn lock_piece(&mut self) {
