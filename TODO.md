@@ -7,6 +7,7 @@
 - [x] Playfield
   - [x] Height 40 (starts from bottom)
 - [ ] Rules
+  - [ ] Line clear
   - [ ] Rotation systems
     - [ ] Original
     - [ ] SRS

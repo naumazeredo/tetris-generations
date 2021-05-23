@@ -28,6 +28,9 @@ pub struct Rules {
     pub entry_delay: Option<u32>, // aka ARE
     pub lock_delay: Option<u32>,  // microsecs
 
+    //pub line_clear_rule: LineClearRule,
+    //pub line_clear_delay: u32,
+
     // piece positioning rules
     pub spawn_round_left: bool,
     pub has_extended_orientations: bool,
@@ -46,6 +49,14 @@ pub enum HardDropRule {
     No,
     HardDrop,
     FirmDrop,
+}
+
+// https://tetris.fandom.com/wiki/Line_clear
+#[derive(Clone, Debug)]
+pub enum LineClearRule {
+    Naive,
+    Sticky,
+    Cascade,
 }
 */
 
