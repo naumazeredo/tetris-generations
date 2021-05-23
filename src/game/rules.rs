@@ -33,6 +33,7 @@ pub struct Rules {
     pub has_extended_orientations: bool,
     pub is_right_handed: bool,
     pub is_spawn_flat_side_up: bool, // NRS: true, rest: false
+    pub is_top_aligned: bool, // Original Rotation System: true, rest: false
 
     // randomizer
     pub randomizer_type: RandomizerType,
@@ -49,34 +50,70 @@ pub enum HardDropRule {
 */
 
 impl From<RotationSystem> for Rules {
-    fn from(_system: RotationSystem) -> Self {
-        Self {
-            has_hard_drop: false,
-            has_firm_drop: false,
-            has_soft_drop: false,
-            has_soft_drop_lock: false, // Lock when soft dropping
-            has_hold_piece: false,
-            has_ghost_piece: false,
-            hold_piece_reset_rotation: false,   // usually hold resets rotation
-            spawn_immediate_drop: false, // "Immediately drop one space if no existing Block is in its path"
+    fn from(rotation_system: RotationSystem) -> Self {
+        match rotation_system {
+            RotationSystem::Original => {
+                Self {
+                    has_hard_drop: false,
+                    has_firm_drop: false,
+                    has_soft_drop: true,
+                    has_soft_drop_lock: false,
+                    has_hold_piece: false,
+                    has_ghost_piece: false,
+                    hold_piece_reset_rotation: false,
+                    spawn_immediate_drop: false,
 
-            has_initial_rotation_system: false, // IRS
-            has_initial_hold_system: false,     // IHS
+                    has_initial_rotation_system: false,
+                    has_initial_hold_system: false,
 
-            spawn_row: 22u8,
-            next_pieces_preview_count: 1u8,
+                    spawn_row: 20u8,
+                    next_pieces_preview_count: 0u8,
 
-            wall_kick_rule: WallKickRule::Original,
+                    wall_kick_rule: WallKickRule::Original,
 
-            entry_delay: None, // aka ARE
-            lock_delay: None,  // microsecs
+                    entry_delay: None,
+                    lock_delay: None,
 
-            spawn_round_left: true,
-            has_extended_orientations: false,
-            is_right_handed: false,
-            is_spawn_flat_side_up: true,
+                    spawn_round_left: true,
+                    has_extended_orientations: false,
+                    is_right_handed: true,
+                    is_spawn_flat_side_up: true,
+                    is_top_aligned: true,
 
-            randomizer_type: RandomizerType::FullRandom,
+                    randomizer_type: RandomizerType::FullRandom,
+                }
+            },
+            _ => {
+                Self {
+                    has_hard_drop: false,
+                    has_firm_drop: false,
+                    has_soft_drop: false,
+                    has_soft_drop_lock: false,
+                    has_hold_piece: false,
+                    has_ghost_piece: false,
+                    hold_piece_reset_rotation: false,
+                    spawn_immediate_drop: false,
+
+                    has_initial_rotation_system: false,
+                    has_initial_hold_system: false,
+
+                    spawn_row: 22u8,
+                    next_pieces_preview_count: 1u8,
+
+                    wall_kick_rule: WallKickRule::Original,
+
+                    entry_delay: None,
+                    lock_delay: None,
+
+                    spawn_round_left: true,
+                    has_extended_orientations: false,
+                    is_right_handed: false,
+                    is_spawn_flat_side_up: true,
+                    is_top_aligned: true,
+
+                    randomizer_type: RandomizerType::FullRandom,
+                }
+            }
         }
     }
 }
@@ -84,12 +121,12 @@ impl From<RotationSystem> for Rules {
 // https://tetris.fandom.com/wiki/Category:Rotation_Systems
 #[derive(Copy, Clone, Debug)]
 pub enum RotationSystem {
-    Original,
-    NRSL, // Nintendo Rotation System - Left Handed
-    NRSR, // Nintendo Rotation System - Right Handed
-    Sega,  // row 20 or 22 in TGMACE
-    ARS,   // Arika Rotation System
-    SRS,   // Super Rotation System
+    Original, // Original Rotation System
+    NRSL,     // Nintendo Rotation System - Left Handed
+    NRSR,     // Nintendo Rotation System - Right Handed
+    Sega,     // row 20 or 22 in TGMACE
+    ARS,      // Arika Rotation System
+    SRS,      // Super Rotation System
     DTET,
 }
 
@@ -98,12 +135,12 @@ impl_imdraw_todo!(RotationSystem);
 // https://tetris.fandom.com/wiki/Wall_kick
 #[derive(Copy, Clone, Debug)]
 pub enum WallKickRule {
-    Original,
-    TGM,   // https://tetris.fandom.com/wiki/TGM_Rotation
-    TGM3,  // https://tetris.fandom.com/wiki/TGM_Rotation
-    DX,    // https://tetris.fandom.com/wiki/Tetris_DX
-    SRS,   // https://tetris.fandom.com/wiki/SRS
-    DTET,  // https://tetris.fandom.com/wiki/DTET
+    Original, // https://tetris.fandom.com/wiki/Original_Rotation_System
+    TGM,      // https://tetris.fandom.com/wiki/TGM_Rotation
+    TGM3,     // https://tetris.fandom.com/wiki/TGM_Rotation
+    DX,       // https://tetris.fandom.com/wiki/Tetris_DX
+    SRS,      // https://tetris.fandom.com/wiki/SRS
+    DTET,     // https://tetris.fandom.com/wiki/DTET
 }
 
 impl Default for WallKickRule {

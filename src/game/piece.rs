@@ -11,16 +11,17 @@ pub const PIECES : [PieceType; 7] = [
     PieceType::T,
 ];
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub struct Piece {
-    pub ty: PieceType, // having type as a keyword is very annoying!
-    pub rot: u8,
+    // @Maybe add rotation to the Piece
+    pub type_: PieceType,
+    pub pos: Vec2i,
+    pub rot: i32,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum PieceType { S, Z, J, L, O, I, T }
 
-impl_imdraw_todo!(Piece);
 impl_imdraw_todo!(PieceType);
 
 impl PieceType {
@@ -89,10 +90,10 @@ const Z_PIECE : PieceData = PieceData {
 
 const J_PIECE : PieceData = PieceData {
     blocks: [
-        [Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 2, y: 0 }],
-        [Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 1, y: 0 }, Vec2i { x: 0, y: 0 }],
-        [Vec2i { x: 0, y: 2 }, Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }],
-        [Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 1, y: 0 }],
+        [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }],
+        [Vec2i { x: 1, y: 3 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 0, y: 1 }],
+        [Vec2i { x: 0, y: 3 }, Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }],
+        [Vec2i { x: 1, y: 3 }, Vec2i { x: 2, y: 3 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }],
     ],
     min_x: [0, 0, 0, 1],
     max_x: [2, 1, 2, 2],
@@ -100,10 +101,10 @@ const J_PIECE : PieceData = PieceData {
 
 const L_PIECE : PieceData = PieceData {
     blocks: [
-        [Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 0, y: 0 }],
-        [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 1, y: 0 }],
-        [Vec2i { x: 2, y: 2 }, Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }],
-        [Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 1, y: 0 }, Vec2i { x: 2, y: 0 }],
+        [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 0, y: 1 }],
+        [Vec2i { x: 0, y: 3 }, Vec2i { x: 1, y: 3 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }],
+        [Vec2i { x: 2, y: 3 }, Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }],
+        [Vec2i { x: 1, y: 3 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }],
     ],
     min_x: [0, 0, 0, 1],
     max_x: [2, 1, 2, 2],
@@ -122,9 +123,9 @@ const O_PIECE : PieceData = PieceData {
 
 const I_PIECE : PieceData = PieceData {
     blocks: [
-        [Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 3, y: 1 }],
+        [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 3, y: 2 }],
         [Vec2i { x: 2, y: 3 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 2, y: 0 }],
-        [Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 3, y: 1 }],
+        [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 3, y: 2 }],
         [Vec2i { x: 2, y: 3 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 2, y: 0 }],
     ],
     min_x: [0, 2, 0, 2],
@@ -133,10 +134,10 @@ const I_PIECE : PieceData = PieceData {
 
 const T_PIECE : PieceData = PieceData {
     blocks: [
-        [Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 1, y: 0 }],
-        [Vec2i { x: 1, y: 2 }, Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 1, y: 0 }],
-        [Vec2i { x: 1, y: 2 }, Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }],
-        [Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 1, y: 0 }],
+        [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 1, y: 1 }],
+        [Vec2i { x: 1, y: 3 }, Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }],
+        [Vec2i { x: 1, y: 3 }, Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }],
+        [Vec2i { x: 1, y: 3 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 1, y: 1 }],
     ],
     min_x: [0, 1, 0, 0],
     max_x: [2, 2, 2, 1],

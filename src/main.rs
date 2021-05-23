@@ -21,7 +21,7 @@ use linalg::*;
 
 use game::{
     input::*,
-    piece::PieceType,
+    piece::{ Piece, PIECES },
     playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
     randomizer::*,
     rules::{ Rules, RotationSystem },
@@ -29,7 +29,7 @@ use game::{
 
 fn main() {
     let config = AppConfig {
-        window_name: "LD48".to_string(),
+        window_name: "Tetris for all".to_string(),
         window_size: (1280, 960),
     };
 
@@ -62,17 +62,11 @@ pub struct Sprites {
 }
 
 #[derive(ImDraw)]
-pub struct Piece {
-    // @Maybe add rotation to the Piece
-    pub type_: PieceType,
-    pub pos: Vec2i,
-    pub rot: i32,
-}
-
-#[derive(ImDraw)]
 pub struct Test {
     pub movement_delay: u64,
     pub randomizer: Randomizer,
+
+    pub debug_pieces: bool,
 }
 
 const BLOCK_SCALE : f32 = 8.0;
@@ -122,14 +116,25 @@ impl GameState for State {
 
         let playfield = Playfield::new(playfield_pos, playfield_grid_size);
 
+        // rules
+        let rules: Rules = RotationSystem::Original.into();
+
         // rng
         let mut randomizer: Randomizer = RandomizerType::Random7Bag.into();
-        let first_piece = randomizer.next_piece();
+
+        // @Refactor this will be calculated in the update method, since we don't just drop
+        //           into the Tetris gameplay, we will have a menu and such
+        let piece = Piece {
+            type_: randomizer.next_piece(),
+            pos: Vec2i { x: playfield_grid_size.x / 2 - 2, y: rules.spawn_row as i32 - 3 },
+            rot: 0,
+        };
 
         Self {
             test: Test {
                 movement_delay: 250_000,
                 randomizer,
+                debug_pieces: false,
             },
 
             show_debug: false,
@@ -141,19 +146,17 @@ impl GameState for State {
             },
             pixel_scale,
             playfield,
-            // @Refactor this will be calculated in the update method, since we don't just drop
-            //           into the Tetris gameplay, we will have a menu and such
-            piece: Piece {
-                type_: first_piece,
-                pos: Vec2i { x: playfield_grid_size.x / 2 - 2, y: 24 },
-                rot: 0,
-            },
-            rules: RotationSystem::SRS.into(),
+            piece,
+            rules,
             move_task: Some(app.schedule_task(1_000_000, classic_move)),
         }
     }
 
     fn update(&mut self, app: &mut App<'_, Self>) {
+        if self.test.debug_pieces {
+            return;
+        }
+
         app.update_input_mapping(&mut self.input_mapping);
 
         // horizontal movement logic
@@ -171,6 +174,11 @@ impl GameState for State {
         let up_button = self.input_mapping.button("UP".to_string());
         if up_button.pressed() { self.hard_drop_piece(); }
 
+        // soft drop
+        // @TODO repeat
+        let down_button = self.input_mapping.button("DOWN".to_string());
+        if down_button.pressed() { self.soft_drop_piece(); }
+
         // Rotate
         let mut rotation = 0;
 
@@ -184,6 +192,92 @@ impl GameState for State {
     }
 
     fn render(&mut self, app: &mut App<'_, Self>) {
+        if self.test.debug_pieces {
+            let x = 100;
+            let y = 100;
+
+            self.draw_debug_piece(
+                Vec2i { x, y },
+                &Piece {
+                    type_: PIECES[0],
+                    pos: Vec2i { x: 0, y: 0 },
+                    rot: 0,
+                },
+                app
+            );
+
+            let x = x + 10 + (self.pixel_scale.x * BLOCK_SCALE * 4.0) as i32;
+            self.draw_debug_piece(
+                Vec2i { x , y },
+                &Piece {
+                    type_: PIECES[1],
+                    pos: Vec2i { x: 0, y: 0 },
+                    rot: 0,
+                },
+                app
+            );
+
+            let x = x + 10 + (self.pixel_scale.x * BLOCK_SCALE * 4.0) as i32;
+            self.draw_debug_piece(
+                Vec2i { x , y },
+                &Piece {
+                    type_: PIECES[2],
+                    pos: Vec2i { x: 0, y: 0 },
+                    rot: 0,
+                },
+                app
+            );
+
+            let x = x + 10 + (self.pixel_scale.x * BLOCK_SCALE * 4.0) as i32;
+            self.draw_debug_piece(
+                Vec2i { x , y },
+                &Piece {
+                    type_: PIECES[3],
+                    pos: Vec2i { x: 0, y: 0 },
+                    rot: 0,
+                },
+                app
+            );
+
+            let x = 100;
+            let y = y + 10 + (self.pixel_scale.y * BLOCK_SCALE * 4.0) as i32;
+            self.draw_debug_piece(
+                Vec2i { x , y },
+                &Piece {
+                    type_: PIECES[4],
+                    pos: Vec2i { x: 0, y: 0 },
+                    rot: 0,
+                },
+                app
+            );
+
+            let x = x + 10 + (self.pixel_scale.x * BLOCK_SCALE * 4.0) as i32;
+            self.draw_debug_piece(
+                Vec2i { x , y },
+                &Piece {
+                    type_: PIECES[5],
+                    pos: Vec2i { x: 0, y: 0 },
+                    rot: 0,
+                },
+                app
+            );
+
+            let x = x + 10 + (self.pixel_scale.x * BLOCK_SCALE * 4.0) as i32;
+            self.draw_debug_piece(
+                Vec2i { x , y },
+                &Piece {
+                    type_: PIECES[6],
+                    pos: Vec2i { x: 0, y: 0 },
+                    rot: 0,
+                },
+                app
+            );
+
+            app.render_queued();
+
+            return;
+        }
+
         app.queue_draw_text(
             &format!("time: {:.2}", app.game_time()),
             &self.font,
@@ -245,6 +339,16 @@ impl GameState for State {
                 }
             }
 
+            Event::KeyDown { scancode: Some(Scancode::F10), .. } => {
+                if self.test.debug_pieces {
+                    self.test.debug_pieces = false;
+                    app.resume();
+                } else {
+                    self.test.debug_pieces = true;
+                    app.pause();
+                }
+            }
+
             _ => {}
         }
 
@@ -256,7 +360,7 @@ impl State {
     fn new_piece(&mut self) {
         self.piece.pos = Vec2i {
             x: self.playfield.grid_size.x / 2 - 2,
-            y: 24
+            y: self.rules.spawn_row as i32 - 3,
         };
 
         self.piece.rot = 0;
@@ -275,10 +379,18 @@ impl State {
     }
 
     fn hard_drop_piece(&mut self) {
+        if !self.rules.has_hard_drop { return; }
+
         while self.try_move_piece(0, -1) {}
 
         self.lock_piece();
         self.new_piece();
+    }
+
+    fn soft_drop_piece(&mut self) {
+        if !self.rules.has_soft_drop { return; }
+
+        self.try_move_piece(0, -1);
     }
 
     fn try_move_piece(&mut self, dx: i32, dy: i32) -> bool {
@@ -321,8 +433,7 @@ impl State {
     //           need to include App and State)
     fn draw_block_in_playfield(&self, pos_x: i32, pos_y: i32, app: &mut App<'_, Self>) {
         if pos_x < 0 || pos_x >= self.playfield.grid_size.x ||
-           //pos_y < 0 || pos_y >= self.playfield.grid_size.y {
-           pos_y < 0 || pos_y >= PLAYFIELD_VISIBLE_HEIGHT { // @TODO store this value somewhere?
+           pos_y < 0 || pos_y >= PLAYFIELD_VISIBLE_HEIGHT {
 
             return;
         }
@@ -415,6 +526,44 @@ impl State {
                     self.draw_block_in_playfield(j, i, app);
                 }
             }
+        }
+    }
+
+    fn draw_debug_piece(
+        &self,
+        pos: Vec2i,
+        piece: &Piece,
+        app: &mut App<'_, Self>
+    ) {
+        for block_pos in piece.type_.blocks(piece.rot) {
+            let pos = Vec2 {
+                x: pos.x as f32 + BLOCK_SCALE * self.pixel_scale.x * block_pos.x as f32,
+                y: pos.y as f32 + BLOCK_SCALE * self.pixel_scale.y * (3 - block_pos.y) as f32,
+            };
+
+            app.queue_draw_sprite(
+                &TransformBuilder::new()
+                    .pos(pos)
+                    .scale(self.pixel_scale)
+                    .layer(10)
+                    .build(),
+                &self.sprites.block,
+                WHITE
+            );
+        }
+
+        {
+            let pos = Vec2::from(pos);
+            let scale = BLOCK_SCALE * Vec2 {
+                x: self.pixel_scale.x * 4 as f32,
+                y: self.pixel_scale.y * 4 as f32,
+            };
+            app.queue_draw_sprite(
+                // @TODO fix layer negative not showing
+                &TransformBuilder::new().pos(pos).scale(scale).layer(0).build(),
+                &self.sprites.blank,
+                Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
+            );
         }
     }
 }
