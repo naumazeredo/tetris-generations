@@ -2,7 +2,9 @@ use crate::game::piece::{
     PieceType,
     PIECES
 };
+use super::RandomizerTrait;
 
+#[derive(Clone, Debug)]
 pub struct RandomizerSequential {
     current: u8
 }
@@ -13,12 +15,14 @@ impl RandomizerSequential {
             current: 7,
         }
     }
+}
 
-    pub fn reset(&mut self) {
+impl RandomizerTrait for RandomizerSequential {
+    fn reset(&mut self) {
         self.current = 7;
     }
 
-    pub fn next_piece(&mut self) -> PieceType {
+    fn next_piece(&mut self) -> PieceType {
         self.current += 1;
         if self.current >= 7 { self.current = 0; }
         PIECES[self.current as usize]

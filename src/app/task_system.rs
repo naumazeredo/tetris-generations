@@ -28,7 +28,7 @@ use std::cell::RefCell;
 use crate::app::{
     App,
     time_system::TimeSystem,
-    imgui::ImDraw,
+    imgui_wrapper::ImDraw,
 };
 
 //#[feature(trait_alias)]

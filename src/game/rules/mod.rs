@@ -7,10 +7,13 @@ use super::randomizer::RandomizerType;
 pub struct Rules {
     // @TODO use bitfields
     // gameplay rules
+
+    // https://tetris.fandom.com/wiki/Drop
     pub has_hard_drop: bool,
-    pub has_firm_drop: bool,
+    pub has_hard_drop_lock: bool, // Firm drop = false
     pub has_soft_drop: bool,
     pub has_soft_drop_lock: bool, // Lock when soft dropping
+
     pub has_hold_piece: bool,
     pub has_ghost_piece: bool,
     pub hold_piece_reset_rotation: bool,   // usually hold resets rotation
@@ -24,41 +27,25 @@ pub struct Rules {
     pub next_pieces_preview_count: u8,
 
     pub wall_kick_rule: WallKickRule,
+    //pub floor_kick_rule: FloorKickRule,
 
     pub entry_delay: Option<u32>, // aka ARE
     pub lock_delay: Option<u32>,  // microsecs
 
-    //pub line_clear_rule: LineClearRule,
-    //pub line_clear_delay: u32,
+    pub line_clear_rule: LineClearRule,
+    pub line_clear_delay: u32,
 
     // piece positioning rules
+    //pub rotation_system: RotationSystem, // It's quite annoying to make it completely general
     pub spawn_round_left: bool,
     pub has_extended_orientations: bool,
     pub is_right_handed: bool,
     pub is_spawn_flat_side_up: bool, // NRS: true, rest: false
-    pub is_top_aligned: bool, // Original Rotation System: true, rest: false
+    pub is_spawn_top_block_aligned: bool, // Original Rotation System: true, rest: false
 
     // randomizer
     pub randomizer_type: RandomizerType,
 }
-
-/*
-// https://tetris.fandom.com/wiki/Drop
-#[derive(Clone, Debug)]
-pub enum HardDropRule {
-    No,
-    HardDrop,
-    FirmDrop,
-}
-
-// https://tetris.fandom.com/wiki/Line_clear
-#[derive(Clone, Debug)]
-pub enum LineClearRule {
-    Naive,
-    Sticky,
-    Cascade,
-}
-*/
 
 impl From<RotationSystem> for Rules {
     fn from(rotation_system: RotationSystem) -> Self {
@@ -66,7 +53,7 @@ impl From<RotationSystem> for Rules {
             RotationSystem::Original => {
                 Self {
                     has_hard_drop: false,
-                    has_firm_drop: false,
+                    has_hard_drop_lock: false,
                     has_soft_drop: true,
                     has_soft_drop_lock: false,
                     has_hold_piece: false,
@@ -85,11 +72,14 @@ impl From<RotationSystem> for Rules {
                     entry_delay: None,
                     lock_delay: None,
 
+                    line_clear_rule: LineClearRule::Naive,
+                    line_clear_delay: 0,
+
                     spawn_round_left: true,
                     has_extended_orientations: false,
                     is_right_handed: true,
                     is_spawn_flat_side_up: true,
-                    is_top_aligned: true,
+                    is_spawn_top_block_aligned: true,
 
                     randomizer_type: RandomizerType::FullRandom,
                 }
@@ -97,7 +87,7 @@ impl From<RotationSystem> for Rules {
             _ => {
                 Self {
                     has_hard_drop: false,
-                    has_firm_drop: false,
+                    has_hard_drop_lock: false,
                     has_soft_drop: false,
                     has_soft_drop_lock: false,
                     has_hold_piece: false,
@@ -116,11 +106,14 @@ impl From<RotationSystem> for Rules {
                     entry_delay: None,
                     lock_delay: None,
 
+                    line_clear_rule: LineClearRule::Naive,
+                    line_clear_delay: 0,
+
                     spawn_round_left: true,
                     has_extended_orientations: false,
                     is_right_handed: false,
                     is_spawn_flat_side_up: true,
-                    is_top_aligned: true,
+                    is_spawn_top_block_aligned: true,
 
                     randomizer_type: RandomizerType::FullRandom,
                 }
@@ -128,6 +121,33 @@ impl From<RotationSystem> for Rules {
         }
     }
 }
+
+/*
+// https://tetris.fandom.com/wiki/Drop
+#[derive(Copy, Clone, Debug)]
+pub enum HardDropRule {
+    No,
+    HardDrop,
+    FirmDrop,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum SoftDropRule {
+    No,
+    SoftDrop,
+    SoftDropLock,
+}
+*/
+
+// https://tetris.fandom.com/wiki/Line_clear
+#[derive(Copy, Clone, Debug)]
+pub enum LineClearRule {
+    Naive,
+    Sticky,
+    Cascade,
+}
+
+impl_imdraw_todo!(LineClearRule);
 
 // https://tetris.fandom.com/wiki/Category:Rotation_Systems
 #[derive(Copy, Clone, Debug)]

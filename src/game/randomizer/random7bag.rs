@@ -5,7 +5,9 @@ use crate::game::piece::{
     PieceType,
     PIECES
 };
+use super::RandomizerTrait;
 
+#[derive(Clone, Debug)]
 pub struct Randomizer7Bag {
     rng: rand_pcg::Pcg32,
     sequence: [u8; 7],
@@ -20,12 +22,14 @@ impl Randomizer7Bag {
             index: 7,
         }
     }
+}
 
-    pub fn reset(&mut self) {
+impl RandomizerTrait for Randomizer7Bag {
+    fn reset(&mut self) {
         self.index = 7;
     }
 
-    pub fn next_piece(&mut self) -> PieceType {
+    fn next_piece(&mut self) -> PieceType {
         if self.index == 7 {
             for _ in 0..10 {
                 let i = (self.rng.next_u32() % 7) as usize;

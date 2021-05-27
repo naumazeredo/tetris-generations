@@ -1,6 +1,6 @@
 // [ ] rename to id_generator
 
-use super::imgui::imdraw::ImDraw;
+use super::imgui_wrapper::imdraw::ImDraw;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, ImDraw)]
 pub struct Id {

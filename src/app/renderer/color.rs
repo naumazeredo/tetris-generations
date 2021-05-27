@@ -1,4 +1,4 @@
-use crate::app::imgui::*;
+use crate::app::imgui_wrapper::imdraw::ImDraw;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Color {

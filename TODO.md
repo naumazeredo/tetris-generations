@@ -7,6 +7,8 @@
 - [x] Playfield
   - [x] Height 40 (starts from bottom)
 - [ ] Rules
+  - [ ] Refactor rules folder and create methods for each rule (soft_drop, hard_drop, clear_lines,
+      etc)
   - [ ] Line clear
   - [ ] Rotation systems
     - [ ] Original
@@ -34,6 +36,7 @@
     - [ ] Lock out
 - [ ] Input mapping from guideline
 - [ ] DAS
+- [ ] Scene system
 
 ### Engine
 
@@ -101,6 +104,7 @@
 ### Engine
 
 - [ ] Input system
+  - [ ] Flush/Reset
   - [ ] Mapping
     - [ ] Bind mapping to a controller and detect input change from keyboard to controller
   - [ ] Virtual button

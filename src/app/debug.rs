@@ -3,7 +3,7 @@
 use imgui::*;
 use crate::app::{
     App,
-    imgui::imgui_sdl2,
+    imgui_wrapper::imgui_sdl2,
 };
 
 // TODO move all this to Render?

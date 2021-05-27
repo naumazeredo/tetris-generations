@@ -37,7 +37,7 @@ use super::{
     App,
     GameState,
     renderer::Sprite,
-    imgui::ImDraw,
+    imgui_wrapper::ImDraw,
     task_system::Task,
 };
 

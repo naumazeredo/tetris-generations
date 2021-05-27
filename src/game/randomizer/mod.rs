@@ -2,6 +2,7 @@ mod sequential;
 mod fullrandom;
 mod random7bag;
 
+use crate::enum_dispatch::*;
 use crate::app::ImDraw;
 use super::piece::PieceType;
 
@@ -29,39 +30,26 @@ pub enum RandomizerType {
 impl From<RandomizerType> for Randomizer {
     fn from(ty: RandomizerType) -> Self {
         match ty {
-            RandomizerType::FullRandom => Randomizer::FullRandom(RandomizerFullRandom::new()),
-            RandomizerType::Random7Bag => Randomizer::Random7Bag(Randomizer7Bag::new()),
-            RandomizerType::Sequential => Randomizer::Sequential(RandomizerSequential::new()),
+            RandomizerType::FullRandom => Randomizer::RandomizerFullRandom(RandomizerFullRandom::new()),
+            RandomizerType::Random7Bag => Randomizer::Randomizer7Bag(Randomizer7Bag::new()),
+            RandomizerType::Sequential => Randomizer::RandomizerSequential(RandomizerSequential::new()),
             _ => unimplemented!("Randomizer type not yet supported"),
         }
     }
 }
 
-pub enum Randomizer {
-    Sequential(RandomizerSequential),
-    FullRandom(RandomizerFullRandom),
-    Random7Bag(Randomizer7Bag),
+#[enum_dispatch]
+pub trait RandomizerTrait {
+    fn reset(&mut self);
+    fn next_piece(&mut self) -> PieceType;
 }
 
-// @Maybe macro this?
-impl Randomizer {
-    //pub fn set_seed(&mut self);
-
-    pub fn reset(&mut self) {
-        match self {
-            Randomizer::Sequential(x) => x.reset(),
-            Randomizer::FullRandom(x) => x.reset(),
-            Randomizer::Random7Bag(x) => x.reset(),
-        }
-    }
-
-    pub fn next_piece(&mut self) -> PieceType {
-        match self {
-            Randomizer::Sequential(x) => x.next_piece(),
-            Randomizer::FullRandom(x) => x.next_piece(),
-            Randomizer::Random7Bag(x) => x.next_piece(),
-        }
-    }
+#[enum_dispatch(RandomizerTrait)]
+#[derive(Clone, Debug)]
+pub enum Randomizer {
+    RandomizerSequential,
+    RandomizerFullRandom,
+    Randomizer7Bag,
 }
 
 impl_imdraw_todo!(RandomizerType);

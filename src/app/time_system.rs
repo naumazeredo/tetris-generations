@@ -58,12 +58,16 @@ impl<S> App<'_, S> {
     }
 
     pub fn pause(&mut self) {
+        if self.is_paused() { return; }
+
         let time_system = &mut self.time_system;
         time_system.last_scale = time_system.scale;
         time_system.scale = 0.0;
     }
 
     pub fn resume(&mut self) {
+        if !self.is_paused() { return; }
+
         let time_system = &mut self.time_system;
         time_system.scale = time_system.last_scale;
     }

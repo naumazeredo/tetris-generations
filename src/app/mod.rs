@@ -6,7 +6,7 @@ pub mod asset_system;
 pub mod debug;
 pub mod game_state;
 pub mod id_manager;
-#[macro_use] pub mod imgui;
+#[macro_use] pub mod imgui_wrapper;
 pub mod input;
 pub mod renderer;
 pub mod sdl;
@@ -21,7 +21,7 @@ pub use {
     game_state::*,
     id_manager::*,
     input::*,
-    self::imgui::*,
+    imgui_wrapper::*,
     renderer::*,
     task_system::*,
     transform::*,
@@ -95,6 +95,13 @@ impl<'a, S: GameState> App<'a, S> {
 
             let events: Vec<Event> = self.sdl_context.event_pump.poll_iter().collect();
             for event in events.into_iter() {
+                // Update input system
+                // This needs to be done before state since it needs to be consistent.
+                // We might remove the asserts from the input system and make it handle the
+                // inconsistencies
+                let timestamp = self.time_system.game_time;
+                self.input_system.handle_input(&event, timestamp);
+
                 // Handle game input first to allow it consuming the input
                 // This can be useful if the game has some meta components, like
                 // not allowing you to close the window, or changing how it handles
@@ -118,8 +125,6 @@ impl<'a, S: GameState> App<'a, S> {
     }
 
     fn handle_input(&mut self, event: &Event) {
-        let timestamp = self.time_system.game_time;
-
         match event {
             Event::Quit {..}
             | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => {
@@ -128,8 +133,6 @@ impl<'a, S: GameState> App<'a, S> {
             },
             _ => {}
         }
-
-        self.input_system.handle_input(&event, timestamp);
     }
 }
 

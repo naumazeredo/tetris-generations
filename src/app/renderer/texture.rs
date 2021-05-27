@@ -3,7 +3,7 @@ use gl::types::*;
 use sdl2::image::*;
 use imgui::{im_str, TreeNode};
 
-use crate::app::imgui::ImDraw;
+use crate::app::imgui_wrapper::ImDraw;
 
 pub type TextureObject  = GLuint;
 

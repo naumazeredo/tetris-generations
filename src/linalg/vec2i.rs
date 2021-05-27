@@ -4,7 +4,7 @@ use std::ops::{Mul, MulAssign};
 use std::ops::{Div, DivAssign};
 use std::ops::Neg;
 
-use crate::app::imgui::ImDraw;
+use crate::app::ImDraw;
 
 #[derive(PartialEq, Debug, Copy, Clone, ImDraw, Default)]
 pub struct Vec2i {

@@ -3,7 +3,7 @@ use crate::linalg::Vec2i;
 
 pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
 
-#[derive(ImDraw)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct Playfield {
     pub pos: Vec2i,
     pub grid_size: Vec2i,

@@ -1,4 +1,4 @@
-use crate::app::imgui::ImDraw;
+use crate::app::imgui_wrapper::ImDraw;
 
 pub(in crate::app) struct SdlContext {
     pub(in crate::app) sdl: sdl2::Sdl,

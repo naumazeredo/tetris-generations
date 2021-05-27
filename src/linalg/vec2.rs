@@ -4,7 +4,7 @@ use std::ops::{Mul, MulAssign};
 use std::ops::{Div, DivAssign};
 use std::ops::Neg;
 
-use crate::app::imgui::ImDraw;
+use crate::app::ImDraw;
 
 // @XXX Create ImDrawInline for small structures
 #[derive(PartialEq, Debug, Copy, Clone, ImDraw, Default)]

@@ -1,5 +1,5 @@
 use crate::linalg::Vec2;
-use crate::app::imgui::ImDraw;
+use crate::app::imgui_wrapper::ImDraw;
 
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub struct Transform {

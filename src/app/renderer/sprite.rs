@@ -2,7 +2,7 @@ use crate::linalg::{Vec2, Vec2i};
 
 use crate::app::{
     App,
-    imgui::ImDraw,
+    imgui_wrapper::ImDraw,
     transform::Transform,
 };
 

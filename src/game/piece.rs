@@ -124,9 +124,9 @@ const O_PIECE : PieceData = PieceData {
 const I_PIECE : PieceData = PieceData {
     blocks: [
         [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 3, y: 2 }],
-        [Vec2i { x: 2, y: 3 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 2, y: 0 }],
+        [Vec2i { x: 2, y: 4 }, Vec2i { x: 2, y: 3 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }],
         [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 3, y: 2 }],
-        [Vec2i { x: 2, y: 3 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 2, y: 0 }],
+        [Vec2i { x: 2, y: 4 }, Vec2i { x: 2, y: 3 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }],
     ],
     min_x: [0, 2, 0, 2],
     max_x: [3, 2, 3, 2],

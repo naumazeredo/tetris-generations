@@ -25,7 +25,7 @@ use std::path::Path;
 use crate::{
     app::{
         App,
-        imgui::ImDraw,
+        imgui_wrapper::ImDraw,
     },
     linalg::{Vec2, Vec2i},
     transform::Transform,
