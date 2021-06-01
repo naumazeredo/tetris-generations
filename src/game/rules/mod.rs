@@ -1,6 +1,11 @@
 use crate::app::ImDraw;
 use super::randomizer::RandomizerType;
 
+pub mod movement;
+pub mod line_clear;
+
+use line_clear::LineClearRule;
+
 // Guideline: https://tetris.fandom.com/wiki/Tetris_Guideline
 
 #[derive(Copy, Clone, Debug, ImDraw)]
@@ -138,14 +143,6 @@ pub enum SoftDropRule {
     SoftDropLock,
 }
 */
-
-// https://tetris.fandom.com/wiki/Line_clear
-#[derive(Copy, Clone, Debug)]
-pub enum LineClearRule {
-    Naive,
-    Sticky,
-    Cascade,
-}
 
 impl_imdraw_todo!(LineClearRule);
 

@@ -19,6 +19,12 @@ pub struct Piece {
     pub rot: i32,
 }
 
+impl Piece {
+    pub fn blocks(&self) -> &'static [Vec2i] {
+        self.type_.blocks(self.rot)
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum PieceType { S, Z, J, L, O, I, T }
 

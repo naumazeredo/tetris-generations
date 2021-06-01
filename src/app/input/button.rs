@@ -1,8 +1,11 @@
 use std::cmp::max;
-use crate::app::imdraw::ImDraw;
-use crate::app::sdl2::{
-    keyboard::Scancode,
-    mouse::MouseButton,
+use crate::app::{
+    App,
+    imdraw::ImDraw,
+    sdl2::{
+        keyboard::Scancode,
+        mouse::MouseButton,
+    },
 };
 
 use super::{
@@ -245,6 +248,45 @@ impl Button {
 
     pub fn released_for(&self, duration: u64, timestamp: u64)  -> bool {
         !self.down && timestamp - self.timestamp >= duration
+    }
+
+    pub fn pressed_repeat_with_delay<S>(
+        &self,
+        repeat_delay: u64,
+        repeat_interval: u64,
+        app: &App<'_, S>
+    ) -> bool {
+        if !self.down { return false; }
+        if self.pressed { return true; }
+
+        let game_time = app.time_system.game_time;
+        let frame_duration = app.time_system.game_frame_duration;
+
+        // Check underflow cases
+        let prev_press_count;
+        if game_time < frame_duration + self.timestamp + repeat_delay {
+            prev_press_count = 0;
+        } else {
+            let total_time = game_time - frame_duration - self.timestamp - repeat_delay;
+            prev_press_count = 1 + total_time / repeat_interval;
+        }
+
+        let curr_press_count;
+        if game_time < self.timestamp + repeat_delay {
+            curr_press_count = 0;
+        } else {
+            curr_press_count = 1 + (game_time - self.timestamp - repeat_delay) / repeat_interval;
+        }
+
+        prev_press_count < curr_press_count
+    }
+
+    pub fn pressed_repeat<S>(
+        &self,
+        repeat_interval: u64,
+        app: &App<'_, S>
+    ) -> bool {
+        self.pressed_repeat_with_delay(repeat_interval, repeat_interval, app)
     }
 }
 

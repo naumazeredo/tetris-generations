@@ -7,7 +7,7 @@ use super::*;
 
 use crate::game::{
     randomizer::*,
-    rules::{ Rules, RotationSystem },
+    rules::{ Rules, RotationSystem, movement::* },
     piece::{ Piece },
     playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
 };
@@ -15,6 +15,8 @@ use crate::game::{
 #[derive(Clone, Debug)]
 pub struct SinglePlayerScene {
     debug_pieces_scene_opened: bool,
+
+    //pub last_piece_movement: u64, // @TODO use time struct (not implemented yet)
 
     pub playfield: Playfield,
     pub piece: Piece,
@@ -29,28 +31,33 @@ pub struct SinglePlayerScene {
 impl SceneTrait for SinglePlayerScene {
     fn update(
         &mut self,
-        _app: &mut App<'_, State>,
+        app: &mut App<'_, State>,
         persistent: &mut PersistentData
     ) {
         // horizontal movement logic
         let mut horizontal_movement = 0;
 
         let left_button = persistent.input_mapping.button("LEFT".to_string());
-        if left_button.pressed() { horizontal_movement -= 1; }
+        if left_button.pressed_repeat_with_delay(1_000_000, 100_000, app) { horizontal_movement -= 1; }
 
         let right_button = persistent.input_mapping.button("RIGHT".to_string());
-        if right_button.pressed() { horizontal_movement += 1; }
+        if right_button.pressed_repeat_with_delay(1_000_000, 100_000, app) { horizontal_movement += 1; }
 
-        self.try_move_piece(horizontal_movement, 0);
+        try_move_piece(&mut self.piece, &self.playfield, horizontal_movement, 0);
 
         // hard drop
         let up_button = persistent.input_mapping.button("UP".to_string());
-        if up_button.pressed() { self.hard_drop_piece(); }
+        if up_button.pressed() {
+            if try_hard_drop_piece(&mut self.piece, &mut self.playfield, &self.rules) {
+                self.new_piece();
+            }
+        }
 
         // soft drop
-        // @TODO repeat
         let down_button = persistent.input_mapping.button("DOWN".to_string());
-        if down_button.pressed() { self.soft_drop_piece(); }
+        if down_button.pressed_repeat(100_000, app) {
+            try_soft_drop_piece(&mut self.piece, &self.playfield, &self.rules);
+        }
 
         // Rotate
         let mut rotation = 0;
@@ -62,6 +69,9 @@ impl SceneTrait for SinglePlayerScene {
         if cw_button.pressed() { rotation += 1; }
 
         self.try_rotate_piece(rotation);
+
+        // line clear
+        self.rules.try_clear_lines(&mut self.playfield);
     }
 
     fn render(
@@ -170,7 +180,7 @@ impl SinglePlayerScene {
             playfield,
             piece,
             rules,
-            move_task: Some(app.schedule_task(1_000_000, classic_move)),
+            move_task: Some(app.schedule_task(1_000_000, move_piece_callback)),
             movement_delay: 250_000,
             randomizer,
         }
@@ -183,46 +193,13 @@ impl SinglePlayerScene {
         };
 
         self.piece.rot = 0;
-
         self.piece.type_ = self.randomizer.next_piece();
-    }
-
-    fn lock_piece(&mut self) {
-        for block_pos in self.piece.type_.blocks(self.piece.rot) {
-            self.playfield.set_block(
-                self.piece.pos.x + block_pos.x,
-                self.piece.pos.y + block_pos.y,
-                true
-            );
-        }
-    }
-
-    fn hard_drop_piece(&mut self) {
-        if !self.rules.has_hard_drop { return; }
-
-        while self.try_move_piece(0, -1) {}
-
-        self.lock_piece();
-        self.new_piece();
     }
 
     fn soft_drop_piece(&mut self) {
         if !self.rules.has_soft_drop { return; }
 
-        self.try_move_piece(0, -1);
-    }
-
-    fn try_move_piece(&mut self, dx: i32, dy: i32) -> bool {
-        for block_pos in self.piece.type_.blocks(self.piece.rot) {
-            let new_x = self.piece.pos.x + block_pos.x + dx;
-            let new_y = self.piece.pos.y + block_pos.y + dy;
-            if self.playfield.block(new_x, new_y) {
-                return false;
-            }
-        }
-
-        self.piece.pos += Vec2i { x: dx, y: dy };
-        true
+        try_move_piece(&mut self.piece, &self.playfield, 0, -1);
     }
 
     fn try_rotate_piece(&mut self, delta_rot: i32) -> bool {
@@ -372,15 +349,18 @@ impl SinglePlayerScene {
 
 // @TODO this should be renamed to move_piece_callback and there should be a move function in the
 //       Rules enum that executes the correct move
-fn classic_move(_: u64, state: &mut State, app: &mut App<State>) {
+fn move_piece_callback(_: u64, state: &mut State, app: &mut App<State>) {
     match &mut state.scene_manager.current_scene() {
         Scene::SinglePlayerScene(s) => {
-            if !s.try_move_piece(0, -1) {
-                s.lock_piece();
-                s.new_piece();
+            match try_apply_gravity(&mut s.piece, &s.playfield) {
+                Some(_) => {},
+                None => {
+                    lock_piece(&s.piece, &mut s.playfield);
+                    s.new_piece();
+                }
             }
 
-            s.move_task = Some(app.schedule_task(s.movement_delay, classic_move));
+            s.move_task = Some(app.schedule_task(s.movement_delay, move_piece_callback));
         }
 
         _ => panic!("Wrong scene!")
