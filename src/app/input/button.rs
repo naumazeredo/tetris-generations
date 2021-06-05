@@ -229,11 +229,13 @@ impl Button {
             }
 
             self.pressed = self.timestamp == timestamp;
+            self.released = false;
         } else {
             //released
 
             self.timestamp = last_released;
             self.down = false;
+            self.pressed = false;
             self.released = self.timestamp == timestamp;
         }
     }
@@ -248,6 +250,10 @@ impl Button {
 
     pub fn released_for(&self, duration: u64, timestamp: u64)  -> bool {
         !self.down && timestamp - self.timestamp >= duration
+    }
+
+    pub fn pressed_repeat<S>(&self, repeat_interval: u64, app: &App<'_, S>) -> bool {
+        self.pressed_repeat_with_delay(repeat_interval, repeat_interval, app)
     }
 
     pub fn pressed_repeat_with_delay<S>(
@@ -279,14 +285,6 @@ impl Button {
         }
 
         prev_press_count < curr_press_count
-    }
-
-    pub fn pressed_repeat<S>(
-        &self,
-        repeat_interval: u64,
-        app: &App<'_, S>
-    ) -> bool {
-        self.pressed_repeat_with_delay(repeat_interval, repeat_interval, app)
     }
 }
 

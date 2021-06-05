@@ -28,17 +28,27 @@ pub struct Rules {
     pub has_initial_rotation_system: bool, // IRS
     pub has_initial_hold_system: bool,     // IHS
 
+    // https://tetris.fandom.com/wiki/Infinity
+    //pub has_lock_delay_infinity: bool,
+
     pub spawn_row: u8,
     pub next_pieces_preview_count: u8,
 
     pub wall_kick_rule: WallKickRule,
     //pub floor_kick_rule: FloorKickRule,
+    pub line_clear_rule: LineClearRule,
+
+    // @TODO some games implement a progression for these intervals (faster levels = smaller ARE,
+    //       line clear delays and faster DAS). So we may need to accept a closure that receives the
+    //       level
+    pub das_repeat_delay: u64,
+    pub das_repeat_interval: u64,
+    pub soft_drop_interval: u64,
+    pub line_clear_delay: u64,
+    pub gravity_interval: u64,
 
     pub entry_delay: Option<u32>, // aka ARE
     pub lock_delay: Option<u32>,  // microsecs
-
-    pub line_clear_rule: LineClearRule,
-    pub line_clear_delay: u32,
 
     // piece positioning rules
     //pub rotation_system: RotationSystem, // It's quite annoying to make it completely general
@@ -73,12 +83,16 @@ impl From<RotationSystem> for Rules {
                     next_pieces_preview_count: 0u8,
 
                     wall_kick_rule: WallKickRule::Original,
+                    line_clear_rule: LineClearRule::Naive,
+
+                    das_repeat_delay: 266_228,   // 16 frames at 60.0988 Hz
+                    das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
+                    soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
+                    line_clear_delay: 0,
+                    gravity_interval: 1_000_000,
 
                     entry_delay: None,
                     lock_delay: None,
-
-                    line_clear_rule: LineClearRule::Naive,
-                    line_clear_delay: 0,
 
                     spawn_round_left: true,
                     has_extended_orientations: false,
@@ -107,12 +121,16 @@ impl From<RotationSystem> for Rules {
                     next_pieces_preview_count: 1u8,
 
                     wall_kick_rule: WallKickRule::Original,
+                    line_clear_rule: LineClearRule::Naive,
+
+                    das_repeat_delay: 266_228,   // 16 frames at 60.0988 Hz
+                    das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
+                    soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
+                    line_clear_delay: 0,
+                    gravity_interval: 250_000,
 
                     entry_delay: None,
                     lock_delay: None,
-
-                    line_clear_rule: LineClearRule::Naive,
-                    line_clear_delay: 0,
 
                     spawn_round_left: true,
                     has_extended_orientations: false,

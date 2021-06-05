@@ -7,18 +7,20 @@
 - [x] Playfield
   - [x] Height 40 (starts from bottom)
 - [ ] Rules
-  - [ ] Refactor rules folder and create methods for each rule (soft_drop, hard_drop, clear_lines,
+  - [x] Refactor rules folder and create methods for each rule (soft_drop, hard_drop, clear_lines,
       etc)
-  - [ ] Line clear
+  - [ ] Refactor SinglePlayerScene into RulesInstance (maybe a better name) and the scene handling
+  - [x] Line clear
+    - [x] Naive
   - [ ] Rotation systems
-    - [ ] Original
+    - [x] Original
     - [ ] SRS
       - [ ] Wall kick SRS
   - [ ] General Mechanics
-    - [ ] Drop
-      - [ ] Gravity
-    - [ ] Soft drop
-    - [ ] Hard drop
+    - [x] Drop
+      - [x] Gravity
+    - [x] Soft drop
+    - [x] Hard drop
     - [ ] Hold
       - [ ] Reset rotation
     - [ ] Ghost piece
@@ -71,6 +73,9 @@
 ### Game
 
 - [ ] Rules
+  - [ ] Line clear
+    - [ ] Sticky
+    - [ ] ?
   - [ ] Rotation systems
     - [ ] Nintendo - Left Handed
     - [ ] Nintendo - Right Handed

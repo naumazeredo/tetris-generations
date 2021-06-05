@@ -79,6 +79,10 @@ impl<S> App<'_, S> {
     pub fn game_time(&self) -> f32 {
         to_seconds(self.time_system.game_time)
     }
+
+    pub fn game_timestamp(&self) -> u64 {
+        self.time_system.game_time
+    }
 }
 
 fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
