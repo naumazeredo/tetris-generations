@@ -10,7 +10,7 @@ pub use fullrandom::RandomizerFullRandom;
 pub use random7bag::Randomizer7Bag;
 pub use sequential::RandomizerSequential;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub enum RandomizerType {
     Sequential,
     FullRandom,
@@ -45,14 +45,11 @@ pub trait RandomizerTrait {
 }
 
 #[enum_dispatch(RandomizerTrait)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ImDraw)]
 pub enum Randomizer {
     RandomizerSequential,
     RandomizerFullRandom,
     Randomizer7Bag,
 }
 
-impl_imdraw_todo!(RandomizerType);
-impl_imdraw_todo!(Randomizer);
-
-impl_imdraw_todo!(Randomizer7Bag);
+impl_imdraw_todo!(rand_pcg::Pcg32);

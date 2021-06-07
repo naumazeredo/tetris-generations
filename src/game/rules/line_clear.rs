@@ -1,3 +1,4 @@
+use crate::app::ImDraw;
 use crate::game::{
     //piece::Piece,
     playfield::Playfield,
@@ -6,7 +7,7 @@ use crate::game::{
 use super::*;
 
 // https://tetris.fandom.com/wiki/Line_clear
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub enum LineClearRule {
     Naive,
     Sticky,

@@ -88,7 +88,7 @@ pub struct ControllerAxisThreshold {
     direction: ControllerAxisDirection
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ImDraw)]
 pub enum ControllerAxisDirection {
     GreaterThan,
     LesserThan,
@@ -109,5 +109,3 @@ impl ControllerAxisThreshold {
         }
     }
 }
-
-impl_imdraw_todo!(ControllerAxisDirection);

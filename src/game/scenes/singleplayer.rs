@@ -17,7 +17,7 @@ use crate::game::{
 // everything the rules describes. It's better to just refactor this whole Rules logic into a struct
 // with a good naming and clear objective. SinglePlayerScene should just hold the instantiation of
 // the Rules and the drawing instead
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct SinglePlayerScene {
     debug_pieces_scene_opened: bool,
 

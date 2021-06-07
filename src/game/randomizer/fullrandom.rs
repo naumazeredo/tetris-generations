@@ -1,13 +1,14 @@
 // @TODO abstract PCG
 use crate::rand_core::RngCore;
 
+use crate::app::ImDraw;
 use crate::game::piece::{
     PieceType,
     PIECES
 };
 use super::RandomizerTrait;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct RandomizerFullRandom {
     rng: rand_pcg::Pcg32,
 }

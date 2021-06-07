@@ -9,7 +9,7 @@
 - [ ] Rules
   - [x] Refactor rules folder and create methods for each rule (soft_drop, hard_drop, clear_lines,
       etc)
-  - [ ] Refactor SinglePlayerScene into RulesInstance (maybe a better name) and the scene handling
+  - [ ] Refactor SinglePlayerScene into RulesInstance (maybe a better name)
   - [x] Line clear
     - [x] Naive
   - [ ] Rotation systems
@@ -37,8 +37,7 @@
     - [ ] Block out
     - [ ] Lock out
 - [ ] Input mapping from guideline
-- [ ] DAS
-- [ ] Scene system
+- [x] Scene system
 
 ### Engine
 
@@ -51,7 +50,7 @@
     - [x] Mouse
     - [x] Controller button
     - [x] Controller axis
-    - [ ] Key repeat
+    - [x] Key repeat
   - [x] Feedback
     - [x] Rumble normal
 - [x] [render]
@@ -60,7 +59,8 @@
 - [ ] Asset system
 - [ ] Logger system
 - [x] Refactor systems to match
-- [ ] ImDraw derive to enums
+- [x] ImDraw derive to enums
+- [ ] Remove imgui::im_str2
 
 #### Issues
 

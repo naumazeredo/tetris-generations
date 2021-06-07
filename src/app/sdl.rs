@@ -38,6 +38,8 @@ impl SdlContext {
 }
 
 // ImDraw
+// Not sure how I can automate this and not just copy the whole structure...
+// No compile time reflection in Rust is the root of this issue.
 impl_imdraw_todo!(sdl2::keyboard::Scancode);
 impl_imdraw_todo!(sdl2::mouse::MouseButton);
 impl_imdraw_todo!(sdl2::controller::Button);

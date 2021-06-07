@@ -25,10 +25,8 @@ impl Piece {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub enum PieceType { S, Z, J, L, O, I, T }
-
-impl_imdraw_todo!(PieceType);
 
 impl PieceType {
     pub fn blocks(self, rot: i32) -> &'static [Vec2i] {

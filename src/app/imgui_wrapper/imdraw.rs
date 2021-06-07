@@ -19,6 +19,7 @@ pub trait ImDraw {
 // Macros
 // ------
 
+// @TODO remove this!!!
 #[macro_export]
 macro_rules! im_str2 {
     ($e:tt) => ({
@@ -290,5 +291,17 @@ where
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
         self.borrow_mut().imdraw(&format!("RefCell {}", label).to_owned(), ui);
+    }
+}
+
+// arrays
+// @TODO macro this to do multiple sizes
+impl ImDraw for [u8; 7] {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            for i in 0..7 {
+                self[i].imdraw(&format!("[{}]", i), ui);
+            }
+        });
     }
 }

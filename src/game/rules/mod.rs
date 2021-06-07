@@ -162,10 +162,8 @@ pub enum SoftDropRule {
 }
 */
 
-impl_imdraw_todo!(LineClearRule);
-
 // https://tetris.fandom.com/wiki/Category:Rotation_Systems
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub enum RotationSystem {
     Original, // Original Rotation System
     NRSL,     // Nintendo Rotation System - Left Handed
@@ -176,10 +174,8 @@ pub enum RotationSystem {
     DTET,
 }
 
-impl_imdraw_todo!(RotationSystem);
-
 // https://tetris.fandom.com/wiki/Wall_kick
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub enum WallKickRule {
     Original, // https://tetris.fandom.com/wiki/Original_Rotation_System
     TGM,      // https://tetris.fandom.com/wiki/TGM_Rotation
@@ -194,8 +190,6 @@ impl Default for WallKickRule {
         WallKickRule::SRS
     }
 }
-
-impl_imdraw_todo!(WallKickRule);
 
 // https://tetris.fandom.com/wiki/Top_out
 // @TODO bitflags

@@ -1,13 +1,14 @@
 // @TODO abstract PCG
 use crate::rand_core::RngCore;
 
+use crate::app::ImDraw;
 use crate::game::piece::{
     PieceType,
     PIECES
 };
 use super::RandomizerTrait;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct Randomizer7Bag {
     rng: rand_pcg::Pcg32,
     sequence: [u8; 7],
@@ -44,17 +45,3 @@ impl RandomizerTrait for Randomizer7Bag {
         PIECES[piece_id]
     }
 }
-
-//impl_imdraw_todo!(rand_pcg::Pcg32);
-
-/*
-impl ImDraw for [u8; 7] {
-    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
-            for i in 0..7 {
-                self[i].imdraw(&format!("[{}]", i), ui);
-            }
-        });
-    }
-}
-*/

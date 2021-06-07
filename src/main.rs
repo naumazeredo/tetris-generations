@@ -81,6 +81,18 @@ impl GameState for State {
             //           Maybe not, since we can add framebuffers and have more control of rendering here.
             app.render_debug(self, |ui, state| {
                 state.imdraw("State", ui);
+
+                /*
+                imgui::ComboBox::new(imgui::im_str!("combo")).build_simple_string(ui,
+                    &mut state.item,
+                    &[
+                        imgui::im_str!("aaaa"),
+                        imgui::im_str!("bbbb"),
+                        imgui::im_str!("cccc"),
+                        imgui::im_str!("dddd"),
+                        imgui::im_str!("eeee"),
+                    ]);
+                */
             });
         }
     }

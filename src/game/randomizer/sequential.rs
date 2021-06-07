@@ -1,10 +1,11 @@
+use crate::app::ImDraw;
 use crate::game::piece::{
     PieceType,
     PIECES
 };
 use super::RandomizerTrait;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct RandomizerSequential {
     current: u8
 }

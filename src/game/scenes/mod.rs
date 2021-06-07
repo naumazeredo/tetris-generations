@@ -44,13 +44,11 @@ pub trait SceneTrait {
 }
 
 #[enum_dispatch(SceneTrait)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ImDraw)]
 pub enum Scene {
     SinglePlayerScene,
     DebugPiecesScene,
 }
-
-impl_imdraw_todo!(Scene);
 
 pub enum SceneTransition {
     Pop,

@@ -6,7 +6,7 @@ use crate::game::piece::{ Piece, PIECES };
 
 use super::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct DebugPiecesScene {
     go_back: bool,
     rot: i32,

@@ -13,8 +13,6 @@ enum ControllerBind {
     Any,
     Index(usize),
 }
-
-impl_imdraw_todo!(ControllerBind);
 */
 
 // @TODO use hashed string

@@ -3,7 +3,7 @@ use crate::linalg::Vec2i;
 
 pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
 
-#[derive(Clone, Debug, ImDraw)]
+#[derive(Clone, Debug)]
 pub struct Playfield {
     pub pos: Vec2i,
     pub grid_size: Vec2i, // @Refactor use Vec2<u8>
@@ -109,5 +109,34 @@ impl Playfield {
         }
 
         (self.grid_size.y - last_free_line) as u8
+    }
+}
+
+impl ImDraw for Playfield {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            let id = ui.push_id(label);
+
+            self.pos.imdraw("pos", ui);
+            self.grid_size.imdraw("grid_size", ui);
+
+            imgui::TreeNode::new(im_str2!("blocks")).build(ui, || {
+                for i in (0..self.grid_size.y).rev() {
+                    ui.text(format!("{:>2}", i));
+                    ui.same_line(0.0);
+
+                    for j in 0..self.grid_size.x-1 {
+                        let index = (i * self.grid_size.x + j) as usize;
+                        ui.checkbox(im_str2!(""), &mut self.blocks[index]);
+                        ui.same_line(0.0);
+                    }
+
+                    let index = ((i + 1) * self.grid_size.x - 1) as usize;
+                    ui.checkbox(im_str2!(""), &mut self.blocks[index]);
+                }
+            });
+
+            id.pop(ui);
+        });
     }
 }
