@@ -11,3 +11,9 @@ impl StringRef {
         Self(hasher.finish())
     }
 }
+
+impl std::fmt::Display for StringRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "StringRef {}", self.0)
+    }
+}

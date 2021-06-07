@@ -22,7 +22,7 @@ use std::ffi::CString;
 use std::path::Path;
 use gl::types::*;
 use crate::linalg::*;
-use crate::app::App;
+use crate::app::{ App, ImDraw };
 
 pub use color::*;
 pub use draw_command::*;
@@ -37,7 +37,7 @@ pub type Program        = GLuint;
 pub type Shader         = GLuint;
 pub type ShaderLocation = GLuint;
 
-#[derive(Debug)]
+#[derive(Debug, ImDraw)]
 pub(in crate::app) struct Renderer {
     default_program: Program,
 

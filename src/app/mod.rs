@@ -37,10 +37,10 @@ use debug::*;
 use sdl::*;
 use time_system::*;
 
+#[derive(ImDraw)]
 pub struct App<'a, S> {
     asset_system: AssetSystem,
     animation_system: AnimationSystem,
-    debug: Debug,
     input_system: InputSystem,
     renderer: Renderer,
     sdl_context: SdlContext,
@@ -48,13 +48,15 @@ pub struct App<'a, S> {
     time_system: TimeSystem,
 
     running: bool,
+    // @Fix clicking on this bool in imgui window will make imgui consume all events
+    show_debug_window: bool,
 
     // @Maybe refactor? Giving public access to be able to mess with window freely
     pub video_system: VideoSystem,
 }
 
-impl<'a, S: GameState> App<'a, S> {
-    pub fn new(config: AppConfig) -> Self {
+impl<'a, S: GameState + ImDraw> App<'a, S> {
+    fn new(config: AppConfig) -> Self {
         // @TODO check results
 
         let sdl_context = SdlContext::new();
@@ -65,7 +67,6 @@ impl<'a, S: GameState> App<'a, S> {
         let renderer = Renderer::new();
 
         let animation_system = AnimationSystem::new();
-        let debug = Debug::new(&video_system.window);
         let task_system = TaskSystem::new();
 
         Self {
@@ -79,15 +80,15 @@ impl<'a, S: GameState> App<'a, S> {
             time_system,
             renderer,
 
-            debug,
             task_system,
             running: true,
+
+            show_debug_window: false,
         }
     }
 
-    pub fn run(&mut self) {
+    fn run(&mut self, mut state: S, mut debug: Debug) {
         self.new_frame();
-        let mut state = S::new(self);
 
         while self.running {
             self.new_frame();
@@ -101,6 +102,8 @@ impl<'a, S: GameState> App<'a, S> {
                 // inconsistencies
                 let timestamp = self.time_system.game_time;
                 self.input_system.handle_input(&event, timestamp);
+
+                if debug.handle_event(&event) { continue; }
 
                 // Handle game input first to allow it consuming the input
                 // This can be useful if the game has some meta components, like
@@ -116,11 +119,19 @@ impl<'a, S: GameState> App<'a, S> {
             // Render
             self.renderer.prepare_render();
             state.render(self);
+
+            if self.show_debug_window {
+                debug.render(self, |ui, app| {
+                    state.imdraw("State", ui);
+                    app.imdraw("App", ui);
+                });
+            }
+
             self.video_system.swap_buffers();
         }
     }
 
-    pub fn exit(&mut self) {
+    fn exit(&mut self) {
         self.running = false;
     }
 
@@ -130,7 +141,12 @@ impl<'a, S: GameState> App<'a, S> {
             | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => {
                 self.running = false;
                 return;
-            },
+            }
+
+            Event::KeyDown { scancode: Some(Scancode::F1), .. } => {
+                self.show_debug_window = !self.show_debug_window;
+            }
+
             _ => {}
         }
     }
@@ -139,4 +155,23 @@ impl<'a, S: GameState> App<'a, S> {
 pub struct AppConfig {
     pub window_name: String,
     pub window_size: (u32, u32),
+}
+
+/*
+// @Maybe use init_state and remove GameState::new from the trait
+pub fn run<S: GameState, F>(config: AppConfig, init_state: F)
+where
+    F: FnOnce(&mut App<S>) -> S
+{
+    let mut app = App::new(config);
+    let state = init_state(&mut app);
+*/
+
+pub fn run<S: GameState + ImDraw>(config: AppConfig)
+{
+    let mut app = App::new(config);
+    let state = S::new(&mut app);
+    let debug = Debug::new(&app.video_system.window);
+
+    app.run(state, debug);
 }

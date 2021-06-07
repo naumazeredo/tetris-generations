@@ -8,8 +8,9 @@
 // @Refactor maybe use std::time?
 // @Refactor create a type to hold the USec, MSec, Sec (different types to be type checked)
 
-use crate::app::App;
+use crate::app::{ App, ImDraw };
 
+#[derive(ImDraw)]
 pub(in crate::app) struct TimeSystem {
     pub(in crate::app) frame_count: u32,
     pub(in crate::app) real_time: u64,

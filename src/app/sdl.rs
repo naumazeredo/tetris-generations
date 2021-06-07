@@ -1,5 +1,6 @@
 use crate::app::imgui_wrapper::ImDraw;
 
+#[derive(ImDraw)]
 pub(in crate::app) struct SdlContext {
     pub(in crate::app) sdl: sdl2::Sdl,
     pub(in crate::app) event_pump: sdl2::EventPump,
@@ -42,5 +43,17 @@ impl SdlContext {
 // No compile time reflection in Rust is the root of this issue.
 impl_imdraw_todo!(sdl2::keyboard::Scancode);
 impl_imdraw_todo!(sdl2::mouse::MouseButton);
-impl_imdraw_todo!(sdl2::controller::Button);
 impl_imdraw_todo!(sdl2::controller::Axis);
+impl_imdraw_todo!(sdl2::controller::Button);
+impl_imdraw_todo!(sdl2::controller::GameController);
+
+impl_imdraw_blank!(sdl2::Sdl);
+impl_imdraw_blank!(sdl2::EventPump);
+impl_imdraw_blank!(sdl2::VideoSubsystem);
+impl_imdraw_blank!(sdl2::TimerSubsystem);
+impl_imdraw_blank!(sdl2::GameControllerSubsystem);
+impl_imdraw_blank!(sdl2::ttf::Sdl2TtfContext);
+impl_imdraw_blank!(sdl2::image::Sdl2ImageContext);
+
+impl_imdraw_blank!(sdl2::video::Window);
+impl_imdraw_blank!(sdl2::video::GLContext);

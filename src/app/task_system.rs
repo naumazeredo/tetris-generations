@@ -34,6 +34,7 @@ use crate::app::{
 //#[feature(trait_alias)]
 //trait TaskFn<S> = FnMut(u64, &mut S, &mut App<S>);
 
+#[derive(ImDraw)]
 pub(in crate::app) struct TaskSystem<'a, S> {
     next_id: u64,
     // @Refactor don't store whole structure in heap, only (id, execution_time)
@@ -73,9 +74,9 @@ fn schedule_task<'a, S, F>(
     time_delay: u64,
     callback: F
 ) -> Task
-    where
-        F: FnMut(u64, &mut S, &mut App<S>) + 'a,
-        //F: TaskFn<S> + 'a,
+where
+    F: FnMut(u64, &mut S, &mut App<S>) + 'a,
+    //F: TaskFn<S> + 'a,
 {
     let id = task_system.next_id;
     task_system.next_id += 1;

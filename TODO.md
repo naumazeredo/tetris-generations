@@ -60,7 +60,8 @@
 - [ ] Logger system
 - [x] Refactor systems to match
 - [x] ImDraw derive to enums
-- [ ] Remove imgui::im_str2
+- [x] Split debug system from the rest (to be able to use dear imgui to draw the app)
+  - (Ended up refactoring the App new and run to be able to do this consistently)
 
 #### Issues
 
@@ -137,7 +138,8 @@
   - [ ] verify gl errors
 - [ ] Test all parts
 - [ ] [entities] gen_containers: add len for entity type
-- [ ] [imdraw derive] implement for enums
+- [ ] [imdraw] Remove imgui::im_str2
+- [ ] [imdraw derive] check for #[imdraw_ignore] to not show some fields
 
 ### Build system
 

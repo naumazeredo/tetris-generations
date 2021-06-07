@@ -3,12 +3,14 @@ use std::collections::BTreeMap;
 
 use super::{
     App,
+    ImDraw,
     renderer::{
         texture::{Texture, load_texture},
     },
     utils::string_ref::StringRef,
 };
 
+#[derive(ImDraw)]
 pub(super) struct AssetSystem {
     textures: BTreeMap<StringRef, Texture>,
 }

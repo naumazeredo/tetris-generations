@@ -7,14 +7,16 @@ use crate::app::{
 };
 
 // TODO move all this to Render?
-pub(super) struct Debug {
+//pub(super) struct Debug {
+pub struct Debug {
     imgui: imgui::Context,
     imgui_sdl2: imgui_sdl2::ImguiSdl2,
     imgui_renderer: imgui_opengl_renderer::Renderer,
 }
 
 impl Debug {
-    pub(super) fn new(window: &sdl2::video::Window) -> Self {
+    //pub(super) fn new(window: &sdl2::video::Window) -> Self {
+    pub fn new(window: &sdl2::video::Window) -> Self {
         let mut imgui = imgui::Context::create();
         imgui.set_ini_filename(None);
 
@@ -33,26 +35,24 @@ impl Debug {
             imgui_renderer
         }
     }
-}
 
-impl<S> App<'_, S> {
-    pub fn handle_debug_event(&mut self, event: &sdl2::event::Event) -> bool {
-        self.debug.imgui_sdl2.handle_event(&mut self.debug.imgui, event);
-        return self.debug.imgui_sdl2.ignore_event(&event);
+    pub fn handle_event(&mut self, event: &sdl2::event::Event) -> bool {
+        self.imgui_sdl2.handle_event(&mut self.imgui, event);
+        return self.imgui_sdl2.ignore_event(&event);
     }
 
-    pub fn render_debug<F: Fn(&Ui, &mut S)>(
+    pub fn render<S, F: FnMut(&Ui, &mut App<S>)>(
         &mut self,
-        state: &mut S,
-        render_info: F
+        app: &mut App<'_, S>,
+        mut render_info: F
     ) {
-        self.debug.imgui_sdl2.prepare_frame(
-            self.debug.imgui.io_mut(),
-            &self.video_system.window,
-            &self.sdl_context.event_pump.mouse_state()
+        self.imgui_sdl2.prepare_frame(
+            self.imgui.io_mut(),
+            &app.video_system.window,
+            &app.sdl_context.event_pump.mouse_state()
         );
 
-        let ui = self.debug.imgui.frame();
+        let ui = self.imgui.frame();
 
         imgui::Window::new(imgui::im_str!("Debug"))
             .build(&ui, || {
@@ -61,10 +61,10 @@ impl<S> App<'_, S> {
 
                 ui.separator();
 
-                render_info(&ui, state);
+                render_info(&ui, app);
             });
 
-        self.debug.imgui_sdl2.prepare_render(&ui, &self.video_system.window);
-        self.debug.imgui_renderer.render(ui);
+        self.imgui_sdl2.prepare_render(&ui, &app.video_system.window);
+        self.imgui_renderer.render(ui);
     }
 }

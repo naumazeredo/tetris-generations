@@ -1,6 +1,10 @@
-use super::AppConfig;
+use super::{
+    AppConfig,
+    ImDraw,
+};
 
 // @Maybe refactor? Giving public access to be able to mess with window freely
+#[derive(ImDraw)]
 pub struct VideoSystem {
     pub window: sdl2::video::Window,
     pub(in crate::app) gl_context: sdl2::video::GLContext,

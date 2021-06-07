@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::app::App;
+use crate::app::{ App, ImDraw };
 use crate::app::sdl2::{
     event::Event,
     keyboard::Scancode,
@@ -22,6 +22,7 @@ const MAX_CONTROLLER_BUTTONS : usize = 16;
 const MAX_CONTROLLER_AXIS    : usize = 16;
 const MAX_CONTROLLERS        : usize = 16;
 
+#[derive(ImDraw)]
 pub(in crate::app) struct InputSystem {
     controller_subsystem: sdl2::GameControllerSubsystem,
     pub(super) keyboard: KeyboardState,
@@ -182,7 +183,7 @@ impl<S> App<'_, S> {
 // General
 // -------
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Default, ImDraw)]
 pub(super) struct ButtonState {
     // @TODO use timestamp type (not created yet) instead of u64
     pub(super) timestamp: u64,
@@ -205,7 +206,7 @@ impl ButtonState {
     }
 }
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Default, ImDraw)]
 pub(super) struct AxisState {
     // @TODO use timestamp type (not created yet) instead of u64
     pub(super) timestamp: u64,
@@ -229,7 +230,7 @@ impl AxisState {
 // Keyboard
 // --------
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, ImDraw)]
 pub(super) struct KeyboardState {
     pub(super) keys: [ButtonState; MAX_KEYBOARD_KEYS],
 }
@@ -262,7 +263,7 @@ impl KeyboardState {
 
 // @Maybe MouseButtonState (for double_clicked if needed)
 
-#[derive(Default)]
+#[derive(Default, ImDraw)]
 pub(super) struct MouseState {
     // @TODO relative position + moved (do we need it?)
 
@@ -305,7 +306,7 @@ impl MouseState {
 // Controller
 // ----------
 
-#[derive(Default)]
+#[derive(Default, ImDraw)]
 pub(super) struct ControllerStateContainer {
     pub(super) controller_states: [ControllerState; MAX_CONTROLLERS],
     id_to_index: BTreeMap<u32, usize>,
@@ -357,7 +358,7 @@ impl ControllerStateContainer {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, ImDraw)]
 pub(super) struct ControllerState {
     // @TODO controller name, vendor, type (not supported by rust-sdl2 yet)
     controller: Option<sdl2::controller::GameController>,

@@ -127,7 +127,7 @@ impl Animator {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, ImDraw)]
 pub(super) struct AnimationSystem {
     pub(super) animation_sets: Vec<AnimationSetData>,
     pub(super) animations: Vec<AnimationData>,
@@ -157,6 +157,8 @@ impl AnimationSystem {
 
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub struct AnimationSet(u64);
+
+#[derive(ImDraw)]
 pub struct AnimationSetData {
     pub(super) id: AnimationSet,
     pub animations: Vec<Animation>,
@@ -164,14 +166,18 @@ pub struct AnimationSetData {
 
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub struct Animation(u64);
+
+#[derive(ImDraw)]
 pub struct AnimationData {
     pub(super) id: Animation,
     pub repetitions: Repetitions,
     pub frames: Vec<Frame>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub struct Frame(u64);
+
+#[derive(ImDraw)]
 pub struct FrameData {
     pub(super) id: Frame,
     pub sprite: Sprite,

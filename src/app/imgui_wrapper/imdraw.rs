@@ -4,14 +4,14 @@
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{HashMap, HashSet, BTreeMap, BinaryHeap};
 use core::fmt::Display;
 
 use imgui::*;
 pub use imdraw_derive::ImDraw;
 
-// @Refactor use a template to any string type
 pub trait ImDraw {
+    // @Maybe use AsRef<Str>
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui);
 }
 
@@ -33,6 +33,16 @@ macro_rules! impl_imdraw_todo {
         impl ImDraw for $type {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
                 ui.text(format!("{}: (todo)", label));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_imdraw_blank {
+    ($type:path) => {
+        impl ImDraw for $type {
+            fn imdraw(&mut self, _label: &str, _ui: &imgui::Ui) {
             }
         }
     };
@@ -265,6 +275,33 @@ where
     }
 }
 
+impl<V> ImDraw for HashSet<V>
+where
+    V: ImDraw + Copy,
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            let id = ui.push_id(label);
+
+            /*
+            // @TODO should we allow modifying this?
+            while let Some(&value) = self.iter().next() {
+                let old_value = value;
+                value.imdraw("", ui);
+                if value != old_value { ... }
+            }
+            */
+
+            //for value in self.iter() {
+            while let Some(&(mut value)) = self.iter().next() {
+                value.imdraw("", ui);
+            }
+
+            id.pop(ui);
+        });
+    }
+}
+
 impl<K, V> ImDraw for BTreeMap<K, V>
 where
     K: Display,
@@ -283,6 +320,12 @@ where
     }
 }
 
+// @TODO imdraw BinaryHeap
+impl<V> ImDraw for BinaryHeap<V>
+{
+    fn imdraw(&mut self, _label: &str, _ui: &imgui::Ui) {}
+}
+
 // std cells
 
 impl<T> ImDraw for RefCell<T>
@@ -295,11 +338,13 @@ where
 }
 
 // arrays
-// @TODO macro this to do multiple sizes
-impl ImDraw for [u8; 7] {
+impl<T, const LENGTH: usize> ImDraw for [T; LENGTH]
+where
+    T: ImDraw
+{
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
         imgui::TreeNode::new(im_str2!(label)).build(ui, || {
-            for i in 0..7 {
+            for i in 0..LENGTH {
                 self[i].imdraw(&format!("[{}]", i), ui);
             }
         });
