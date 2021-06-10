@@ -38,6 +38,10 @@
     - [ ] Lock out
 - [ ] Input mapping from guideline
 - [x] Scene system
+- [ ] Animations
+  - [x] Piece movement
+  - [ ] Line clear
+- [ ] Piece colors/styles
 
 ### Engine
 
@@ -65,8 +69,10 @@
 
 #### Issues
 
-- [x] Rename animations, time and tasks to *_system
-- [x] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of the app
+- [ ] [bug] Piece movement animation makes the rendering be outside of the playfield. This should be fixed
+    with rendering on a framebuffer instead of directly on the screen
+- [x] [system design] Rename animations, time and tasks to *_system
+- [x] [deps] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of the app
     code
 
 ## Backlog
@@ -106,6 +112,11 @@
   - [ ] Top out
     - [ ] Partial lock out
     - [ ] Garbage out
+- [ ] Improve animations
+- [ ] Game menu
+  - [ ] Select game rules and start game
+- [ ] Scoring
+- [ ] Speed/difficulty progression
 
 ### Engine
 
@@ -132,6 +143,7 @@
 - [ ] [debug] rename to Editor and implement an Immediate Mode GUI from scratch (or use the, to be
     implemented, UI system)
 - [ ] [render]
+  - [ ] Stack commands (change matrices, color alpha, etc)
   - [ ] Batch rendering
   - [ ] Shader struct
   - [ ] Render to framebuffer + post render effects

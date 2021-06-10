@@ -21,14 +21,23 @@ use crate::game::{
 pub struct SinglePlayerScene {
     debug_pieces_scene_opened: bool,
 
-    pub last_gravity_movement: u64,
-
     pub playfield: Playfield,
     pub piece: Piece,
     pub rules: Rules,
 
     pub movement_delay: u64,
     pub randomizer: Randomizer,
+
+    movement_last_timestamp_x: u64,
+    movement_last_timestamp_y: u64,
+
+    has_movement_animation: bool,
+    movement_animation_show_ghost: bool,
+    movement_animation_duration: u64,
+    movement_animation_delta_grid_x: f32,
+    movement_animation_delta_grid_y: f32,
+    movement_animation_current_delta_grid_x: f32,
+    movement_animation_current_delta_grid_y: f32,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -60,14 +69,21 @@ impl SceneTrait for SinglePlayerScene {
             horizontal_movement += 1;
         }
 
-        try_move_piece(&mut self.piece, &self.playfield, horizontal_movement, 0);
+        if horizontal_movement != 0 && try_move_piece(&mut self.piece, &self.playfield, horizontal_movement, 0) {
+            self.movement_last_timestamp_x = app.game_timestamp();
+            self.movement_animation_delta_grid_x =
+                self.movement_animation_current_delta_grid_x - horizontal_movement as f32;
+        }
 
         // hard drop
         let up_button = persistent.input_mapping.button("UP".to_string());
         if up_button.pressed() {
             if try_hard_drop_piece(&mut self.piece, &mut self.playfield, &self.rules) {
                 self.new_piece();
-                self.last_gravity_movement = app.game_timestamp();
+
+                // @TODO move to new_piece
+                self.movement_last_timestamp_x = app.game_timestamp();
+                self.movement_last_timestamp_y = app.game_timestamp();
             }
         }
 
@@ -75,7 +91,8 @@ impl SceneTrait for SinglePlayerScene {
         let down_button = persistent.input_mapping.button("DOWN".to_string());
         if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
             if try_soft_drop_piece(&mut self.piece, &self.playfield, &self.rules) {
-                self.last_gravity_movement = app.game_timestamp();
+                self.movement_last_timestamp_y = app.game_timestamp();
+                self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid_y + 1.0;
             }
         }
 
@@ -92,17 +109,65 @@ impl SceneTrait for SinglePlayerScene {
 
         // Gravity
         // @TODO move this to Rules (or something)
-        if app.game_timestamp() >= self.last_gravity_movement + self.rules.gravity_interval {
-            self.last_gravity_movement = app.game_timestamp();
+        if app.game_timestamp() >= self.movement_last_timestamp_y + self.rules.gravity_interval {
+            self.movement_last_timestamp_y = app.game_timestamp();
+            self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid_y + 1.0;
 
             if try_apply_gravity(&mut self.piece, &self.playfield).is_none() {
                 lock_piece(&self.piece, &mut self.playfield);
                 self.new_piece();
+
+                // @TODO move to new_piece
+                self.movement_last_timestamp_x = app.game_timestamp();
+                self.movement_last_timestamp_y = app.game_timestamp();
             }
         }
 
         // line clear
         self.rules.try_clear_lines(&mut self.playfield);
+
+        // @TEST piece movement animation
+        if self.has_movement_animation {
+            if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
+                let t = norm_u64(
+                    app.game_timestamp(),
+                    self.movement_last_timestamp_x,
+                    self.movement_last_timestamp_x  + self.movement_animation_duration
+                );
+
+                self.movement_animation_current_delta_grid_x = lerp_f32(
+                    self.movement_animation_delta_grid_x,
+                    0.0,
+                    t
+                );
+            } else {
+                self.movement_animation_delta_grid_x = 0.0;
+                self.movement_animation_current_delta_grid_x = 0.0;
+            }
+
+            if app.game_timestamp() <= self.movement_last_timestamp_y + self.movement_animation_duration {
+                let t = norm_u64(
+                    app.game_timestamp(),
+                    self.movement_last_timestamp_y,
+                    self.movement_last_timestamp_y  + self.movement_animation_duration
+                );
+
+                self.movement_animation_current_delta_grid_y = lerp_f32(
+                    self.movement_animation_delta_grid_y,
+                    0.0,
+                    t
+                );
+            } else {
+                self.movement_animation_delta_grid_y = 0.0;
+                self.movement_animation_current_delta_grid_y = 0.0;
+            }
+        } else {
+            // @Cleanup this shouldn't be necessary. It's necessary since we can disable the
+            //          movement animation in the middle of the game, and we are using these
+            //          variables to render
+            self.movement_animation_delta_grid_y = 0.0;
+            self.movement_animation_current_delta_grid_y = 0.0;
+        }
     }
 
     fn render(
@@ -119,8 +184,22 @@ impl SceneTrait for SinglePlayerScene {
         );
 
         self.draw_playfield(app, persistent);
+
+        if self.movement_animation_show_ghost {
+            self.draw_piece_in_playfield(
+                &self.piece,
+                0.0, 0.0,
+                Color { r: 1., g: 1., b: 1., a: 0.1 },
+                app,
+                persistent
+            );
+        }
+
         self.draw_piece_in_playfield(
             &self.piece,
+            self.movement_animation_current_delta_grid_x,
+            self.movement_animation_current_delta_grid_y,
+            WHITE,
             app,
             persistent
         );
@@ -144,6 +223,14 @@ impl SceneTrait for SinglePlayerScene {
                 } else {
                     app.pause();
                 }
+            }
+
+            Event::KeyDown { scancode: Some(Scancode::F3), .. } => {
+                app.set_time_scale(0.01);
+            }
+
+            Event::KeyDown { scancode: Some(Scancode::F4), .. } => {
+                app.set_time_scale(1.0);
             }
 
             Event::KeyDown { scancode: Some(Scancode::F10), .. } => {
@@ -202,14 +289,26 @@ impl SinglePlayerScene {
             rot: 0,
         };
 
+        // piece movement animation
+
         Self {
             debug_pieces_scene_opened: false,
-            last_gravity_movement: app.game_timestamp(),
             playfield,
             piece,
             rules,
             movement_delay: 250_000,
             randomizer,
+
+            movement_last_timestamp_x: app.game_timestamp(),
+            movement_last_timestamp_y: app.game_timestamp(),
+
+            has_movement_animation: true,
+            movement_animation_show_ghost: false,
+            movement_animation_duration: 50_000,
+            movement_animation_delta_grid_x: 0.0,
+            movement_animation_delta_grid_y: 0.0,
+            movement_animation_current_delta_grid_x: 0.0,
+            movement_animation_current_delta_grid_y: 0.0,
         }
     }
 
@@ -221,6 +320,11 @@ impl SinglePlayerScene {
 
         self.piece.rot = 0;
         self.piece.type_ = self.randomizer.next_piece();
+
+        self.movement_animation_delta_grid_x = 0.0;
+        self.movement_animation_delta_grid_y = 0.0;
+        self.movement_animation_current_delta_grid_x = 0.0;
+        self.movement_animation_current_delta_grid_y = 0.0;
     }
 
     fn try_rotate_piece(&mut self, delta_rot: i32) -> bool {
@@ -236,9 +340,13 @@ impl SinglePlayerScene {
         true
     }
 
+    // @Refactor color should be passed by render stack commands
     fn draw_piece_in_playfield(
         &self,
         piece: &Piece,
+        delta_grid_x: f32,
+        delta_grid_y: f32,
+        color: Color,
         app: &mut App<'_, State>,
         persistent: &mut PersistentData
     ) {
@@ -246,6 +354,9 @@ impl SinglePlayerScene {
             self.draw_block_in_playfield(
                 piece.pos.x + block_pos.x,
                 piece.pos.y + block_pos.y,
+                delta_grid_x,
+                delta_grid_y,
+                color,
                 app,
                 persistent
             );
@@ -258,6 +369,9 @@ impl SinglePlayerScene {
         &self,
         pos_x: i32,
         pos_y: i32,
+        delta_grid_x: f32,
+        delta_grid_y: f32,
+        color: Color,
         app: &mut App<'_, State>,
         persistent: &mut PersistentData
     ) {
@@ -272,8 +386,8 @@ impl SinglePlayerScene {
             BLOCK_SCALE * pixel_scale.y * PLAYFIELD_VISIBLE_HEIGHT as f32;
 
         let pos = Vec2 {
-            x: self.playfield.pos.x as f32 + BLOCK_SCALE * pixel_scale.x * pos_x as f32,
-            y: bottom - BLOCK_SCALE * pixel_scale.y * (pos_y + 1) as f32,
+            x: self.playfield.pos.x as f32 + BLOCK_SCALE * pixel_scale.x * (pos_x as f32 + delta_grid_x),
+            y: bottom - BLOCK_SCALE * pixel_scale.y * (pos_y as f32 + 1.0 + delta_grid_y),
         };
 
         app.queue_draw_sprite(
@@ -283,7 +397,7 @@ impl SinglePlayerScene {
                 .layer(10)
                 .build(),
             &persistent.sprites.block,
-            WHITE
+            color
         );
     }
 
@@ -359,9 +473,47 @@ impl SinglePlayerScene {
         for i in 0..PLAYFIELD_VISIBLE_HEIGHT {
             for j in 0..self.playfield.grid_size.x {
                 if self.playfield.block(j, i) {
-                    self.draw_block_in_playfield(j, i, app, persistent);
+                    self.draw_block_in_playfield(j, i, 0.0, 0.0, WHITE, app, persistent);
                 }
             }
         }
+    }
+}
+
+// @Refactor move these functions to their proper places
+
+/*
+fn grid_to_pixels(pos: Vec2, pixel_scale: Vec2) -> Vec2 {
+    let bottom = BLOCK_SCALE * pixel_scale.y * PLAYFIELD_VISIBLE_HEIGHT as f32;
+
+    Vec2 {
+        x: BLOCK_SCALE * pixel_scale.x * pos.x,
+        y: bottom - BLOCK_SCALE * pixel_scale.y * (pos.y + 1.0),
+    }
+}
+*/
+
+fn norm_u64(v: u64, min: u64, max: u64) -> f32 {
+    if v <= min { return 0.0; }
+    if v >= max { return 1.0; }
+    (v - min) as f32 / (max - min) as f32
+}
+
+/*
+fn norm_f32(v: f32, min: f32, max: f32) -> f32 {
+    if v <= min { return 0.0; }
+    if v >= max { return 1.0; }
+    (v - min) / (max - min)
+}
+*/
+
+fn lerp_f32(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
+
+fn lerp_vec2(a: Vec2, b: Vec2, t: f32) -> Vec2 {
+    Vec2 {
+        x: lerp_f32(a.x, b.x, t),
+        y: lerp_f32(a.y, b.y, t)
     }
 }

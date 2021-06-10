@@ -66,6 +66,11 @@ impl<S> App<'_, S> {
         time_system.scale = 0.0;
     }
 
+    pub fn set_time_scale(&mut self, scale: f64) {
+        assert!(scale >= 0.0 && scale <= 1.0);
+        self.time_system.scale = scale;
+    }
+
     pub fn resume(&mut self) {
         if !self.is_paused() { return; }
 
