@@ -80,9 +80,16 @@ pub fn try_hard_drop_piece(
 ) -> bool {
     if !rules.has_hard_drop { return false; }
 
-    while try_apply_gravity(piece, playfield).is_some() {}
+    full_drop_piece(piece, playfield);
     lock_piece(piece, playfield);
     true
+}
+
+pub fn full_drop_piece(
+    piece: &mut Piece,
+    playfield: &Playfield,
+) {
+    while try_apply_gravity(piece, playfield).is_some() {}
 }
 
 #[cfg(test)]

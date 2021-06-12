@@ -23,12 +23,14 @@
     - [x] Hard drop
     - [ ] Hold
       - [ ] Reset rotation
-    - [ ] Ghost piece
+    - [x] Ghost piece
     - [ ] Spawn drop
-    - [ ] Spawn row
+    - [x] Spawn row
     - [ ] ARE
     - [ ] Lock delay
-    - [ ] Preview
+    - [ ] Preview pieces
+      - [x] Next piece
+      - [ ] 2+ pieces layout
     - [ ] Extended orientations
   - [x] Randomizer
     - [x] Full random
@@ -41,7 +43,9 @@
 - [ ] Animations
   - [x] Piece movement
   - [ ] Line clear
+    - [ ] Classic
 - [ ] Piece colors/styles
+- [ ] [cleanup] Move piece draw functions to game/piece.rs and reuse them in debug_pieces scene
 
 ### Engine
 
@@ -117,6 +121,8 @@
   - [ ] Select game rules and start game
 - [ ] Scoring
 - [ ] Speed/difficulty progression
+- [ ] Draw grid option
+- [ ] 9-slicing texture for windows
 
 ### Engine
 

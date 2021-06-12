@@ -162,6 +162,26 @@ impl Neg for Vec2 {
     }
 }
 
+impl Mul<Vec2> for Vec2 {
+    type Output = Self;
+
+    fn mul(self, rhs: Vec2) -> Self::Output {
+        Vec2 {
+            x: rhs.x * self.x,
+            y: rhs.y * self.y,
+        }
+    }
+}
+
+impl MulAssign<Vec2> for Vec2 {
+    fn mul_assign(&mut self, rhs: Vec2) {
+        *self = Vec2 {
+            x: rhs.x * self.x,
+            y: rhs.y * self.y,
+        };
+    }
+}
+
 impl From<super::Vec2i> for Vec2 {
     fn from(v: super::Vec2i) -> Self {
         Self {
