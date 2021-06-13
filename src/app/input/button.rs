@@ -172,6 +172,7 @@ impl Button {
 
         // Controller buttons
         for button in self.controller_buttons.iter() {
+            //println!("{:?}", button);
             match input_system.controllers.controller_state(button.controller_index) {
                 Some(controller_state) => {
                     let button_state = controller_state.button_state(button.button);
@@ -294,7 +295,7 @@ struct KeyInput(Scancode);
 #[derive(ImDraw)]
 struct MouseButtonInput(MouseButton);
 
-#[derive(ImDraw)]
+#[derive(Debug, ImDraw)]
 struct ControllerButtonInput {
     controller_index: usize,
     button: sdl2::controller::Button,

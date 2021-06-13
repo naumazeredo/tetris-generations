@@ -13,15 +13,21 @@ pub const PIECES : [PieceType; 7] = [
 
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub struct Piece {
-    // @Maybe add rotation to the Piece
     pub type_: PieceType,
-    pub pos: Vec2i,
     pub rot: i32,
 }
 
 impl Piece {
     pub fn blocks(&self) -> &'static [Vec2i] {
         self.type_.blocks(self.rot)
+    }
+
+    pub fn min_max_x(self) -> (u8, u8) {
+        self.type_.min_max_x(self.rot)
+    }
+
+    pub fn min_max_y(self) -> (u8, u8) {
+        self.type_.min_max_y(self.rot)
     }
 }
 
@@ -172,8 +178,8 @@ const T_PIECE : PieceData = PieceData {
         [Vec2i { x: 1, y: 3 }, Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }],
         [Vec2i { x: 1, y: 3 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 1, y: 1 }],
     ],
-    min_x: [0, 1, 0, 0],
-    max_x: [2, 2, 2, 1],
+    min_x: [0, 0, 0, 1],
+    max_x: [2, 1, 2, 2],
     min_y: [1, 1, 2, 1],
     max_y: [2, 3, 3, 3],
 };

@@ -1,3 +1,4 @@
+use crate::linalg::Vec2i;
 use crate::game::{
     piece::Piece,
     playfield::Playfield,
@@ -10,24 +11,24 @@ pub enum PieceState {
     Locking,
 }
 
-pub fn try_move_piece(piece: &mut Piece, playfield: &Playfield, dx: i32, dy: i32) -> bool {
+pub fn try_move_piece(piece: &Piece, pos: &mut Vec2i, playfield: &Playfield, dx: i32, dy: i32) -> bool {
     for block_pos in piece.blocks() {
-        let new_x = piece.pos.x + block_pos.x + dx;
-        let new_y = piece.pos.y + block_pos.y + dy;
+        let new_x = pos.x + block_pos.x + dx;
+        let new_y = pos.y + block_pos.y + dy;
         if playfield.block(new_x, new_y) {
             return false;
         }
     }
 
-    piece.pos.x += dx;
-    piece.pos.y += dy;
+    pos.x += dx;
+    pos.y += dy;
     true
 }
 
-fn should_start_lock_delay(piece: &Piece, playfield: &Playfield) -> bool {
+fn should_start_lock_delay(piece: &Piece, pos: Vec2i, playfield: &Playfield) -> bool {
     for block_pos in piece.blocks() {
-        let down_x = piece.pos.x + block_pos.x;
-        let down_y = piece.pos.y + block_pos.y - 1;
+        let down_x = pos.x + block_pos.x;
+        let down_y = pos.y + block_pos.y - 1;
         if playfield.block(down_x, down_y) {
             return true;
         }
@@ -37,11 +38,12 @@ fn should_start_lock_delay(piece: &Piece, playfield: &Playfield) -> bool {
 }
 
 pub fn try_apply_gravity(
-    piece: &mut Piece,
+    piece: &Piece,
+    pos: &mut Vec2i,
     playfield: &Playfield
 ) -> Option<PieceState> {
-    if try_move_piece(piece, playfield, 0, -1) {
-        if should_start_lock_delay(piece, playfield) {
+    if try_move_piece(piece, pos, playfield, 0, -1) {
+        if should_start_lock_delay(piece, *pos, playfield) {
             Some(PieceState::Locking)
         } else {
             Some(PieceState::Falling)
@@ -53,43 +55,47 @@ pub fn try_apply_gravity(
 
 pub fn lock_piece(
     piece: &Piece,
+    pos: Vec2i,
     playfield: &mut Playfield
 ) {
     for block_pos in piece.blocks() {
         playfield.set_block(
-            piece.pos.x + block_pos.x,
-            piece.pos.y + block_pos.y,
+            pos.x + block_pos.x,
+            pos.y + block_pos.y,
             true
         );
     }
 }
 
 pub fn try_soft_drop_piece(
-    piece: &mut Piece,
+    piece: &Piece,
+    pos: &mut Vec2i,
     playfield: &Playfield,
     rules: &Rules
 ) -> bool {
     if !rules.has_soft_drop { return false; }
-    try_move_piece(piece, playfield, 0, -1)
+    try_move_piece(piece, pos, playfield, 0, -1)
 }
 
 pub fn try_hard_drop_piece(
-    piece: &mut Piece,
+    piece: &Piece,
+    pos: &mut Vec2i,
     playfield: &mut Playfield,
     rules: &Rules
 ) -> bool {
     if !rules.has_hard_drop { return false; }
 
-    full_drop_piece(piece, playfield);
-    lock_piece(piece, playfield);
+    full_drop_piece(piece, pos, playfield);
+    lock_piece(piece, *pos, playfield);
     true
 }
 
 pub fn full_drop_piece(
-    piece: &mut Piece,
+    piece: &Piece,
+    pos: &mut Vec2i,
     playfield: &Playfield,
 ) {
-    while try_apply_gravity(piece, playfield).is_some() {}
+    while try_apply_gravity(piece, pos, playfield).is_some() {}
 }
 
 #[cfg(test)]

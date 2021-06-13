@@ -6,9 +6,12 @@ use crate::game::piece::{ Piece, PIECES };
 
 use super::*;
 
+use crate::game::render::*;
+
 #[derive(Clone, Debug, ImDraw)]
 pub struct DebugPiecesScene {
     go_back: bool,
+    is_centered: bool,
     rot: i32,
 }
 
@@ -32,9 +35,8 @@ impl SceneTrait for DebugPiecesScene {
 
         self.draw_debug_piece(
             Vec2i { x, y },
-            &Piece {
+            Piece {
                 type_: PIECES[0],
-                pos: Vec2i { x: 0, y: 0 },
                 rot: self.rot,
             },
             app,
@@ -46,9 +48,8 @@ impl SceneTrait for DebugPiecesScene {
         let x = x + (pixel_scale.x * BLOCK_SCALE * 6.0) as i32;
         self.draw_debug_piece(
             Vec2i { x , y },
-            &Piece {
+            Piece {
                 type_: PIECES[1],
-                pos: Vec2i { x: 0, y: 0 },
                 rot: self.rot,
             },
             app,
@@ -58,9 +59,8 @@ impl SceneTrait for DebugPiecesScene {
         let x = x + (pixel_scale.x * BLOCK_SCALE * 6.0) as i32;
         self.draw_debug_piece(
             Vec2i { x , y },
-            &Piece {
+            Piece {
                 type_: PIECES[2],
-                pos: Vec2i { x: 0, y: 0 },
                 rot: self.rot,
             },
             app,
@@ -70,9 +70,8 @@ impl SceneTrait for DebugPiecesScene {
         let x = x + (pixel_scale.x * BLOCK_SCALE * 6.0) as i32;
         self.draw_debug_piece(
             Vec2i { x , y },
-            &Piece {
+            Piece {
                 type_: PIECES[3],
-                pos: Vec2i { x: 0, y: 0 },
                 rot: self.rot,
             },
             app,
@@ -83,9 +82,8 @@ impl SceneTrait for DebugPiecesScene {
         let y = y + (pixel_scale.y * BLOCK_SCALE * 6.0) as i32;
         self.draw_debug_piece(
             Vec2i { x , y },
-            &Piece {
+            Piece {
                 type_: PIECES[4],
-                pos: Vec2i { x: 0, y: 0 },
                 rot: self.rot,
             },
             app,
@@ -95,9 +93,8 @@ impl SceneTrait for DebugPiecesScene {
         let x = x + (pixel_scale.x * BLOCK_SCALE * 6.0) as i32;
         self.draw_debug_piece(
             Vec2i { x , y },
-            &Piece {
+            Piece {
                 type_: PIECES[5],
-                pos: Vec2i { x: 0, y: 0 },
                 rot: self.rot,
             },
             app,
@@ -107,9 +104,8 @@ impl SceneTrait for DebugPiecesScene {
         let x = x + (pixel_scale.x * BLOCK_SCALE * 6.0) as i32;
         self.draw_debug_piece(
             Vec2i { x , y },
-            &Piece {
+            Piece {
                 type_: PIECES[6],
-                pos: Vec2i { x: 0, y: 0 },
                 rot: self.rot,
             },
             app,
@@ -139,8 +135,12 @@ impl SceneTrait for DebugPiecesScene {
                 self.rot -= 1;
             }
 
-            Event::KeyDown { scancode: Some(Scancode::K), .. } => {
+            Event::KeyDown { scancode: Some(Scancode::L), .. } => {
                 self.rot += 1;
+            }
+
+            Event::KeyDown { scancode: Some(Scancode::Space), .. } => {
+                self.is_centered = !self.is_centered;
             }
 
             _ => {}
@@ -162,6 +162,7 @@ impl DebugPiecesScene {
     pub fn new() -> Self {
         Self {
             go_back: false,
+            is_centered: false,
             rot: 0,
         }
     }
@@ -169,40 +170,36 @@ impl DebugPiecesScene {
     fn draw_debug_piece(
         &self,
         pos: Vec2i,
-        piece: &Piece,
+        piece: Piece,
         app: &mut App<'_, State>,
         persistent: &mut PersistentData
     ) {
-        let pixel_scale = persistent.pixel_scale;
+        draw_rect_window(
+            pos.into(),
+            Vec2 {
+                x: persistent.pixel_scale.x * BLOCK_SCALE * 4.0,
+                y: persistent.pixel_scale.y * BLOCK_SCALE * 4.0,
+            },
+            persistent.pixel_scale,
+            app,
+            persistent
+        );
 
-        for block_pos in piece.type_.blocks(piece.rot) {
-            let pos = Vec2 {
-                x: pos.x as f32 + BLOCK_SCALE * pixel_scale.x * block_pos.x as f32,
-                y: pos.y as f32 + BLOCK_SCALE * pixel_scale.y * (3 - block_pos.y) as f32,
-            };
-
-            app.queue_draw_sprite(
-                &TransformBuilder::new()
-                    .pos(pos)
-                    .scale(pixel_scale)
-                    .layer(10)
-                    .build(),
-                &persistent.sprites.block,
-                WHITE
+        if self.is_centered {
+            draw_piece_centered(
+                piece,
+                pos.into(),
+                WHITE,
+                app,
+                persistent
             );
-        }
-
-        {
-            let pos = Vec2::from(pos);
-            let scale = BLOCK_SCALE * Vec2 {
-                x: pixel_scale.x * 4 as f32,
-                y: pixel_scale.y * 4 as f32,
-            };
-            app.queue_draw_sprite(
-                // @TODO fix layer negative not showing
-                &TransformBuilder::new().pos(pos).scale(scale).layer(0).build(),
-                &persistent.sprites.blank,
-                Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
+        } else {
+            draw_piece(
+                piece,
+                pos.into(),
+                WHITE,
+                app,
+                persistent
             );
         }
     }

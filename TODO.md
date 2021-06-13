@@ -21,8 +21,8 @@
       - [x] Gravity
     - [x] Soft drop
     - [x] Hard drop
-    - [ ] Hold
-      - [ ] Reset rotation
+    - [x] Hold
+      - [x] Reset rotation
     - [x] Ghost piece
     - [ ] Spawn drop
     - [x] Spawn row
@@ -45,7 +45,8 @@
   - [ ] Line clear
     - [ ] Classic
 - [ ] Piece colors/styles
-- [ ] [cleanup] Move piece draw functions to game/piece.rs and reuse them in debug_pieces scene
+- [x] [cleanup] Move piece draw functions to game/piece.rs and reuse them in debug_pieces scene
+- [ ] Restart button for testing
 
 ### Engine
 
@@ -73,6 +74,7 @@
 
 #### Issues
 
+- [ ] [bug] Controller buttons are not working for some
 - [ ] [bug] Piece movement animation makes the rendering be outside of the playfield. This should be fixed
     with rendering on a framebuffer instead of directly on the screen
 - [x] [system design] Rename animations, time and tasks to *_system

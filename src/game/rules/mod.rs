@@ -73,7 +73,7 @@ impl From<RotationSystem> for Rules {
                     has_soft_drop_lock: false,
                     has_hold_piece: false,
                     has_ghost_piece: false,
-                    hold_piece_reset_rotation: false,
+                    hold_piece_reset_rotation: true,
                     spawn_immediate_drop: false,
 
                     has_initial_rotation_system: false,
@@ -105,20 +105,20 @@ impl From<RotationSystem> for Rules {
             },
             _ => {
                 Self {
-                    has_hard_drop: false,
+                    has_hard_drop: true,
                     has_hard_drop_lock: false,
-                    has_soft_drop: false,
+                    has_soft_drop: true,
                     has_soft_drop_lock: false,
-                    has_hold_piece: false,
-                    has_ghost_piece: false,
-                    hold_piece_reset_rotation: false,
+                    has_hold_piece: true,
+                    has_ghost_piece: true,
+                    hold_piece_reset_rotation: true,
                     spawn_immediate_drop: false,
 
                     has_initial_rotation_system: false,
                     has_initial_hold_system: false,
 
-                    spawn_row: 22u8,
-                    next_pieces_preview_count: 1u8,
+                    spawn_row: 20u8,
+                    next_pieces_preview_count: 2u8,
 
                     wall_kick_rule: WallKickRule::Original,
                     line_clear_rule: LineClearRule::Naive,
@@ -172,6 +172,7 @@ pub enum RotationSystem {
     ARS,      // Arika Rotation System
     SRS,      // Super Rotation System
     DTET,
+    Test,
 }
 
 // https://tetris.fandom.com/wiki/Wall_kick

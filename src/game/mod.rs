@@ -4,5 +4,6 @@ pub mod rules;
 pub mod scenes;
 pub mod piece;
 pub mod playfield;
+pub mod render;
 
 //pub mod test;

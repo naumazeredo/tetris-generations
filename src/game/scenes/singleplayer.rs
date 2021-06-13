@@ -9,7 +9,8 @@ use crate::game::{
     randomizer::*,
     rules::{ Rules, RotationSystem, movement::* },
     piece::{ Piece, PieceType },
-    playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
+    playfield::Playfield,
+    render::*,
 };
 
 const NEXT_PIECES_COUNT: usize = 8;
@@ -27,9 +28,13 @@ pub struct SinglePlayerScene {
     playfield: Playfield,
     randomizer: Randomizer,
     current_piece: Piece,
+    current_piece_pos: Vec2i,
     next_piece_types: [PieceType; NEXT_PIECES_COUNT],
+    hold_piece: Option<Piece>,
+    has_used_hold: bool,
 
-    preview_pos: Vec2,
+    preview_window_pos: Vec2,
+    hold_window_pos: Vec2,
 
     movement_delay: u64,
     movement_last_timestamp_x: u64,
@@ -54,7 +59,7 @@ impl SceneTrait for SinglePlayerScene {
         // horizontal movement logic
         let mut horizontal_movement = 0;
 
-        let left_button = persistent.input_mapping.button("LEFT".to_string());
+        let left_button = persistent.input_mapping.button("left".to_string());
         if left_button.pressed_repeat_with_delay(
             self.rules.das_repeat_delay,
             self.rules.das_repeat_interval,
@@ -63,7 +68,7 @@ impl SceneTrait for SinglePlayerScene {
             horizontal_movement -= 1;
         }
 
-        let right_button = persistent.input_mapping.button("RIGHT".to_string());
+        let right_button = persistent.input_mapping.button("right".to_string());
         if right_button.pressed_repeat_with_delay(
             self.rules.das_repeat_delay,
             self.rules.das_repeat_interval,
@@ -72,16 +77,27 @@ impl SceneTrait for SinglePlayerScene {
             horizontal_movement += 1;
         }
 
-        if horizontal_movement != 0 && try_move_piece(&mut self.current_piece, &self.playfield, horizontal_movement, 0) {
+        if horizontal_movement != 0 && try_move_piece(
+            &mut self.current_piece,
+            &mut self.current_piece_pos,
+            &self.playfield,
+            horizontal_movement,
+            0
+        ) {
             self.movement_last_timestamp_x = app.game_timestamp();
             self.movement_animation_delta_grid_x =
                 self.movement_animation_current_delta_grid.x - horizontal_movement as f32;
         }
 
         // hard drop
-        let up_button = persistent.input_mapping.button("UP".to_string());
+        let up_button = persistent.input_mapping.button("hard_drop".to_string());
         if up_button.pressed() {
-            if try_hard_drop_piece(&mut self.current_piece, &mut self.playfield, &self.rules) {
+            if try_hard_drop_piece(
+                &mut self.current_piece,
+                &mut self.current_piece_pos,
+                &mut self.playfield,
+                &self.rules
+            ) {
                 self.new_piece();
 
                 // @TODO move to new_piece
@@ -91,11 +107,54 @@ impl SceneTrait for SinglePlayerScene {
         }
 
         // soft drop
-        let down_button = persistent.input_mapping.button("DOWN".to_string());
+        let down_button = persistent.input_mapping.button("down".to_string());
         if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
-            if try_soft_drop_piece(&mut self.current_piece, &self.playfield, &self.rules) {
+            if try_soft_drop_piece(
+                &mut self.current_piece,
+                &mut self.current_piece_pos,
+                &self.playfield,
+                &self.rules
+            ) {
                 self.movement_last_timestamp_y = app.game_timestamp();
-                self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
+                self.movement_animation_delta_grid_y =
+                    self.movement_animation_current_delta_grid.y + 1.0;
+            }
+        }
+
+        // hold piece
+        let hold_button = persistent.input_mapping.button("hold".to_string());
+        if hold_button.pressed() {
+            if !self.has_used_hold {
+                match self.hold_piece.take() {
+                    Some(piece) => {
+                        if self.rules.hold_piece_reset_rotation {
+                            self.current_piece.rot = 0;
+                        }
+
+                        self.hold_piece = Some(self.current_piece);
+
+                        self.current_piece = piece;
+                        self.current_piece_pos = Vec2i {
+                            x: self.playfield.grid_size.x / 2 - 2,
+                            y: self.rules.spawn_row as i32 - 3,
+                        };
+
+                        self.has_used_hold = true;
+                    }
+
+                    None => {
+                        if self.rules.hold_piece_reset_rotation {
+                            self.current_piece.rot = 0;
+                        }
+                        self.hold_piece = Some(self.current_piece);
+
+                        self.new_piece();
+                    }
+                }
+
+                // @TODO move to new_piece
+                self.movement_last_timestamp_x = app.game_timestamp();
+                self.movement_last_timestamp_y = app.game_timestamp();
             }
         }
 
@@ -116,8 +175,12 @@ impl SceneTrait for SinglePlayerScene {
             self.movement_last_timestamp_y = app.game_timestamp();
             self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
 
-            if try_apply_gravity(&mut self.current_piece, &self.playfield).is_none() {
-                lock_piece(&self.current_piece, &mut self.playfield);
+            if try_apply_gravity(
+                &mut self.current_piece,
+                &mut self.current_piece_pos,
+                &self.playfield
+            ).is_none() {
+                lock_piece(&self.current_piece, self.current_piece_pos, &mut self.playfield);
                 self.new_piece();
 
                 // @TODO move to new_piece
@@ -186,13 +249,15 @@ impl SceneTrait for SinglePlayerScene {
             WHITE
         );
 
-        self.draw_playfield(app, persistent);
+        draw_playfield(&self.playfield, app, persistent);
 
         if self.movement_animation_show_ghost {
-            self.draw_piece_in_playfield(
-                &self.current_piece,
+            draw_piece_in_playfield(
+                self.current_piece,
+                self.current_piece_pos,
                 Vec2::new(),
                 Color { r: 1., g: 1., b: 1., a: 0.1 },
+                &self.playfield,
                 app,
                 persistent
             );
@@ -202,29 +267,35 @@ impl SceneTrait for SinglePlayerScene {
         if self.rules.has_ghost_piece {
             // @TODO cache the ghost piece and only recalculate the position when piece moves
             let mut ghost_piece = self.current_piece.clone();
-            full_drop_piece(&mut ghost_piece, &self.playfield);
-            self.draw_piece_in_playfield(
-                &ghost_piece,
+            let mut ghost_piece_pos = self.current_piece_pos;
+
+            full_drop_piece(&mut ghost_piece, &mut ghost_piece_pos, &self.playfield);
+            draw_piece_in_playfield(
+                ghost_piece,
+                ghost_piece_pos,
                 Vec2::new(),
                 Color { r: 1., g: 1., b: 1., a: 0.1 },
+                &self.playfield,
                 app,
                 persistent
             );
         }
 
         // render piece
-        self.draw_piece_in_playfield(
-            &self.current_piece,
+        draw_piece_in_playfield(
+            self.current_piece,
+            self.current_piece_pos,
             self.movement_animation_current_delta_grid,
             WHITE,
+            &self.playfield,
             app,
             persistent
         );
 
         // render preview
         if self.rules.next_pieces_preview_count > 0 {
-            self.draw_rect_window(
-                self.preview_pos,
+            draw_rect_window(
+                self.preview_window_pos,
                 Vec2 {
                     x: persistent.pixel_scale.x * BLOCK_SCALE * 4.0,
                     y: persistent.pixel_scale.y * BLOCK_SCALE * 4.0,
@@ -234,15 +305,39 @@ impl SceneTrait for SinglePlayerScene {
                 persistent
             );
 
-            self.draw_piece_centered(
-                self.next_piece_types[0],
-                //self.preview_pos + persistent.pixel_scale * BLOCK_SCALE * 2.0,
-                self.preview_pos,
-                0,
+            draw_piece_centered(
+                Piece { type_: self.next_piece_types[0], rot: 0 },
+                self.preview_window_pos,
                 WHITE,
                 app,
                 persistent
             );
+        }
+
+        // hold piece
+        if self.rules.has_hold_piece {
+            draw_rect_window(
+                self.hold_window_pos,
+                Vec2 {
+                    x: persistent.pixel_scale.x * BLOCK_SCALE * 4.0,
+                    y: persistent.pixel_scale.y * BLOCK_SCALE * 4.0,
+                },
+                persistent.pixel_scale,
+                app,
+                persistent
+            );
+
+            if self.hold_piece.is_some() {
+                let hold_piece = *self.hold_piece.as_ref().unwrap();
+
+                draw_piece_centered(
+                    hold_piece,
+                    self.hold_window_pos,
+                    WHITE,
+                    app,
+                    persistent
+                );
+            }
         }
 
         // queue rendering
@@ -318,7 +413,7 @@ impl SinglePlayerScene {
         let playfield = Playfield::new(playfield_pos, playfield_grid_size);
 
         // rules
-        let rules: Rules = RotationSystem::Original.into();
+        let rules: Rules = RotationSystem::Test.into();
 
         // rng
         let mut randomizer: Randomizer = RandomizerType::Random7Bag.into();
@@ -327,18 +422,25 @@ impl SinglePlayerScene {
         //           into the Tetris gameplay, we will have a menu and such
         let current_piece = Piece {
             type_: randomizer.next_piece(),
-            pos: Vec2i { x: playfield_grid_size.x / 2 - 2, y: rules.spawn_row as i32 - 3 },
             rot: 0,
         };
+        let current_piece_pos = Vec2i { x: playfield_grid_size.x / 2 - 2, y: rules.spawn_row as i32 - 3 };
 
-        // next pieces preview
+        // next pieces preview window
         let mut next_piece_types = [PieceType::I; NEXT_PIECES_COUNT];
         for i in 0..NEXT_PIECES_COUNT {
             next_piece_types[i] = randomizer.next_piece();
         }
 
-        let preview_pos = Vec2 {
+        let preview_window_pos = Vec2 {
             x: playfield_pos.x as f32 + persistent.pixel_scale.x * BLOCK_SCALE * playfield_grid_size.x as f32 + 20.0,
+            y: playfield_pos.y as f32,
+        };
+
+        // hold window
+
+        let hold_window_pos = Vec2 {
+            x: playfield_pos.x as f32 - persistent.pixel_scale.x * BLOCK_SCALE * 4.0 - 20.0,
             y: playfield_pos.y as f32,
         };
 
@@ -348,8 +450,13 @@ impl SinglePlayerScene {
             rules,
             randomizer,
             current_piece,
+            current_piece_pos,
             next_piece_types,
-            preview_pos,
+            hold_piece: None,
+            has_used_hold: false,
+
+            preview_window_pos,
+            hold_window_pos,
 
             movement_delay: 250_000,
             movement_last_timestamp_x: app.game_timestamp(),
@@ -365,7 +472,7 @@ impl SinglePlayerScene {
     }
 
     fn new_piece(&mut self) {
-        self.current_piece.pos = Vec2i {
+        self.current_piece_pos = Vec2i {
             x: self.playfield.grid_size.x / 2 - 2,
             y: self.rules.spawn_row as i32 - 3,
         };
@@ -379,12 +486,14 @@ impl SinglePlayerScene {
         self.movement_animation_delta_grid_x = 0.0;
         self.movement_animation_delta_grid_y = 0.0;
         self.movement_animation_current_delta_grid = Vec2::new();
+
+        self.has_used_hold = false;
     }
 
     fn try_rotate_piece(&mut self, delta_rot: i32) -> bool {
         for block_pos in self.current_piece.type_.blocks(self.current_piece.rot + delta_rot) {
-            let x = self.current_piece.pos.x + block_pos.x;
-            let y = self.current_piece.pos.y + block_pos.y;
+            let x = self.current_piece_pos.x + block_pos.x;
+            let y = self.current_piece_pos.y + block_pos.y;
             if self.playfield.block(x, y) {
                 return false;
             }
@@ -393,220 +502,14 @@ impl SinglePlayerScene {
         self.current_piece.rot += delta_rot;
         true
     }
-
-    // @TODO pass pixel_scale instead of persistent
-    // @Refactor color should be passed by render stack commands
-    fn draw_piece_in_playfield(
-        &self,
-        piece: &Piece,
-        delta_grid: Vec2,
-        color: Color,
-        app: &mut App<'_, State>,
-        persistent: &PersistentData
-    ) {
-        for block_pos in piece.type_.blocks(piece.rot) {
-            self.draw_block_in_playfield(
-                piece.pos + *block_pos,
-                delta_grid,
-                color,
-                app,
-                persistent
-            );
-        }
-    }
-
-    // @TODO pass pixel_scale instead of persistent
-    // @Refactor this should be outside of State (maybe in game/playfield. The annoying part is the
-    //           need to include App and State)
-    fn draw_block_in_playfield(
-        &self,
-        pos: Vec2i,
-        delta_grid: Vec2,
-        color: Color,
-        app: &mut App<'_, State>,
-        persistent: &PersistentData
-    ) {
-        if pos.x < 0 || pos.x >= self.playfield.grid_size.x ||
-           pos.y < 0 || pos.y >= PLAYFIELD_VISIBLE_HEIGHT {
-
-            return;
-        }
-
-        let pixel_scale = persistent.pixel_scale;
-        let bottom = self.playfield.pos.y as f32 +
-            BLOCK_SCALE * pixel_scale.y * PLAYFIELD_VISIBLE_HEIGHT as f32;
-
-        let pos = Vec2 {
-            x: self.playfield.pos.x as f32 + BLOCK_SCALE * pixel_scale.x * (pos.x as f32 + delta_grid.x),
-            y: bottom - BLOCK_SCALE * pixel_scale.y * (pos.y as f32 + 1.0 + delta_grid.y),
-        };
-
-        self.draw_block(pos, color, app, persistent);
-    }
-
-    // @TODO pass pixel_scale instead of persistent
-    fn draw_block(
-        &self,
-        pos: Vec2,
-        color: Color,
-        app: &mut App<'_, State>,
-        persistent: &PersistentData
-    ) {
-        app.queue_draw_sprite(
-            &TransformBuilder::new()
-                .pos(pos)
-                .scale(persistent.pixel_scale)
-                .layer(10)
-                .build(),
-            &persistent.sprites.block,
-            color
-        );
-    }
-
-    // @TODO pass pixel_scale instead of persistent
-    fn draw_piece(
-        &self,
-        piece_type: PieceType,
-        pos: Vec2,
-        rot: i32,
-        color: Color,
-        app: &mut App<'_, State>,
-        persistent: &PersistentData
-    ) {
-        for block_pos in piece_type.blocks(rot) {
-            let block_pos = Vec2 { x: block_pos.x as f32, y: (3 - block_pos.y) as f32 };
-            self.draw_block(
-                pos + block_pos * BLOCK_SCALE * persistent.pixel_scale,
-                color,
-                app,
-                persistent
-            );
-        }
-    }
-
-    // @TODO pass pixel_scale instead of persistent
-    fn draw_piece_centered(
-        &self,
-        piece_type: PieceType,
-        pos: Vec2,
-        rot: i32,
-        color: Color,
-        app: &mut App<'_, State>,
-        persistent: &PersistentData
-    ) {
-        let min_max_x = piece_type.min_max_x(rot);
-        let min_max_y = piece_type.min_max_y(rot);
-
-        let delta =
-            Vec2 {
-                x: (min_max_x.0 + min_max_x.1 + 1) as f32 / 2.0,
-                y: -((min_max_y.0 + min_max_y.1 + 1) as f32 / 2.0),
-            };
-
-        for block_pos in piece_type.blocks(rot) {
-            let block_pos = Vec2 { x: (block_pos.x + 2) as f32, y: (1 - block_pos.y) as f32 };
-            self.draw_block(
-                pos + (block_pos - delta) * BLOCK_SCALE * persistent.pixel_scale,
-                color,
-                app,
-                persistent
-            );
-        }
-    }
-
-    // @TODO pass pixel_scale instead of persistent
-    fn draw_playfield(
-        &self,
-        app: &mut App<'_, State>,
-        persistent: &PersistentData
-    ) {
-        self.draw_rect_window(
-            Vec2::from(self.playfield.pos),
-            Vec2 {
-                x: persistent.pixel_scale.x * BLOCK_SCALE * self.playfield.grid_size.x as f32,
-                y: persistent.pixel_scale.y * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32,
-            },
-            persistent.pixel_scale,
-            app,
-            persistent
-        );
-
-        // blocks
-
-        // @Refactor cache playfield/draw to framebuffer
-        for i in 0..PLAYFIELD_VISIBLE_HEIGHT {
-            for j in 0..self.playfield.grid_size.x {
-                if self.playfield.block(j, i) {
-                    self.draw_block_in_playfield(
-                        Vec2i { x: j, y: i },
-                        Vec2::new(),
-                        WHITE,
-                        app,
-                        persistent
-                    );
-                }
-            }
-        }
-    }
-
-    // @TODO pass pixel_scale instead of persistent
-    fn draw_rect_window(
-        &self,
-        pos: Vec2,
-        size: Vec2,
-        border_size: Vec2,
-        app: &mut App<'_, State>,
-        persistent: &PersistentData,
-    ) {
-        // left
-        let rect_pos = pos - border_size;
-        let scale = Vec2 {
-            x: border_size.x,
-            y: 2.0 * border_size.y + size.y,
-        };
-        app.queue_draw_sprite(
-            &TransformBuilder::new().pos(rect_pos).scale(scale).build(),
-            &persistent.sprites.blank,
-            BLACK
-        );
-
-        // right
-        let rect_pos = pos + Vec2 { x: size.x, y: -border_size.y };
-        app.queue_draw_sprite(
-            &TransformBuilder::new().pos(rect_pos).scale(scale).build(),
-            &persistent.sprites.blank,
-            BLACK
-        );
-
-        // top
-        let rect_pos = pos - border_size;
-        let scale = Vec2 {
-            x: 2.0 * border_size.x + size.x,
-            y: border_size.y,
-        };
-        app.queue_draw_sprite(
-            &TransformBuilder::new().pos(rect_pos).scale(scale).build(),
-            &persistent.sprites.blank,
-            BLACK
-        );
-
-        // bottom
-        let rect_pos = pos + Vec2 { x: -border_size.x, y: size.y };
-        app.queue_draw_sprite(
-            &TransformBuilder::new().pos(rect_pos).scale(scale).build(),
-            &persistent.sprites.blank,
-            BLACK
-        );
-
-        // bg
-        app.queue_draw_sprite(
-            // @TODO fix layer negative not showing
-            &TransformBuilder::new().pos(pos).scale(size).layer(0).build(),
-            &persistent.sprites.blank,
-            Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
-        );
-    }
 }
+
+/*
+enum TetrisState {
+    Falling,
+    LineClearAnimation,
+}
+*/
 
 // @Refactor move these functions to their proper places
 
