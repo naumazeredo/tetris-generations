@@ -123,6 +123,7 @@ pub fn draw_piece_centered(
 
 pub fn draw_playfield(
     playfield: &Playfield,
+    line_clear_animation_state: Option<&LineClearAnimationState>,
     app: &mut App<'_, State>,
     persistent: &PersistentData
 ) {
@@ -139,18 +140,65 @@ pub fn draw_playfield(
 
     // blocks
 
-    // @Refactor cache playfield/draw to framebuffer
-    for i in 0..PLAYFIELD_VISIBLE_HEIGHT {
-        for j in 0..playfield.grid_size.x {
-            if let Some(piece_type) = playfield.block(j, i) {
-                draw_block_in_playfield(
-                    Vec2i { x: j, y: i },
-                    Vec2::new(),
-                    piece_type.color(),
-                    playfield,
-                    app,
-                    persistent
-                );
+    match line_clear_animation_state {
+        None => {
+            // @Refactor cache playfield/draw to framebuffer
+            for row in 0..PLAYFIELD_VISIBLE_HEIGHT {
+                for col in 0..playfield.grid_size.x {
+                    if let Some(piece_type) = playfield.block(col, row) {
+                        draw_block_in_playfield(
+                            Vec2i { x: col, y: row },
+                            Vec2::new(),
+                            piece_type.color(),
+                            playfield,
+                            app,
+                            persistent
+                        );
+                    }
+                }
+            }
+        },
+
+        Some(anim_state) => {
+            let mut line_clear_iter = anim_state.lines_to_clear.iter();
+            let mut current_line_to_clear = line_clear_iter.next();
+
+            // @Refactor cache playfield/draw to framebuffer
+            for row in 0..PLAYFIELD_VISIBLE_HEIGHT {
+
+                // if it's a line to be cleared, we have to apply the animation to it
+                if current_line_to_clear.is_some() && *current_line_to_clear.unwrap() == row as u8 {
+                    for col in 0..playfield.grid_size.x {
+                        let piece_type = playfield.block(col, row).unwrap();
+
+                        if line_clear_animation_should_draw_block(col as u8, anim_state) {
+                            draw_block_in_playfield(
+                                Vec2i { x: col, y: row },
+                                Vec2::new(),
+                                piece_type.color(),
+                                playfield,
+                                app,
+                                persistent
+                            );
+                        }
+                    }
+
+                    current_line_to_clear = line_clear_iter.next();
+                } else {
+                    // otherwise, we just draw the blocks
+                    for col in 0..playfield.grid_size.x {
+                        if let Some(piece_type) = playfield.block(col, row) {
+                            draw_block_in_playfield(
+                                Vec2i { x: col, y: row },
+                                Vec2::new(),
+                                piece_type.color(),
+                                playfield,
+                                app,
+                                persistent
+                            );
+                        }
+                    }
+                }
             }
         }
     }
@@ -210,4 +258,30 @@ pub fn draw_rect_window(
         &persistent.sprites.blank,
         Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
     );
+}
+
+// @TODO create a struct for styling 
+#[derive(Clone, Debug, ImDraw)]
+pub struct LineClearAnimationState {
+    pub type_: LineClearAnimationType,
+    pub step: u8,
+    pub lines_to_clear: Vec<u8>,
+}
+
+#[derive(Clone, Debug, ImDraw)]
+pub enum LineClearAnimationType {
+    Classic,
+}
+
+fn line_clear_animation_should_draw_block(col: u8, anim_state: &LineClearAnimationState) -> bool {
+    match anim_state.type_ {
+        LineClearAnimationType::Classic => {
+            match anim_state.step {
+                0 => col < 4 || col > 5,
+                1 => col < 2 || col > 7,
+                2 => col < 1 || col > 8,
+                _ => false,
+            }
+        }
+    }
 }

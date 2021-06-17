@@ -27,9 +27,12 @@ pub struct SinglePlayerScene {
     rules: Rules,
     playfield: Playfield,
     randomizer: Randomizer,
-    current_piece: Piece,
+
+    current_piece: Option<Piece>,
     current_piece_pos: Vec2i,
     next_piece_types: [PieceType; NEXT_PIECES_COUNT],
+    lock_piece_timestamp: u64,
+
     hold_piece: Option<Piece>,
     has_used_hold: bool,
 
@@ -45,6 +48,11 @@ pub struct SinglePlayerScene {
     movement_animation_delta_grid_x: f32,
     movement_animation_delta_grid_y: f32,
     movement_animation_current_delta_grid: Vec2,
+
+    has_line_clear_animation: bool,
+    is_line_clear_animation_playing: bool,
+    line_clear_animation_timestamp: u64,
+    line_clear_animation_state: LineClearAnimationState,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -55,183 +63,235 @@ impl SceneTrait for SinglePlayerScene {
     ) {
         if app.is_paused() { return; }
 
-        // horizontal movement logic
-        let mut horizontal_movement = 0;
+        if self.current_piece.is_some() {
 
-        let left_button = persistent.input_mapping.button("left".to_string());
-        if left_button.pressed_repeat_with_delay(
-            self.rules.das_repeat_delay,
-            self.rules.das_repeat_interval,
-            app
-        ) {
-            horizontal_movement -= 1;
-        }
+            // horizontal movement logic
+            let mut horizontal_movement = 0;
 
-        let right_button = persistent.input_mapping.button("right".to_string());
-        if right_button.pressed_repeat_with_delay(
-            self.rules.das_repeat_delay,
-            self.rules.das_repeat_interval,
-            app
-        ) {
-            horizontal_movement += 1;
-        }
-
-        if horizontal_movement != 0 && try_move_piece(
-            &mut self.current_piece,
-            &mut self.current_piece_pos,
-            &self.playfield,
-            horizontal_movement,
-            0
-        ) {
-            self.movement_last_timestamp_x = app.game_timestamp();
-            self.movement_animation_delta_grid_x =
-                self.movement_animation_current_delta_grid.x - horizontal_movement as f32;
-        }
-
-        // hard drop
-        let up_button = persistent.input_mapping.button("hard_drop".to_string());
-        if up_button.pressed() {
-            if try_hard_drop_piece(
-                &mut self.current_piece,
-                &mut self.current_piece_pos,
-                &mut self.playfield,
-                &self.rules
+            let left_button = persistent.input_mapping.button("left".to_string());
+            if left_button.pressed_repeat_with_delay(
+                self.rules.das_repeat_delay,
+                self.rules.das_repeat_interval,
+                app
             ) {
-                self.new_piece();
-
-                // @TODO move to new_piece
-                self.movement_last_timestamp_x = app.game_timestamp();
-                self.movement_last_timestamp_y = app.game_timestamp();
+                horizontal_movement -= 1;
             }
-        }
 
-        // soft drop
-        let down_button = persistent.input_mapping.button("down".to_string());
-        if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
-            if try_soft_drop_piece(
-                &mut self.current_piece,
+            let right_button = persistent.input_mapping.button("right".to_string());
+            if right_button.pressed_repeat_with_delay(
+                self.rules.das_repeat_delay,
+                self.rules.das_repeat_interval,
+                app
+            ) {
+                horizontal_movement += 1;
+            }
+
+            if horizontal_movement != 0 && try_move_piece(
+                self.current_piece.as_ref().unwrap(),
                 &mut self.current_piece_pos,
                 &self.playfield,
-                &self.rules
+                horizontal_movement,
+                0
             ) {
-                self.movement_last_timestamp_y = app.game_timestamp();
-                self.movement_animation_delta_grid_y =
-                    self.movement_animation_current_delta_grid.y + 1.0;
+                self.movement_last_timestamp_x = app.game_timestamp();
+                self.movement_animation_delta_grid_x =
+                    self.movement_animation_current_delta_grid.x - horizontal_movement as f32;
             }
-        }
 
-        // hold piece
-        let hold_button = persistent.input_mapping.button("hold".to_string());
-        if hold_button.pressed() {
-            if !self.has_used_hold {
-                match self.hold_piece.take() {
-                    Some(piece) => {
-                        if self.rules.hold_piece_reset_rotation {
-                            self.current_piece.rot = 0;
+            // hard drop
+            let up_button = persistent.input_mapping.button("hard_drop".to_string());
+            if up_button.pressed() {
+                if try_hard_drop_piece(
+                    self.current_piece.as_ref().unwrap(),
+                    &mut self.current_piece_pos,
+                    &mut self.playfield,
+                    &self.rules
+                ) {
+                    self.current_piece = None;
+                    self.lock_piece_timestamp = app.game_timestamp();
+                }
+            }
+
+            // soft drop
+            let down_button = persistent.input_mapping.button("down".to_string());
+            if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
+                if try_soft_drop_piece(
+                    self.current_piece.as_ref().unwrap(),
+                    &mut self.current_piece_pos,
+                    &self.playfield,
+                    &self.rules
+                ) {
+                    self.movement_last_timestamp_y = app.game_timestamp();
+                    self.movement_animation_delta_grid_y =
+                        self.movement_animation_current_delta_grid.y + 1.0;
+                }
+            }
+
+            // hold piece
+            let hold_button = persistent.input_mapping.button("hold".to_string());
+            if hold_button.pressed() {
+                if !self.has_used_hold {
+                    match self.hold_piece.take() {
+                        Some(mut hold_piece) => {
+                            // @Cleanup not entirely needed since we reset the rotation on hold
+                            if self.rules.hold_piece_reset_rotation {
+                                hold_piece.rot = 0;
+                            }
+
+                            let piece = self.current_piece.as_mut().unwrap();
+                            self.hold_piece = Some(*piece);
+
+                            *piece = hold_piece;
+                            self.current_piece_pos = Vec2i {
+                                x: self.playfield.grid_size.x / 2 - 2,
+                                y: self.rules.spawn_row as i32 - 3,
+                            };
+
+                            self.has_used_hold = true;
+
+                            // update movement timestamps
+                            self.movement_last_timestamp_x = app.game_timestamp();
+                            self.movement_last_timestamp_y = app.game_timestamp();
                         }
 
-                        self.hold_piece = Some(self.current_piece);
+                        None => {
+                            let piece = self.current_piece.as_mut().unwrap();
+                            if self.rules.hold_piece_reset_rotation {
+                                piece.rot = 0;
+                            }
+                            self.hold_piece = Some(*piece);
 
-                        self.current_piece = piece;
-                        self.current_piece_pos = Vec2i {
-                            x: self.playfield.grid_size.x / 2 - 2,
-                            y: self.rules.spawn_row as i32 - 3,
-                        };
-
-                        self.has_used_hold = true;
-                    }
-
-                    None => {
-                        if self.rules.hold_piece_reset_rotation {
-                            self.current_piece.rot = 0;
+                            // since this is not locking a piece (won't trigger animation or ARE),
+                            // so we don't update the lock timestamp.
+                            self.current_piece = None;
                         }
-                        self.hold_piece = Some(self.current_piece);
-
-                        self.new_piece();
                     }
                 }
-
-                // @TODO move to new_piece
-                self.movement_last_timestamp_x = app.game_timestamp();
-                self.movement_last_timestamp_y = app.game_timestamp();
             }
-        }
 
-        // Rotate
-        let mut rotation = 0;
+            // Rotate
+            let mut rotation = 0;
 
-        let ccw_button = persistent.input_mapping.button("rotate_ccw".to_string());
-        if ccw_button.pressed() { rotation -= 1; }
+            let ccw_button = persistent.input_mapping.button("rotate_ccw".to_string());
+            if ccw_button.pressed() { rotation -= 1; }
 
-        let cw_button = persistent.input_mapping.button("rotate_cw".to_string());
-        if cw_button.pressed() { rotation += 1; }
+            let cw_button = persistent.input_mapping.button("rotate_cw".to_string());
+            if cw_button.pressed() { rotation += 1; }
 
-        self.try_rotate_piece(rotation);
+            self.try_rotate_piece(rotation);
 
-        // Gravity
-        // @TODO move this to Rules (or something)
-        if app.game_timestamp() >= self.movement_last_timestamp_y + self.rules.gravity_interval {
-            self.movement_last_timestamp_y = app.game_timestamp();
-            self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
-
-            if try_apply_gravity(
-                &mut self.current_piece,
-                &mut self.current_piece_pos,
-                &self.playfield
-            ).is_none() {
-                lock_piece(&self.current_piece, self.current_piece_pos, &mut self.playfield);
-                self.new_piece();
-
-                // @TODO move to new_piece
-                self.movement_last_timestamp_x = app.game_timestamp();
+            // Gravity
+            // @TODO move this to Rules (or something)
+            if app.game_timestamp() >= self.movement_last_timestamp_y + self.rules.gravity_interval {
                 self.movement_last_timestamp_y = app.game_timestamp();
+                self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
+
+                if try_apply_gravity(
+                    self.current_piece.as_ref().unwrap(),
+                    &mut self.current_piece_pos,
+                    &self.playfield
+                ).is_none() {
+                    lock_piece(self.current_piece.as_ref().unwrap(), self.current_piece_pos, &mut self.playfield);
+                    self.current_piece = None;
+                    self.lock_piece_timestamp = app.game_timestamp();
+                }
+            }
+
+            // piece movement animation
+            if self.has_movement_animation {
+                if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
+                    let t = norm_u64(
+                        app.game_timestamp(),
+                        self.movement_last_timestamp_x,
+                        self.movement_last_timestamp_x  + self.movement_animation_duration
+                    );
+
+                    self.movement_animation_current_delta_grid.x = lerp_f32(
+                        self.movement_animation_delta_grid_x,
+                        0.0,
+                        t
+                    );
+                } else {
+                    self.movement_animation_delta_grid_x = 0.0;
+                    self.movement_animation_current_delta_grid.x = 0.0;
+                }
+
+                if app.game_timestamp() <= self.movement_last_timestamp_y + self.movement_animation_duration {
+                    let t = norm_u64(
+                        app.game_timestamp(),
+                        self.movement_last_timestamp_y,
+                        self.movement_last_timestamp_y  + self.movement_animation_duration
+                    );
+
+                    self.movement_animation_current_delta_grid.y = lerp_f32(
+                        self.movement_animation_delta_grid_y,
+                        0.0,
+                        t
+                    );
+                } else {
+                    self.movement_animation_delta_grid_y = 0.0;
+                    self.movement_animation_current_delta_grid.y = 0.0;
+                }
+            } else {
+                // @Cleanup this shouldn't be necessary. It's necessary since we can disable the
+                //          movement animation in the middle of the game, and we are using these
+                //          variables to render
+                self.movement_animation_delta_grid_y = 0.0;
+                self.movement_animation_current_delta_grid.y = 0.0;
             }
         }
 
         // line clear
-        self.rules.try_clear_lines(&mut self.playfield);
+        let can_spawn_new_piece;
 
-        // piece movement animation
-        if self.has_movement_animation {
-            if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
-                let t = norm_u64(
-                    app.game_timestamp(),
-                    self.movement_last_timestamp_x,
-                    self.movement_last_timestamp_x  + self.movement_animation_duration
-                );
-
-                self.movement_animation_current_delta_grid.x = lerp_f32(
-                    self.movement_animation_delta_grid_x,
-                    0.0,
-                    t
-                );
-            } else {
-                self.movement_animation_delta_grid_x = 0.0;
-                self.movement_animation_current_delta_grid.x = 0.0;
+        if self.has_line_clear_animation {
+            if !self.is_line_clear_animation_playing {
+                if let Some(lines) = self.playfield.get_clear_lines() {
+                    self.line_clear_animation_state.lines_to_clear = lines;
+                    self.is_line_clear_animation_playing = true;
+                    self.line_clear_animation_timestamp = app.game_timestamp();
+                }
             }
 
-            if app.game_timestamp() <= self.movement_last_timestamp_y + self.movement_animation_duration {
-                let t = norm_u64(
-                    app.game_timestamp(),
-                    self.movement_last_timestamp_y,
-                    self.movement_last_timestamp_y  + self.movement_animation_duration
-                );
+            if self.is_line_clear_animation_playing {
+                let is_animation_over;
 
-                self.movement_animation_current_delta_grid.y = lerp_f32(
-                    self.movement_animation_delta_grid_y,
-                    0.0,
-                    t
-                );
-            } else {
-                self.movement_animation_delta_grid_y = 0.0;
-                self.movement_animation_current_delta_grid.y = 0.0;
+                match self.line_clear_animation_state.type_ {
+                    LineClearAnimationType::Classic => {
+                        // Tetris Classic clear line animation has 5 steps
+                        // 1st step: bbbb__bbbb
+                        // 2nd step: bb______bb
+                        // 3rd step: b________b
+                        // 4th step: __________
+                        // 5th step: drop lines
+                        let animation_duration = app.game_timestamp() - self.line_clear_animation_timestamp;
+                        let animation_step = 4 * animation_duration / self.rules.line_clear_delay;
+                        is_animation_over = animation_step >= 4;
+
+                        self.line_clear_animation_state.step = animation_step as u8;
+                    },
+                }
+
+                if is_animation_over {
+                    self.is_line_clear_animation_playing = false;
+                    self.rules.try_clear_lines(&mut self.playfield);
+                } else {
+                    self.is_line_clear_animation_playing = true;
+                }
             }
+
+            can_spawn_new_piece = !self.is_line_clear_animation_playing;
         } else {
-            // @Cleanup this shouldn't be necessary. It's necessary since we can disable the
-            //          movement animation in the middle of the game, and we are using these
-            //          variables to render
-            self.movement_animation_delta_grid_y = 0.0;
-            self.movement_animation_current_delta_grid.y = 0.0;
+            self.rules.try_clear_lines(&mut self.playfield);
+            can_spawn_new_piece = true;
+        }
+
+        // check if we should create the new piece
+        if self.current_piece.is_none() && can_spawn_new_piece {
+            self.new_piece();
+
+            self.movement_last_timestamp_x = app.game_timestamp();
+            self.movement_last_timestamp_y = app.game_timestamp();
         }
     }
 
@@ -248,69 +308,82 @@ impl SceneTrait for SinglePlayerScene {
             WHITE
         );
 
-        draw_playfield(&self.playfield, app, persistent);
+        if self.has_line_clear_animation {
+            let line_clear_animation_state;
+            if self.is_line_clear_animation_playing {
+                line_clear_animation_state = Some(&self.line_clear_animation_state);
+            } else {
+                line_clear_animation_state = None;
+            }
 
-        if self.movement_animation_show_ghost {
+            draw_playfield(&self.playfield, line_clear_animation_state, app, persistent);
+        } else {
+            draw_playfield(&self.playfield, None, app, persistent);
+        }
+
+        if let Some(piece) = self.current_piece {
+            if self.movement_animation_show_ghost {
+                draw_piece_in_playfield(
+                    piece,
+                    self.current_piece_pos,
+                    Vec2::new(),
+                    Color { r: 1., g: 1., b: 1., a: 0.1 },
+                    &self.playfield,
+                    app,
+                    persistent
+                );
+            }
+
+            // render ghost piece
+            if self.rules.has_ghost_piece {
+                // @TODO cache the ghost piece and only recalculate the position when piece moves
+                let mut ghost_piece = piece.clone();
+                let mut ghost_piece_pos = self.current_piece_pos;
+
+                full_drop_piece(&mut ghost_piece, &mut ghost_piece_pos, &self.playfield);
+                draw_piece_in_playfield(
+                    ghost_piece,
+                    ghost_piece_pos,
+                    Vec2::new(),
+                    Color { r: 1., g: 1., b: 1., a: 0.1 },
+                    &self.playfield,
+                    app,
+                    persistent
+                );
+            }
+
+            // render piece
             draw_piece_in_playfield(
-                self.current_piece,
+                piece,
                 self.current_piece_pos,
-                Vec2::new(),
-                Color { r: 1., g: 1., b: 1., a: 0.1 },
+                self.movement_animation_current_delta_grid,
+                piece.color(),
                 &self.playfield,
                 app,
                 persistent
             );
-        }
 
-        // render ghost piece
-        if self.rules.has_ghost_piece {
-            // @TODO cache the ghost piece and only recalculate the position when piece moves
-            let mut ghost_piece = self.current_piece.clone();
-            let mut ghost_piece_pos = self.current_piece_pos;
+            // render preview
+            if self.rules.next_pieces_preview_count > 0 {
+                draw_rect_window(
+                    self.preview_window_pos,
+                    Vec2 {
+                        x: persistent.pixel_scale.x * BLOCK_SCALE * 4.0,
+                        y: persistent.pixel_scale.y * BLOCK_SCALE * 4.0,
+                    },
+                    persistent.pixel_scale,
+                    app,
+                    persistent
+                );
 
-            full_drop_piece(&mut ghost_piece, &mut ghost_piece_pos, &self.playfield);
-            draw_piece_in_playfield(
-                ghost_piece,
-                ghost_piece_pos,
-                Vec2::new(),
-                Color { r: 1., g: 1., b: 1., a: 0.1 },
-                &self.playfield,
-                app,
-                persistent
-            );
-        }
-
-        // render piece
-        draw_piece_in_playfield(
-            self.current_piece,
-            self.current_piece_pos,
-            self.movement_animation_current_delta_grid,
-            self.current_piece.color(),
-            &self.playfield,
-            app,
-            persistent
-        );
-
-        // render preview
-        if self.rules.next_pieces_preview_count > 0 {
-            draw_rect_window(
-                self.preview_window_pos,
-                Vec2 {
-                    x: persistent.pixel_scale.x * BLOCK_SCALE * 4.0,
-                    y: persistent.pixel_scale.y * BLOCK_SCALE * 4.0,
-                },
-                persistent.pixel_scale,
-                app,
-                persistent
-            );
-
-            draw_piece_centered(
-                Piece { type_: self.next_piece_types[0], rot: 0 },
-                self.preview_window_pos,
-                WHITE,
-                app,
-                persistent
-            );
+                draw_piece_centered(
+                    Piece { type_: self.next_piece_types[0], rot: 0 },
+                    self.preview_window_pos,
+                    WHITE,
+                    app,
+                    persistent
+                );
+            }
         }
 
         // hold piece
@@ -419,10 +492,10 @@ impl SinglePlayerScene {
 
         // @Refactor this will be calculated in the update method, since we don't just drop
         //           into the Tetris gameplay, we will have a menu and such
-        let current_piece = Piece {
+        let current_piece = Some(Piece {
             type_: randomizer.next_piece(),
             rot: 0,
-        };
+        });
         let current_piece_pos = Vec2i { x: playfield_grid_size.x / 2 - 2, y: rules.spawn_row as i32 - 3 };
 
         // next pieces preview window
@@ -448,9 +521,12 @@ impl SinglePlayerScene {
             playfield,
             rules,
             randomizer,
+
             current_piece,
             current_piece_pos,
             next_piece_types,
+            lock_piece_timestamp: 0,
+
             hold_piece: None,
             has_used_hold: false,
 
@@ -466,6 +542,15 @@ impl SinglePlayerScene {
             movement_animation_delta_grid_x: 0.0,
             movement_animation_delta_grid_y: 0.0,
             movement_animation_current_delta_grid: Vec2::new(),
+
+            has_line_clear_animation: true,
+            is_line_clear_animation_playing: false,
+            line_clear_animation_timestamp: 0,
+            line_clear_animation_state: LineClearAnimationState {
+                type_: LineClearAnimationType::Classic,
+                step: 0,
+                lines_to_clear: Vec::new(),
+            },
         }
     }
 
@@ -475,9 +560,12 @@ impl SinglePlayerScene {
             y: self.rules.spawn_row as i32 - 3,
         };
 
-        self.current_piece.rot = 0;
+        self.current_piece = Some(Piece {
+            type_: self.next_piece_types[0],
+            rot: 0,
+        });
 
-        self.current_piece.type_ = self.next_piece_types[0];
+        // cycle next pieces
         for i in 0..NEXT_PIECES_COUNT-1 { self.next_piece_types[i] = self.next_piece_types[i+1]; }
         self.next_piece_types[7] = self.randomizer.next_piece();
 
@@ -490,16 +578,20 @@ impl SinglePlayerScene {
 
     // Move this to rules
     fn try_rotate_piece(&mut self, delta_rot: i32) -> bool {
-        for block_pos in self.current_piece.type_.blocks(self.current_piece.rot + delta_rot) {
-            let x = self.current_piece_pos.x + block_pos.x;
-            let y = self.current_piece_pos.y + block_pos.y;
-            if self.playfield.block(x, y).is_some() {
-                return false;
+        if let Some(ref mut piece) = self.current_piece {
+            for block_pos in piece.type_.blocks(piece.rot + delta_rot) {
+                let x = self.current_piece_pos.x + block_pos.x;
+                let y = self.current_piece_pos.y + block_pos.y;
+                if self.playfield.block(x, y).is_some() {
+                    return false;
+                }
             }
-        }
 
-        self.current_piece.rot += delta_rot;
-        true
+            piece.rot += delta_rot;
+            true
+        } else {
+            false
+        }
     }
 }
 

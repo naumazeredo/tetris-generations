@@ -30,6 +30,7 @@ impl Playfield {
         }
     }
 
+    // @TODO use row, col, instead of x, y
     pub fn block(&self, x: i32, y: i32) -> Option<PieceType> {
         if x < 0 || x >= self.grid_size.x { return Some(PieceType::S); }
         if y < 0 || y >= self.grid_size.y { return Some(PieceType::S); }
@@ -71,7 +72,22 @@ impl Playfield {
         self.blocks[pos] = false;
     }
 
-    pub fn has_clear_lines(&self) -> Option<Vec<u8>> {
+    pub fn has_clear_lines(&self) -> bool {
+        let all_not_full = (0..self.grid_size.y)
+            .all(|i| {
+                let line_start = (i * self.grid_size.x) as usize;
+                let line_end   = ((i+1) * self.grid_size.x) as usize;
+                let cnt = self.blocks[line_start..line_end]
+                    .iter()
+                    .fold(0, |acc, &x| if x { acc + 1 } else { acc });
+
+                cnt != self.grid_size.x
+            });
+
+        !all_not_full
+    }
+
+    pub fn get_clear_lines(&self) -> Option<Vec<u8>> {
         // @Maybe refactor to use Vec::chunks
         // self.blocks.chunks(self.grid_size.x).iter()
 
@@ -82,6 +98,7 @@ impl Playfield {
                 let cnt = self.blocks[line_start..line_end]
                     .iter()
                     .fold(0, |acc, &x| if x { acc + 1 } else { acc });
+
                 if cnt == self.grid_size.x {
                     return Some(i as u8);
                 } else {

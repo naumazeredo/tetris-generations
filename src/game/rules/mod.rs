@@ -88,7 +88,7 @@ impl From<RotationSystem> for Rules {
                     das_repeat_delay: 266_228,   // 16 frames at 60.0988 Hz
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
                     soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
-                    line_clear_delay: 0,
+                    line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
                     gravity_interval: 1_000_000,
 
                     entry_delay: None,
@@ -126,7 +126,7 @@ impl From<RotationSystem> for Rules {
                     das_repeat_delay: 266_228,   // 16 frames at 60.0988 Hz
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
                     soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
-                    line_clear_delay: 0,
+                    line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
                     gravity_interval: 250_000,
 
                     entry_delay: None,
