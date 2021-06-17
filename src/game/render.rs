@@ -276,12 +276,8 @@ pub enum LineClearAnimationType {
 fn line_clear_animation_should_draw_block(col: u8, anim_state: &LineClearAnimationState) -> bool {
     match anim_state.type_ {
         LineClearAnimationType::Classic => {
-            match anim_state.step {
-                0 => col < 4 || col > 5,
-                1 => col < 2 || col > 7,
-                2 => col < 1 || col > 8,
-                _ => false,
-            }
+            if anim_state.step > 5 { return false; }
+            col < 4 - anim_state.step || col > 5 + anim_state.step
         }
     }
 }

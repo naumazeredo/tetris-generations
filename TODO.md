@@ -39,11 +39,15 @@
     - [ ] Block out
     - [ ] Lock out
 - [ ] Input mapping from guideline
+  - [ ] Controller
+    - [x] Normal buttons
+    - [ ] Triggers
+  - [x] Keyboard
 - [x] Scene system
-- [ ] Animations
+- [x] Animations
   - [x] Piece movement
-  - [ ] Line clear
-    - [ ] Classic
+  - [x] Line clear
+    - [x] Classic
 - [x] Basic piece colors
 - [x] [cleanup] Move piece draw functions to game/piece.rs and reuse them in debug_pieces scene
 - [x] Restart button for testing

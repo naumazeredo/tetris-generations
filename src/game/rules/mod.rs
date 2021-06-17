@@ -47,6 +47,11 @@ pub struct Rules {
     pub line_clear_delay: u64,
     pub gravity_interval: u64,
 
+    // @TODO depend on last lock height.
+    //       Tetris NES: ARE is 10~18 frames depending on the height at which the piece locked;
+    //                   pieces that lock in the bottom two rows are followed by 10 frames of entry
+    //                   delay, and each group of 4 rows above that has an entry delay 2 frames
+    //                   longer than the last;
     pub entry_delay: Option<u32>, // aka ARE
     pub lock_delay: Option<u32>,  // microsecs
 

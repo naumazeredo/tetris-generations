@@ -260,13 +260,13 @@ impl SceneTrait for SinglePlayerScene {
                     LineClearAnimationType::Classic => {
                         // Tetris Classic clear line animation has 5 steps
                         // 1st step: bbbb__bbbb
-                        // 2nd step: bb______bb
-                        // 3rd step: b________b
-                        // 4th step: __________
-                        // 5th step: drop lines
+                        // 2st step: bbb____bbb
+                        // 3nd step: bb______bb
+                        // 4rd step: b________b
+                        // 5th step: __________
                         let animation_duration = app.game_timestamp() - self.line_clear_animation_timestamp;
-                        let animation_step = 4 * animation_duration / self.rules.line_clear_delay;
-                        is_animation_over = animation_step >= 4;
+                        let animation_step = 5 * animation_duration / self.rules.line_clear_delay;
+                        is_animation_over = animation_step >= 5;
 
                         self.line_clear_animation_state.step = animation_step as u8;
                     },
@@ -379,7 +379,7 @@ impl SceneTrait for SinglePlayerScene {
                 draw_piece_centered(
                     Piece { type_: self.next_piece_types[0], rot: 0 },
                     self.preview_window_pos,
-                    WHITE,
+                    self.next_piece_types[0].color(),
                     app,
                     persistent
                 );
@@ -405,7 +405,7 @@ impl SceneTrait for SinglePlayerScene {
                 draw_piece_centered(
                     hold_piece,
                     self.hold_window_pos,
-                    WHITE,
+                    hold_piece.color(),
                     app,
                     persistent
                 );
@@ -490,14 +490,6 @@ impl SinglePlayerScene {
         // rng
         let mut randomizer: Randomizer = RandomizerType::Random7Bag.into();
 
-        // @Refactor this will be calculated in the update method, since we don't just drop
-        //           into the Tetris gameplay, we will have a menu and such
-        let current_piece = Some(Piece {
-            type_: randomizer.next_piece(),
-            rot: 0,
-        });
-        let current_piece_pos = Vec2i { x: playfield_grid_size.x / 2 - 2, y: rules.spawn_row as i32 - 3 };
-
         // next pieces preview window
         let mut next_piece_types = [PieceType::I; NEXT_PIECES_COUNT];
         for i in 0..NEXT_PIECES_COUNT {
@@ -522,8 +514,8 @@ impl SinglePlayerScene {
             rules,
             randomizer,
 
-            current_piece,
-            current_piece_pos,
+            current_piece: None,
+            current_piece_pos: Vec2i::new(),
             next_piece_types,
             lock_piece_timestamp: 0,
 
