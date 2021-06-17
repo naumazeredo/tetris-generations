@@ -44,9 +44,10 @@
   - [x] Piece movement
   - [ ] Line clear
     - [ ] Classic
-- [ ] Piece colors/styles
+- [x] Basic piece colors
 - [x] [cleanup] Move piece draw functions to game/piece.rs and reuse them in debug_pieces scene
-- [ ] Restart button for testing
+- [x] Restart button for testing
+- [ ] Playfield grid (1px)
 
 ### Engine
 
@@ -125,6 +126,10 @@
 - [ ] Speed/difficulty progression
 - [ ] Draw grid option
 - [ ] 9-slicing texture for windows
+- [ ] Fix DAS -> DAS (Delayed Auto Shift) is verified only when the time has passed: it only stops
+    the repeating movement if, when verified the next step, the key is not pressed.
+    - [x] DAS charge
+- [ ] Customizable piece styles
 
 ### Engine
 

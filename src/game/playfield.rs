@@ -1,5 +1,6 @@
 use crate::app::ImDraw;
 use crate::linalg::Vec2i;
+use super::piece::PieceType;
 
 pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
 
@@ -10,6 +11,7 @@ pub struct Playfield {
 
     // @Refactor vec of bools are bad!
     pub blocks: Vec<bool>,
+    pub block_types: Vec<PieceType>,
 }
 
 impl Playfield {
@@ -17,35 +19,56 @@ impl Playfield {
         let mut blocks = Vec::new();
         blocks.resize((grid_size.x * grid_size.y) as usize, false);
 
+        let mut block_types = Vec::new();
+        block_types.resize((grid_size.x * grid_size.y) as usize, PieceType::S);
+
         Self {
             pos,
             grid_size,
             blocks,
+            block_types,
         }
     }
 
-    pub fn block(&self, x: i32, y: i32) -> bool {
-        if x < 0 || x >= self.grid_size.x { return true; }
-        if y < 0 || y >= self.grid_size.y { return true; }
+    pub fn block(&self, x: i32, y: i32) -> Option<PieceType> {
+        if x < 0 || x >= self.grid_size.x { return Some(PieceType::S); }
+        if y < 0 || y >= self.grid_size.y { return Some(PieceType::S); }
 
         let pos = y * self.grid_size.x + x;
+        let pos = pos as usize;
+        /*
+        // This never happens because of the limits
         if pos as usize >= self.blocks.len() {
             return true;
         }
+        */
 
-        self.blocks[pos as usize]
+        if self.blocks[pos] {
+            Some(self.block_types[pos])
+        } else {
+            None
+        }
     }
 
-    pub fn set_block(&mut self, x: i32, y: i32, set: bool) {
+    pub fn set_block(&mut self, x: i32, y: i32, piece_type: PieceType) {
+        assert!(x >= 0 && x < self.grid_size.x);
+        assert!(y >= 0 && y < self.grid_size.y);
+
+        let pos = y * self.grid_size.x + x;
+        let pos = pos as usize;
+
+        self.blocks[pos] = true;
+        self.block_types[pos] = piece_type;
+    }
+
+    pub fn reset_block(&mut self, x: i32, y: i32) {
         assert!(x >= 0 && x < self.grid_size.x);
         assert!(y < self.grid_size.y);
 
-        // The pieces spawn on negative y, we have try to place a block near the spawn,
-        // so we just ignore and not assert
-        if y < 0 { return; }
-
         let pos = y * self.grid_size.x + x;
-        self.blocks[pos as usize] = set;
+        let pos = pos as usize;
+
+        self.blocks[pos] = false;
     }
 
     pub fn has_clear_lines(&self) -> Option<Vec<u8>> {
@@ -90,6 +113,16 @@ impl Playfield {
 
                     // https://doc.rust-lang.org/std/vec/struct.Vec.html#method.swap_with_slice
                     let (split_left, split_right) = self.blocks.split_at_mut(last_free_line_end);
+
+                    let right_current_line_start = line_start - last_free_line_end;
+                    let right_current_line_end   = line_end - last_free_line_end;
+
+                    split_left[last_free_line_start..last_free_line_end].swap_with_slice(
+                        &mut split_right[right_current_line_start..right_current_line_end]
+                    );
+
+                    // 
+                    let (split_left, split_right) = self.block_types.split_at_mut(last_free_line_end);
 
                     let right_current_line_start = line_start - last_free_line_end;
                     let right_current_line_end   = line_end - last_free_line_end;

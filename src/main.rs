@@ -96,6 +96,15 @@ impl GameState for State {
                 window.set_fullscreen(new_fullscreen_state).unwrap();
             }
 
+            // Restart all
+            Event::KeyDown { scancode: Some(Scancode::R), .. } => {
+                app.restart_time_system();
+
+                self.scene_manager = SceneManager::new(
+                    Scene::SinglePlayerScene(SinglePlayerScene::new(app, &mut self.persistent))
+                );
+            }
+
             _ => {}
         }
 

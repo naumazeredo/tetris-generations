@@ -37,7 +37,7 @@ impl PersistentData {
         let blank_texture = app.get_texture("assets/gfx/blank.png");
         let blank = build_sprite(blank_texture, 0, 0, 1, 1);
 
-        let block_texture = app.get_texture("assets/gfx/block.png");
+        let block_texture = app.get_texture("assets/gfx/block-soft.png");
         let block = build_sprite(block_texture, 0, 0, 8, 8);
 
         // input

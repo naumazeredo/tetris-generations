@@ -36,7 +36,6 @@ pub struct SinglePlayerScene {
     preview_window_pos: Vec2,
     hold_window_pos: Vec2,
 
-    movement_delay: u64,
     movement_last_timestamp_x: u64,
     movement_last_timestamp_y: u64,
 
@@ -286,7 +285,7 @@ impl SceneTrait for SinglePlayerScene {
             self.current_piece,
             self.current_piece_pos,
             self.movement_animation_current_delta_grid,
-            WHITE,
+            self.current_piece.color(),
             &self.playfield,
             app,
             persistent
@@ -363,7 +362,7 @@ impl SceneTrait for SinglePlayerScene {
             }
 
             Event::KeyDown { scancode: Some(Scancode::F3), .. } => {
-                app.set_time_scale(0.01);
+                app.set_time_scale(0.1);
             }
 
             Event::KeyDown { scancode: Some(Scancode::F4), .. } => {
@@ -458,7 +457,6 @@ impl SinglePlayerScene {
             preview_window_pos,
             hold_window_pos,
 
-            movement_delay: 250_000,
             movement_last_timestamp_x: app.game_timestamp(),
             movement_last_timestamp_y: app.game_timestamp(),
 
@@ -490,11 +488,12 @@ impl SinglePlayerScene {
         self.has_used_hold = false;
     }
 
+    // Move this to rules
     fn try_rotate_piece(&mut self, delta_rot: i32) -> bool {
         for block_pos in self.current_piece.type_.blocks(self.current_piece.rot + delta_rot) {
             let x = self.current_piece_pos.x + block_pos.x;
             let y = self.current_piece_pos.y + block_pos.y;
-            if self.playfield.block(x, y) {
+            if self.playfield.block(x, y).is_some() {
                 return false;
             }
         }

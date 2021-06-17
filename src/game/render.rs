@@ -142,11 +142,11 @@ pub fn draw_playfield(
     // @Refactor cache playfield/draw to framebuffer
     for i in 0..PLAYFIELD_VISIBLE_HEIGHT {
         for j in 0..playfield.grid_size.x {
-            if playfield.block(j, i) {
+            if let Some(piece_type) = playfield.block(j, i) {
                 draw_block_in_playfield(
                     Vec2i { x: j, y: i },
                     Vec2::new(),
-                    WHITE,
+                    piece_type.color(),
                     playfield,
                     app,
                     persistent

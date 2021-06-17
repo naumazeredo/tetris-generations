@@ -15,7 +15,7 @@ pub fn try_move_piece(piece: &Piece, pos: &mut Vec2i, playfield: &Playfield, dx:
     for block_pos in piece.blocks() {
         let new_x = pos.x + block_pos.x + dx;
         let new_y = pos.y + block_pos.y + dy;
-        if playfield.block(new_x, new_y) {
+        if playfield.block(new_x, new_y).is_some() {
             return false;
         }
     }
@@ -29,7 +29,7 @@ fn should_start_lock_delay(piece: &Piece, pos: Vec2i, playfield: &Playfield) -> 
     for block_pos in piece.blocks() {
         let down_x = pos.x + block_pos.x;
         let down_y = pos.y + block_pos.y - 1;
-        if playfield.block(down_x, down_y) {
+        if playfield.block(down_x, down_y).is_some() {
             return true;
         }
     }
@@ -62,7 +62,7 @@ pub fn lock_piece(
         playfield.set_block(
             pos.x + block_pos.x,
             pos.y + block_pos.y,
-            true
+            piece.type_,
         );
     }
 }

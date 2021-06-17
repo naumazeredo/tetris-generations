@@ -1,4 +1,4 @@
-use crate::app::ImDraw;
+use crate::app::{ImDraw, Color};
 use crate::linalg::Vec2i;
 
 pub const PIECES : [PieceType; 7] = [
@@ -28,6 +28,10 @@ impl Piece {
 
     pub fn min_max_y(self) -> (u8, u8) {
         self.type_.min_max_y(self.rot)
+    }
+
+    pub fn color(self) -> Color {
+        self.type_.color()
     }
 }
 
@@ -79,6 +83,18 @@ impl PieceType {
             PieceType::T => (T_PIECE.min_y[rot], T_PIECE.max_y[rot]),
         }
     }
+
+    pub fn color(self) -> Color {
+        match self {
+            PieceType::S => S_PIECE.color,
+            PieceType::Z => Z_PIECE.color,
+            PieceType::J => J_PIECE.color,
+            PieceType::L => L_PIECE.color,
+            PieceType::O => O_PIECE.color,
+            PieceType::I => I_PIECE.color,
+            PieceType::T => T_PIECE.color,
+        }
+    }
 }
 
 // @TODO manually preprocess all piece datas for each piece positioning rule
@@ -91,6 +107,7 @@ struct PieceData {
     max_x: [u8; 4],
     min_y: [u8; 4],
     max_y: [u8; 4],
+    color: Color,
 }
 
 const S_PIECE : PieceData = PieceData {
@@ -104,6 +121,7 @@ const S_PIECE : PieceData = PieceData {
     max_x: [2, 2, 2, 2],
     min_y: [1, 0, 1, 0],
     max_y: [2, 2, 2, 2],
+    color: Color { r: 0.0, g: 0.5, b: 0.0, a: 1.0 },
 };
 
 const Z_PIECE : PieceData = PieceData {
@@ -117,6 +135,7 @@ const Z_PIECE : PieceData = PieceData {
     max_x: [2, 1, 2, 1],
     min_y: [1, 0, 1, 0],
     max_y: [2, 2, 2, 2],
+    color: Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
 };
 
 const J_PIECE : PieceData = PieceData {
@@ -130,6 +149,7 @@ const J_PIECE : PieceData = PieceData {
     max_x: [2, 1, 2, 2],
     min_y: [1, 1, 2, 1],
     max_y: [2, 3, 3, 3],
+    color: Color { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
 };
 
 const L_PIECE : PieceData = PieceData {
@@ -143,6 +163,7 @@ const L_PIECE : PieceData = PieceData {
     max_x: [2, 1, 2, 2],
     min_y: [1, 1, 2, 1],
     max_y: [2, 3, 3, 3],
+    color: Color { r: 1.0, g: 0.65, b: 0.0, a: 1.0 },
 };
 
 const O_PIECE : PieceData = PieceData {
@@ -156,6 +177,7 @@ const O_PIECE : PieceData = PieceData {
     max_x: [2, 2, 2, 2],
     min_y: [1, 1, 1, 1],
     max_y: [2, 2, 2, 2],
+    color: Color { r: 1.0, g: 1.0, b: 0.0, a: 1.0 },
 };
 
 const I_PIECE : PieceData = PieceData {
@@ -169,6 +191,7 @@ const I_PIECE : PieceData = PieceData {
     max_x: [3, 2, 3, 2],
     min_y: [2, 1, 2, 1],
     max_y: [2, 4, 2, 4],
+    color: Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 },
 };
 
 const T_PIECE : PieceData = PieceData {
@@ -182,4 +205,5 @@ const T_PIECE : PieceData = PieceData {
     max_x: [2, 1, 2, 2],
     min_y: [1, 1, 2, 1],
     max_y: [2, 3, 3, 3],
+    color: Color { r: 0.5, g: 0.0, b: 0.5, a: 1.0 },
 };
