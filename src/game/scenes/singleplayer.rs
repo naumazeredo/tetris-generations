@@ -9,7 +9,7 @@ use crate::game::{
     randomizer::*,
     rules::{ Rules, RotationSystem, movement::* },
     piece::{ Piece, PieceType },
-    playfield::Playfield,
+    playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
     render::*,
 };
 
@@ -36,8 +36,8 @@ pub struct SinglePlayerScene {
     hold_piece: Option<Piece>,
     has_used_hold: bool,
 
-    preview_window_pos: Vec2,
-    hold_window_pos: Vec2,
+    preview_window_delta_pos: Vec2,
+    hold_window_delta_pos: Vec2,
 
     movement_last_timestamp_x: u64,
     movement_last_timestamp_y: u64,
@@ -64,7 +64,6 @@ impl SceneTrait for SinglePlayerScene {
         if app.is_paused() { return; }
 
         if self.current_piece.is_some() {
-
             // horizontal movement logic
             let mut horizontal_movement = 0;
 
@@ -233,11 +232,15 @@ impl SceneTrait for SinglePlayerScene {
                     self.movement_animation_current_delta_grid.y = 0.0;
                 }
             } else {
+                /*
                 // @Cleanup this shouldn't be necessary. It's necessary since we can disable the
                 //          movement animation in the middle of the game, and we are using these
                 //          variables to render
+                self.movement_animation_delta_grid_x = 0.0;
                 self.movement_animation_delta_grid_y = 0.0;
+                self.movement_animation_current_delta_grid.x = 0.0;
                 self.movement_animation_current_delta_grid.y = 0.0;
+                */
             }
         }
 
@@ -308,6 +311,16 @@ impl SceneTrait for SinglePlayerScene {
             WHITE
         );
 
+        // playfield
+        let playfield_size = get_draw_playfield_size(&self.playfield, persistent.pixel_scale);
+
+        // @Temporary recalculate playfield position since has_grid can change
+        let window_size = app.video_system.window.size();
+        self.playfield.pos = Vec2i {
+            x: (window_size.0 as f32 - playfield_size.x) as i32 / 2,
+            y: (window_size.1 as f32 - playfield_size.y) as i32 / 2,
+        };
+
         if self.has_line_clear_animation {
             let line_clear_animation_state;
             if self.is_line_clear_animation_playing {
@@ -321,6 +334,7 @@ impl SceneTrait for SinglePlayerScene {
             draw_playfield(&self.playfield, None, app, persistent);
         }
 
+        // ghost piece
         if let Some(piece) = self.current_piece {
             if self.movement_animation_show_ghost {
                 draw_piece_in_playfield(
@@ -353,10 +367,17 @@ impl SceneTrait for SinglePlayerScene {
             }
 
             // render piece
+            let movement_animation_delta_grid;
+            if self.has_movement_animation {
+                movement_animation_delta_grid = self.movement_animation_current_delta_grid;
+            } else {
+                movement_animation_delta_grid = Vec2::new();
+            }
+
             draw_piece_in_playfield(
                 piece,
                 self.current_piece_pos,
-                self.movement_animation_current_delta_grid,
+                movement_animation_delta_grid,
                 piece.color(),
                 &self.playfield,
                 app,
@@ -365,12 +386,22 @@ impl SceneTrait for SinglePlayerScene {
 
             // render preview
             if self.rules.next_pieces_preview_count > 0 {
+                let window_size;
+                if self.playfield.has_grid {
+                    let size = persistent.pixel_scale as f32* ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
+                    window_size = Vec2 { x: size as f32, y: size as f32 };
+                } else {
+                    let size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
+                    window_size = Vec2 { x: size as f32, y: size as f32 };
+                }
+
+                let window_pos =
+                    Vec2::from(self.playfield.pos) + self.preview_window_delta_pos +
+                    Vec2 { x: playfield_size.x, y: 0.0 };
+
                 draw_rect_window(
-                    self.preview_window_pos,
-                    Vec2 {
-                        x: persistent.pixel_scale.x * BLOCK_SCALE * 4.0,
-                        y: persistent.pixel_scale.y * BLOCK_SCALE * 4.0,
-                    },
+                    window_pos,
+                    window_size,
                     persistent.pixel_scale,
                     app,
                     persistent
@@ -378,8 +409,9 @@ impl SceneTrait for SinglePlayerScene {
 
                 draw_piece_centered(
                     Piece { type_: self.next_piece_types[0], rot: 0 },
-                    self.preview_window_pos,
+                    window_pos,
                     self.next_piece_types[0].color(),
+                    self.playfield.has_grid,
                     app,
                     persistent
                 );
@@ -388,24 +420,33 @@ impl SceneTrait for SinglePlayerScene {
 
         // hold piece
         if self.rules.has_hold_piece {
+                let window_size;
+                if self.playfield.has_grid {
+                    let size = persistent.pixel_scale as f32 * ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
+                    window_size = Vec2 { x: size as f32, y: size as f32 };
+                } else {
+                    let size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
+                    window_size = Vec2 { x: size as f32, y: size as f32 };
+                }
+
+            let window_pos =
+                Vec2::from(self.playfield.pos) + self.hold_window_delta_pos +
+                Vec2 { x: -window_size.x, y: 0.0 };
+
             draw_rect_window(
-                self.hold_window_pos,
-                Vec2 {
-                    x: persistent.pixel_scale.x * BLOCK_SCALE * 4.0,
-                    y: persistent.pixel_scale.y * BLOCK_SCALE * 4.0,
-                },
+                window_pos,
+                window_size,
                 persistent.pixel_scale,
                 app,
                 persistent
             );
 
-            if self.hold_piece.is_some() {
-                let hold_piece = *self.hold_piece.as_ref().unwrap();
-
+            if let Some(hold_piece) = self.hold_piece {
                 draw_piece_centered(
                     hold_piece,
-                    self.hold_window_pos,
+                    window_pos,
                     hold_piece.color(),
+                    self.playfield.has_grid,
                     app,
                     persistent
                 );
@@ -447,6 +488,10 @@ impl SceneTrait for SinglePlayerScene {
                 app.pause();
             }
 
+            Event::KeyDown { scancode: Some(Scancode::W), .. } => {
+                self.playfield.has_grid = !self.playfield.has_grid;
+            }
+
             _ => {}
         }
 
@@ -471,18 +516,18 @@ impl SinglePlayerScene {
         let playfield_grid_size = Vec2i { x: 10, y: 40 };
 
         let playfield_pixel_size = Vec2i {
-            x: (pixel_scale.x * BLOCK_SCALE * playfield_grid_size.x as f32) as i32,
-            y: (pixel_scale.y * BLOCK_SCALE * playfield_grid_size.y as f32) as i32,
+            x: (pixel_scale as f32 * BLOCK_SCALE * playfield_grid_size.x as f32) as i32,
+            y: (pixel_scale as f32 * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32) as i32,
         };
 
         let window_size = app.video_system.window.size();
 
         let playfield_pos = Vec2i {
             x: (window_size.0 as i32 - playfield_pixel_size.x) / 2,
-            y: 100
+            y: (window_size.1 as i32 - playfield_pixel_size.y) / 2,
         };
 
-        let playfield = Playfield::new(playfield_pos, playfield_grid_size);
+        let playfield = Playfield::new(playfield_pos, playfield_grid_size, true);
 
         // rules
         let rules: Rules = RotationSystem::Test.into();
@@ -496,17 +541,10 @@ impl SinglePlayerScene {
             next_piece_types[i] = randomizer.next_piece();
         }
 
-        let preview_window_pos = Vec2 {
-            x: playfield_pos.x as f32 + persistent.pixel_scale.x * BLOCK_SCALE * playfield_grid_size.x as f32 + 20.0,
-            y: playfield_pos.y as f32,
-        };
+        let preview_window_delta_pos = Vec2 { x: 20.0, y: 0.0 };
 
         // hold window
-
-        let hold_window_pos = Vec2 {
-            x: playfield_pos.x as f32 - persistent.pixel_scale.x * BLOCK_SCALE * 4.0 - 20.0,
-            y: playfield_pos.y as f32,
-        };
+        let hold_window_delta_pos = Vec2 { x: -20.0, y: 0.0 };
 
         Self {
             debug_pieces_scene_opened: false,
@@ -522,8 +560,8 @@ impl SinglePlayerScene {
             hold_piece: None,
             has_used_hold: false,
 
-            preview_window_pos,
-            hold_window_pos,
+            preview_window_delta_pos,
+            hold_window_delta_pos,
 
             movement_last_timestamp_x: app.game_timestamp(),
             movement_last_timestamp_y: app.game_timestamp(),

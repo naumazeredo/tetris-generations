@@ -51,7 +51,11 @@
 - [x] Basic piece colors
 - [x] [cleanup] Move piece draw functions to game/piece.rs and reuse them in debug_pieces scene
 - [x] Restart button for testing
-- [ ] Playfield grid (1px)
+- [x] Playfield grid (1px)
+- [ ] [game render] Change all rendering to be pixel perfect
+  - [x] pixel_scale to u8
+  - [ ] BLOCK_SCALE to u8
+  - [ ] All functions to receive Vec2i or integers instead of floats
 
 ### Engine
 
@@ -169,6 +173,7 @@
 - [ ] [entities] gen_containers: add len for entity type
 - [ ] [imdraw] Remove imgui::im_str2
 - [ ] [imdraw derive] check for #[imdraw_ignore] to not show some fields
+- [ ] [font render] fix background not being transparent
 
 ### Build system
 

@@ -15,7 +15,7 @@ pub struct PersistentData {
     pub input_mapping: InputMapping,
     pub font: Font,
     pub sprites: Sprites,
-    pub pixel_scale: Vec2,
+    pub pixel_scale: u8,
 }
 
 impl PersistentData {
@@ -44,7 +44,7 @@ impl PersistentData {
         let input_mapping = get_default_input_mapping();
 
         // pixel scaling
-        let pixel_scale = Vec2 { x: 5.0, y: 5.0 };
+        let pixel_scale = 5;
 
         Self {
             input_mapping,

@@ -6,8 +6,12 @@ pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
 
 #[derive(Clone, Debug)]
 pub struct Playfield {
+    // @Refactor rendering information struct
     pub pos: Vec2i,
     pub grid_size: Vec2i, // @Refactor use Vec2<u8>
+
+    // @XXX this is probably better be where pixel_scale is. This is a rendering/style parameter
+    pub has_grid: bool,
 
     // @Refactor vec of bools are bad!
     pub blocks: Vec<bool>,
@@ -15,7 +19,8 @@ pub struct Playfield {
 }
 
 impl Playfield {
-    pub fn new(pos: Vec2i, grid_size: Vec2i) -> Self {
+    // @TODO remove pos
+    pub fn new(pos: Vec2i, grid_size: Vec2i, has_grid: bool) -> Self {
         let mut blocks = Vec::new();
         blocks.resize((grid_size.x * grid_size.y) as usize, false);
 
@@ -25,6 +30,8 @@ impl Playfield {
         Self {
             pos,
             grid_size,
+            has_grid,
+
             blocks,
             block_types,
         }
@@ -37,12 +44,6 @@ impl Playfield {
 
         let pos = y * self.grid_size.x + x;
         let pos = pos as usize;
-        /*
-        // This never happens because of the limits
-        if pos as usize >= self.blocks.len() {
-            return true;
-        }
-        */
 
         if self.blocks[pos] {
             Some(self.block_types[pos])
@@ -169,6 +170,7 @@ impl ImDraw for Playfield {
 
             self.pos.imdraw("pos", ui);
             self.grid_size.imdraw("grid_size", ui);
+            self.has_grid.imdraw("has_grid", ui);
 
             imgui::TreeNode::new(im_str2!("blocks")).build(ui, || {
                 for i in (0..self.grid_size.y).rev() {

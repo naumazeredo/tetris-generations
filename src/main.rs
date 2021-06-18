@@ -105,6 +105,18 @@ impl GameState for State {
                 );
             }
 
+            Event::KeyDown { scancode: Some(Scancode::Q), .. } => {
+                if self.persistent.pixel_scale > 1 {
+                    self.persistent.pixel_scale -= 1;
+                }
+            }
+
+            Event::KeyDown { scancode: Some(Scancode::E), .. } => {
+                if self.persistent.pixel_scale < 255 {
+                    self.persistent.pixel_scale += 1;
+                }
+            }
+
             _ => {}
         }
 
