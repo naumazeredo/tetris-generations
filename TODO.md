@@ -36,8 +36,9 @@
     - [x] Full random
     - [x] Random Generator (7-Bag)
   - [ ] Top out
-    - [ ] Block out
-    - [ ] Lock out
+    - [x] Block out
+    - [x] Lock out
+    - [x] Partial lock out
 - [ ] Input mapping from guideline
   - [ ] Controller
     - [x] Normal buttons
@@ -55,7 +56,7 @@
 - [ ] [game render] Change all rendering to be pixel perfect
   - [x] pixel_scale to u8
   - [ ] BLOCK_SCALE to u8
-  - [ ] All functions to receive Vec2i or integers instead of floats
+  - [ ] All render functions to receive Vec2i or integers instead of floats
 
 ### Engine
 
@@ -76,6 +77,10 @@
   - [x] Improve rendering performance
 - [ ] Asset system
 - [ ] Logger system
+- [ ] Timer data structure (and dt in update functions)
+    - (always using game time makes it really hard to stack. Moving from one scene to another, game
+    over action, etc)
+    - (design: `app.update_timer(&mut timer); let elapsed_time = timer.elapsed_time();`)
 - [x] Refactor systems to match
 - [x] ImDraw derive to enums
 - [x] Split debug system from the rest (to be able to use dear imgui to draw the app)
@@ -83,9 +88,10 @@
 
 #### Issues
 
-- [ ] [bug] Controller buttons are not working for some
-- [ ] [bug] Piece movement animation makes the rendering be outside of the playfield. This should be fixed
-    with rendering on a framebuffer instead of directly on the screen
+- [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
+    were made, so this bug is still there)
+- [ ] [bug] Piece movement animation makes the rendering be outside of the playfield. This should be
+    fixed with rendering on a framebuffer instead of directly on the screen
 - [x] [system design] Rename animations, time and tasks to *_system
 - [x] [deps] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of the app
     code
@@ -125,12 +131,17 @@
     - [ ] TGM
     - [ ] TGM3
   - [ ] Top out
-    - [ ] Partial lock out
     - [ ] Garbage out
 - [ ] Improve animations
 - [ ] Game menu
   - [ ] Select game rules and start game
 - [ ] Scoring
+  - [ ] Piece drops
+  - [ ] Single/Double/Triple/Tetris
+  - [ ] Hurdle/Split (https://tetris.fandom.com/wiki/Line_clear)
+  - [ ] Back-to-back (https://tetris.fandom.com/wiki/Line_clear)
+  - [ ] Combo (https://tetris.fandom.com/wiki/Line_clear)
+  - [ ] Twists/Spins (https://tetris.fandom.com/wiki/List_of_twists)
 - [ ] Speed/difficulty progression
 - [ ] Draw grid option
 - [ ] 9-slicing texture for windows

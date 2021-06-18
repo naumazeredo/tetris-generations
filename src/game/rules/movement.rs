@@ -67,6 +67,7 @@ pub fn lock_piece(
     }
 }
 
+// @TODO Rules method?
 pub fn try_soft_drop_piece(
     piece: &Piece,
     pos: &mut Vec2i,
@@ -77,6 +78,7 @@ pub fn try_soft_drop_piece(
     try_move_piece(piece, pos, playfield, 0, -1)
 }
 
+// @TODO Rules method?
 pub fn try_hard_drop_piece(
     piece: &Piece,
     pos: &mut Vec2i,

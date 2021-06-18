@@ -93,6 +93,10 @@ impl<S> App<'_, S> {
     pub fn restart_time_system(&mut self) {
         self.time_system = TimeSystem::new(self.sdl_context.timer_subsystem.clone());
     }
+
+    pub fn frame(&self) -> u32 {
+        self.time_system.frame_count
+    }
 }
 
 fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {

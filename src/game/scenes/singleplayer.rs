@@ -7,7 +7,13 @@ use super::*;
 
 use crate::game::{
     randomizer::*,
-    rules::{ Rules, RotationSystem, movement::* },
+    rules::{
+        Rules,
+        RotationSystem,
+        movement::*,
+        rotation::*,
+        topout::*,
+    },
     piece::{ Piece, PieceType },
     playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
     render::*,
@@ -24,11 +30,16 @@ const NEXT_PIECES_COUNT: usize = 8;
 pub struct SinglePlayerScene {
     debug_pieces_scene_opened: bool,
 
+    // @Maybe add which topout rule was the cause
+    topped_out: bool,
+
     rules: Rules,
     playfield: Playfield,
     randomizer: Randomizer,
 
     current_piece: Option<Piece>,
+    // @Cleanup this seems bad. We use too often this paired with the current_piece, so maybe just
+    //          readd it to Piece and make the hold piece the 2 variables (or be a tuple)
     current_piece_pos: Vec2i,
     next_piece_types: [PieceType; NEXT_PIECES_COUNT],
     lock_piece_timestamp: u64,
@@ -62,6 +73,8 @@ impl SceneTrait for SinglePlayerScene {
         persistent: &mut PersistentData
     ) {
         if app.is_paused() { return; }
+
+        if self.topped_out { return; }
 
         if self.current_piece.is_some() {
             // horizontal movement logic
@@ -97,20 +110,6 @@ impl SceneTrait for SinglePlayerScene {
                     self.movement_animation_current_delta_grid.x - horizontal_movement as f32;
             }
 
-            // hard drop
-            let up_button = persistent.input_mapping.button("hard_drop".to_string());
-            if up_button.pressed() {
-                if try_hard_drop_piece(
-                    self.current_piece.as_ref().unwrap(),
-                    &mut self.current_piece_pos,
-                    &mut self.playfield,
-                    &self.rules
-                ) {
-                    self.current_piece = None;
-                    self.lock_piece_timestamp = app.game_timestamp();
-                }
-            }
-
             // soft drop
             let down_button = persistent.input_mapping.button("down".to_string());
             if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
@@ -126,6 +125,50 @@ impl SceneTrait for SinglePlayerScene {
                 }
             }
 
+            // Rotate
+            let mut rotation = 0;
+
+            let ccw_button = persistent.input_mapping.button("rotate_ccw".to_string());
+            if ccw_button.pressed() { rotation -= 1; }
+
+            let cw_button = persistent.input_mapping.button("rotate_cw".to_string());
+            if cw_button.pressed() { rotation += 1; }
+
+            if rotation != 0 {
+                if let Some(ref mut piece) = self.current_piece {
+                    try_rotate_piece(piece, &mut self.current_piece_pos, rotation > 0, &self.playfield, &self.rules);
+                }
+            }
+        }
+
+        //
+        // The next three mechanics can remove the current piece, so we have to isolate them and
+        // verify again if the current piece is available or not
+
+        if self.current_piece.is_some() {
+            // hard drop
+            let up_button = persistent.input_mapping.button("hard_drop".to_string());
+            if up_button.pressed() {
+                if try_hard_drop_piece(
+                    self.current_piece.as_ref().unwrap(),
+                    &mut self.current_piece_pos,
+                    &mut self.playfield,
+                    &self.rules
+                ) {
+                    // @Refactor this is repeated and any lock piece should check for this.
+                    let piece = self.current_piece.as_ref().unwrap();
+                    if locked_out(piece, self.current_piece_pos, &self.rules) {
+                        self.topped_out = true;
+                        return;
+                    }
+
+                    self.current_piece = None;
+                    self.lock_piece_timestamp = app.game_timestamp();
+                }
+            }
+        }
+
+        if self.current_piece.is_some() {
             // hold piece
             let hold_button = persistent.input_mapping.button("hold".to_string());
             if hold_button.pressed() {
@@ -167,18 +210,9 @@ impl SceneTrait for SinglePlayerScene {
                     }
                 }
             }
+        }
 
-            // Rotate
-            let mut rotation = 0;
-
-            let ccw_button = persistent.input_mapping.button("rotate_ccw".to_string());
-            if ccw_button.pressed() { rotation -= 1; }
-
-            let cw_button = persistent.input_mapping.button("rotate_cw".to_string());
-            if cw_button.pressed() { rotation += 1; }
-
-            self.try_rotate_piece(rotation);
-
+        if self.current_piece.is_some() {
             // Gravity
             // @TODO move this to Rules (or something)
             if app.game_timestamp() >= self.movement_last_timestamp_y + self.rules.gravity_interval {
@@ -190,58 +224,66 @@ impl SceneTrait for SinglePlayerScene {
                     &mut self.current_piece_pos,
                     &self.playfield
                 ).is_none() {
-                    lock_piece(self.current_piece.as_ref().unwrap(), self.current_piece_pos, &mut self.playfield);
+                    let piece = self.current_piece.as_ref().unwrap();
+                    lock_piece(piece, self.current_piece_pos, &mut self.playfield);
+
+                    // @Refactor this is repeated and any lock piece should check for this.
+                    if locked_out(piece, self.current_piece_pos, &self.rules) {
+                        self.topped_out = true;
+                        return;
+                    }
+
                     self.current_piece = None;
                     self.lock_piece_timestamp = app.game_timestamp();
                 }
             }
+        }
 
-            // piece movement animation
-            if self.has_movement_animation {
-                if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
-                    let t = norm_u64(
-                        app.game_timestamp(),
-                        self.movement_last_timestamp_x,
-                        self.movement_last_timestamp_x  + self.movement_animation_duration
-                    );
+        // piece movement animation
+        if self.has_movement_animation {
+            if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
+                let t = norm_u64(
+                    app.game_timestamp(),
+                    self.movement_last_timestamp_x,
+                    self.movement_last_timestamp_x  + self.movement_animation_duration
+                );
 
-                    self.movement_animation_current_delta_grid.x = lerp_f32(
-                        self.movement_animation_delta_grid_x,
-                        0.0,
-                        t
-                    );
-                } else {
-                    self.movement_animation_delta_grid_x = 0.0;
-                    self.movement_animation_current_delta_grid.x = 0.0;
-                }
-
-                if app.game_timestamp() <= self.movement_last_timestamp_y + self.movement_animation_duration {
-                    let t = norm_u64(
-                        app.game_timestamp(),
-                        self.movement_last_timestamp_y,
-                        self.movement_last_timestamp_y  + self.movement_animation_duration
-                    );
-
-                    self.movement_animation_current_delta_grid.y = lerp_f32(
-                        self.movement_animation_delta_grid_y,
-                        0.0,
-                        t
-                    );
-                } else {
-                    self.movement_animation_delta_grid_y = 0.0;
-                    self.movement_animation_current_delta_grid.y = 0.0;
-                }
+                self.movement_animation_current_delta_grid.x = lerp_f32(
+                    self.movement_animation_delta_grid_x,
+                    0.0,
+                    t
+                );
             } else {
-                /*
-                // @Cleanup this shouldn't be necessary. It's necessary since we can disable the
-                //          movement animation in the middle of the game, and we are using these
-                //          variables to render
                 self.movement_animation_delta_grid_x = 0.0;
-                self.movement_animation_delta_grid_y = 0.0;
                 self.movement_animation_current_delta_grid.x = 0.0;
-                self.movement_animation_current_delta_grid.y = 0.0;
-                */
             }
+
+            if app.game_timestamp() <= self.movement_last_timestamp_y + self.movement_animation_duration {
+                let t = norm_u64(
+                    app.game_timestamp(),
+                    self.movement_last_timestamp_y,
+                    self.movement_last_timestamp_y  + self.movement_animation_duration
+                );
+
+                self.movement_animation_current_delta_grid.y = lerp_f32(
+                    self.movement_animation_delta_grid_y,
+                    0.0,
+                    t
+                );
+            } else {
+                self.movement_animation_delta_grid_y = 0.0;
+                self.movement_animation_current_delta_grid.y = 0.0;
+            }
+        } else {
+            /*
+            // @Cleanup this shouldn't be necessary. It's necessary since we can disable the
+            //          movement animation in the middle of the game, and we are using these
+            //          variables to render
+            self.movement_animation_delta_grid_x = 0.0;
+            self.movement_animation_delta_grid_y = 0.0;
+            self.movement_animation_current_delta_grid.x = 0.0;
+            self.movement_animation_current_delta_grid.y = 0.0;
+            */
         }
 
         // line clear
@@ -295,6 +337,19 @@ impl SceneTrait for SinglePlayerScene {
 
             self.movement_last_timestamp_x = app.game_timestamp();
             self.movement_last_timestamp_y = app.game_timestamp();
+
+            // check for block out
+            let block_out = blocked_out(
+                self.current_piece.as_ref().unwrap(),
+                self.current_piece_pos,
+                &self.playfield,
+                &self.rules
+            );
+
+            if block_out {
+                self.topped_out = true;
+                return;
+            }
         }
     }
 
@@ -548,6 +603,9 @@ impl SinglePlayerScene {
 
         Self {
             debug_pieces_scene_opened: false,
+
+            topped_out: false,
+
             playfield,
             rules,
             randomizer,
@@ -604,24 +662,6 @@ impl SinglePlayerScene {
         self.movement_animation_current_delta_grid = Vec2::new();
 
         self.has_used_hold = false;
-    }
-
-    // Move this to rules
-    fn try_rotate_piece(&mut self, delta_rot: i32) -> bool {
-        if let Some(ref mut piece) = self.current_piece {
-            for block_pos in piece.type_.blocks(piece.rot + delta_rot) {
-                let x = self.current_piece_pos.x + block_pos.x;
-                let y = self.current_piece_pos.y + block_pos.y;
-                if self.playfield.block(x, y).is_some() {
-                    return false;
-                }
-            }
-
-            piece.rot += delta_rot;
-            true
-        } else {
-            false
-        }
     }
 }
 

@@ -41,6 +41,7 @@ pub fn draw_block_in_playfield(
     app: &mut App<'_, State>,
     persistent: &PersistentData
 ) {
+    // @TODO be able to draw outside when needed
     if pos.x < 0 || pos.x >= playfield.grid_size.x ||
        pos.y < 0 || pos.y >= PLAYFIELD_VISIBLE_HEIGHT {
 

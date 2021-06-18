@@ -1,10 +1,13 @@
 use crate::app::ImDraw;
 use super::randomizer::RandomizerType;
 
-pub mod movement;
 pub mod line_clear;
+pub mod movement;
+pub mod rotation;
+pub mod topout;
 
 use line_clear::LineClearRule;
+use topout::TopOutRule;
 
 // Guideline: https://tetris.fandom.com/wiki/Tetris_Guideline
 
@@ -38,6 +41,8 @@ pub struct Rules {
     //pub floor_kick_rule: FloorKickRule,
     pub line_clear_rule: LineClearRule,
 
+    pub top_out_rule: TopOutRule,
+
     // @TODO some games implement a progression for these intervals (faster levels = smaller ARE,
     //       line clear delays and faster DAS). So we may need to accept a closure that receives the
     //       level
@@ -56,12 +61,15 @@ pub struct Rules {
     pub lock_delay: Option<u32>,  // microsecs
 
     // piece positioning rules
-    //pub rotation_system: RotationSystem, // It's quite annoying to make it completely general
+    // @Maybe just list the cases, instead of have all possibilities
     pub spawn_round_left: bool,
     pub has_extended_orientations: bool,
     pub is_right_handed: bool,
     pub is_spawn_flat_side_up: bool, // NRS: true, rest: false
     pub is_spawn_top_block_aligned: bool, // Original Rotation System: true, rest: false
+
+    // rotation
+    //pub rotation_system: RotationSystem,
 
     // randomizer
     pub randomizer_type: RandomizerType,
@@ -90,6 +98,8 @@ impl From<RotationSystem> for Rules {
                     wall_kick_rule: WallKickRule::Original,
                     line_clear_rule: LineClearRule::Naive,
 
+                    top_out_rule: TopOutRule::BLOCK_OUT,
+
                     das_repeat_delay: 266_228,   // 16 frames at 60.0988 Hz
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
                     soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
@@ -104,6 +114,8 @@ impl From<RotationSystem> for Rules {
                     is_right_handed: true,
                     is_spawn_flat_side_up: true,
                     is_spawn_top_block_aligned: true,
+
+                    //rotation_system,
 
                     randomizer_type: RandomizerType::FullRandom,
                 }
@@ -122,11 +134,13 @@ impl From<RotationSystem> for Rules {
                     has_initial_rotation_system: false,
                     has_initial_hold_system: false,
 
-                    spawn_row: 20u8,
+                    spawn_row: 22u8,
                     next_pieces_preview_count: 2u8,
 
                     wall_kick_rule: WallKickRule::Original,
                     line_clear_rule: LineClearRule::Naive,
+
+                    top_out_rule: TopOutRule::BLOCK_OUT | TopOutRule::LOCK_OUT,
 
                     das_repeat_delay: 266_228,   // 16 frames at 60.0988 Hz
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
@@ -142,6 +156,8 @@ impl From<RotationSystem> for Rules {
                     is_right_handed: false,
                     is_spawn_flat_side_up: true,
                     is_spawn_top_block_aligned: true,
+
+                    //rotation_system,
 
                     randomizer_type: RandomizerType::FullRandom,
                 }
@@ -195,14 +211,4 @@ impl Default for WallKickRule {
     fn default() -> Self {
         WallKickRule::SRS
     }
-}
-
-// https://tetris.fandom.com/wiki/Top_out
-// @TODO bitflags
-#[derive(Copy, Clone, Debug)]
-pub enum TopOutRule {
-    BlockOut,
-    LockOut,
-    PartialLockOut,
-    GarbageOut,
 }
