@@ -15,7 +15,7 @@
   - [ ] Rotation systems
     - [x] Original
     - [ ] SRS
-      - [ ] Wall kick SRS
+      - [ ] Wall kick
   - [ ] General Mechanics
     - [x] Drop
       - [x] Gravity
@@ -39,6 +39,14 @@
     - [x] Block out
     - [x] Lock out
     - [x] Partial lock out
+  - [x] Rotation system orientations
+    - [x] Original
+    - [x] NRSR
+    - [x] NRSL
+    - [x] Sega
+    - [x] ARS
+    - [x] SRS
+    - [x] DTET
 - [ ] Input mapping from guideline
   - [ ] Controller
     - [x] Normal buttons
