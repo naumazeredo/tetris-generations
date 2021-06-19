@@ -1,5 +1,5 @@
 use crate::app::ImDraw;
-use crate::game::piece::{
+use crate::game::pieces::{
     PieceType,
     PIECES
 };

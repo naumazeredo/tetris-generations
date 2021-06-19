@@ -2,7 +2,11 @@ use crate::BLOCK_SCALE;
 use crate::State;
 use crate::app::*;
 use crate::linalg::*;
-use crate::game::piece::{ Piece, PIECES };
+
+use crate::game::{
+    pieces::{ Piece, PIECES },
+    rules::RotationSystem,
+};
 
 use super::*;
 
@@ -15,6 +19,7 @@ pub struct DebugPiecesScene {
     rot: i32,
 
     has_grid: bool,
+    rotation_system: RotationSystem,
 }
 
 impl SceneTrait for DebugPiecesScene {
@@ -32,6 +37,14 @@ impl SceneTrait for DebugPiecesScene {
         app: &mut App<'_, State>,
         persistent: &mut PersistentData
     ) {
+        app.queue_draw_text(
+            &format!("{:?}", self.rotation_system),
+            &persistent.font,
+            &TransformBuilder::new().pos_xy(10.0, 42.0).layer(1000).build(),
+            32.,
+            WHITE
+        );
+
         let x = 100.0;
         let y = 100.0;
 
@@ -43,6 +56,7 @@ impl SceneTrait for DebugPiecesScene {
             },
             self.is_centered,
             self.has_grid,
+            self.rotation_system,
             app,
             persistent
         );
@@ -58,6 +72,7 @@ impl SceneTrait for DebugPiecesScene {
             },
             self.is_centered,
             self.has_grid,
+            self.rotation_system,
             app,
             persistent
         );
@@ -71,6 +86,7 @@ impl SceneTrait for DebugPiecesScene {
             },
             self.is_centered,
             self.has_grid,
+            self.rotation_system,
             app,
             persistent
         );
@@ -84,6 +100,7 @@ impl SceneTrait for DebugPiecesScene {
             },
             self.is_centered,
             self.has_grid,
+            self.rotation_system,
             app,
             persistent
         );
@@ -98,6 +115,7 @@ impl SceneTrait for DebugPiecesScene {
             },
             self.is_centered,
             self.has_grid,
+            self.rotation_system,
             app,
             persistent
         );
@@ -111,6 +129,7 @@ impl SceneTrait for DebugPiecesScene {
             },
             self.is_centered,
             self.has_grid,
+            self.rotation_system,
             app,
             persistent
         );
@@ -124,6 +143,7 @@ impl SceneTrait for DebugPiecesScene {
             },
             self.is_centered,
             self.has_grid,
+            self.rotation_system,
             app,
             persistent
         );
@@ -163,6 +183,14 @@ impl SceneTrait for DebugPiecesScene {
                 self.has_grid = !self.has_grid;
             }
 
+            Event::KeyDown { scancode: Some(Scancode::D), .. } => {
+                self.next_rotation_systems();
+            }
+
+            Event::KeyDown { scancode: Some(Scancode::A), .. } => {
+                self.previous_rotation_systems();
+            }
+
             _ => {}
         }
 
@@ -185,6 +213,31 @@ impl DebugPiecesScene {
             is_centered: false,
             rot: 0,
             has_grid: true,
+            rotation_system: RotationSystem::Original,
         }
+    }
+
+    fn next_rotation_systems(&mut self) {
+        self.rotation_system = match self.rotation_system {
+            RotationSystem::Original => RotationSystem::NRSR,
+            RotationSystem::NRSR     => RotationSystem::NRSL,
+            RotationSystem::NRSL     => RotationSystem::Sega,
+            RotationSystem::Sega     => RotationSystem::ARS,
+            RotationSystem::ARS      => RotationSystem::SRS,
+            RotationSystem::SRS      => RotationSystem::DTET,
+            RotationSystem::DTET     => RotationSystem::Original,
+        };
+    }
+
+    fn previous_rotation_systems(&mut self) {
+        self.rotation_system = match self.rotation_system {
+            RotationSystem::Original => RotationSystem::DTET,
+            RotationSystem::NRSR     => RotationSystem::Original,
+            RotationSystem::NRSL     => RotationSystem::NRSR,
+            RotationSystem::Sega     => RotationSystem::NRSL,
+            RotationSystem::ARS      => RotationSystem::Sega,
+            RotationSystem::SRS      => RotationSystem::ARS,
+            RotationSystem::DTET     => RotationSystem::SRS,
+        };
     }
 }

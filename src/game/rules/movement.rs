@@ -1,6 +1,6 @@
 use crate::linalg::Vec2i;
 use crate::game::{
-    piece::Piece,
+    pieces::Piece,
     playfield::Playfield,
 };
 
@@ -11,8 +11,16 @@ pub enum PieceState {
     Locking,
 }
 
-pub fn try_move_piece(piece: &Piece, pos: &mut Vec2i, playfield: &Playfield, dx: i32, dy: i32) -> bool {
-    for block_pos in piece.blocks() {
+// @TODO Rules method?
+pub fn try_move_piece(
+    piece: &Piece,
+    pos: &mut Vec2i,
+    playfield: &Playfield,
+    dx: i32,
+    dy: i32,
+    rotation_system: RotationSystem
+) -> bool {
+    for block_pos in piece.blocks(rotation_system) {
         let new_x = pos.x + block_pos.x + dx;
         let new_y = pos.y + block_pos.y + dy;
         if playfield.block(new_x, new_y).is_some() {
@@ -25,8 +33,13 @@ pub fn try_move_piece(piece: &Piece, pos: &mut Vec2i, playfield: &Playfield, dx:
     true
 }
 
-fn should_start_lock_delay(piece: &Piece, pos: Vec2i, playfield: &Playfield) -> bool {
-    for block_pos in piece.blocks() {
+fn should_start_lock_delay(
+    piece: &Piece,
+    pos: Vec2i,
+    playfield: &Playfield,
+    rotation_system: RotationSystem
+) -> bool {
+    for block_pos in piece.blocks(rotation_system) {
         let down_x = pos.x + block_pos.x;
         let down_y = pos.y + block_pos.y - 1;
         if playfield.block(down_x, down_y).is_some() {
@@ -37,13 +50,15 @@ fn should_start_lock_delay(piece: &Piece, pos: Vec2i, playfield: &Playfield) -> 
     false
 }
 
+// @TODO Rules method?
 pub fn try_apply_gravity(
     piece: &Piece,
     pos: &mut Vec2i,
-    playfield: &Playfield
+    playfield: &Playfield,
+    rotation_system: RotationSystem
 ) -> Option<PieceState> {
-    if try_move_piece(piece, pos, playfield, 0, -1) {
-        if should_start_lock_delay(piece, *pos, playfield) {
+    if try_move_piece(piece, pos, playfield, 0, -1, rotation_system) {
+        if should_start_lock_delay(piece, *pos, playfield, rotation_system) {
             Some(PieceState::Locking)
         } else {
             Some(PieceState::Falling)
@@ -53,12 +68,14 @@ pub fn try_apply_gravity(
     }
 }
 
+// @TODO Rules method?
 pub fn lock_piece(
     piece: &Piece,
     pos: Vec2i,
-    playfield: &mut Playfield
+    playfield: &mut Playfield,
+    rotation_system: RotationSystem
 ) {
-    for block_pos in piece.blocks() {
+    for block_pos in piece.blocks(rotation_system) {
         playfield.set_block(
             pos.x + block_pos.x,
             pos.y + block_pos.y,
@@ -75,7 +92,7 @@ pub fn try_soft_drop_piece(
     rules: &Rules
 ) -> bool {
     if !rules.has_soft_drop { return false; }
-    try_move_piece(piece, pos, playfield, 0, -1)
+    try_move_piece(piece, pos, playfield, 0, -1, rules.rotation_system)
 }
 
 // @TODO Rules method?
@@ -87,17 +104,19 @@ pub fn try_hard_drop_piece(
 ) -> bool {
     if !rules.has_hard_drop { return false; }
 
-    full_drop_piece(piece, pos, playfield);
-    lock_piece(piece, *pos, playfield);
+    full_drop_piece(piece, pos, playfield, rules.rotation_system);
+    lock_piece(piece, *pos, playfield, rules.rotation_system);
     true
 }
 
+// @TODO Rules method?
 pub fn full_drop_piece(
     piece: &Piece,
     pos: &mut Vec2i,
     playfield: &Playfield,
+    rotation_system: RotationSystem
 ) {
-    while try_apply_gravity(piece, pos, playfield).is_some() {}
+    while try_apply_gravity(piece, pos, playfield, rotation_system).is_some() {}
 }
 
 #[cfg(test)]

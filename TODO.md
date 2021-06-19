@@ -35,7 +35,7 @@
   - [x] Randomizer
     - [x] Full random
     - [x] Random Generator (7-Bag)
-  - [ ] Top out
+  - [x] Top out
     - [x] Block out
     - [x] Lock out
     - [x] Partial lock out
@@ -57,6 +57,7 @@
   - [x] pixel_scale to u8
   - [ ] BLOCK_SCALE to u8
   - [ ] All render functions to receive Vec2i or integers instead of floats
+- [ ] Refactor orientation rule usage and rules functions
 
 ### Engine
 

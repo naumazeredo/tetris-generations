@@ -4,7 +4,7 @@ mod random7bag;
 
 use crate::enum_dispatch::*;
 use crate::app::ImDraw;
-use super::piece::PieceType;
+use super::pieces::PieceType;
 
 pub use fullrandom::RandomizerFullRandom;
 pub use random7bag::Randomizer7Bag;

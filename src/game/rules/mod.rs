@@ -37,8 +37,6 @@ pub struct Rules {
     pub spawn_row: u8,
     pub next_pieces_preview_count: u8,
 
-    pub wall_kick_rule: WallKickRule,
-    //pub floor_kick_rule: FloorKickRule,
     pub line_clear_rule: LineClearRule,
 
     pub top_out_rule: TopOutRule,
@@ -61,15 +59,12 @@ pub struct Rules {
     pub lock_delay: Option<u32>,  // microsecs
 
     // piece positioning rules
-    // @Maybe just list the cases, instead of have all possibilities
-    pub spawn_round_left: bool,
-    pub has_extended_orientations: bool,
-    pub is_right_handed: bool,
-    pub is_spawn_flat_side_up: bool, // NRS: true, rest: false
-    pub is_spawn_top_block_aligned: bool, // Original Rotation System: true, rest: false
+    pub rotation_system: RotationSystem,
+    //pub does_ceiling_prevents_rotation: bool, // Sega
+    //pub double_rotation: bool // DTET
 
-    // rotation
-    //pub rotation_system: RotationSystem,
+    // @Design this is part of the rotation system!
+    //pub has_ccw_rotation: bool,
 
     // randomizer
     pub randomizer_type: RandomizerType,
@@ -78,7 +73,7 @@ pub struct Rules {
 impl From<RotationSystem> for Rules {
     fn from(rotation_system: RotationSystem) -> Self {
         match rotation_system {
-            RotationSystem::Original => {
+            RotationSystem::NRSR => {
                 Self {
                     has_hard_drop: false,
                     has_hard_drop_lock: false,
@@ -95,7 +90,6 @@ impl From<RotationSystem> for Rules {
                     spawn_row: 20u8,
                     next_pieces_preview_count: 0u8,
 
-                    wall_kick_rule: WallKickRule::Original,
                     line_clear_rule: LineClearRule::Naive,
 
                     top_out_rule: TopOutRule::BLOCK_OUT,
@@ -109,13 +103,7 @@ impl From<RotationSystem> for Rules {
                     entry_delay: None,
                     lock_delay: None,
 
-                    spawn_round_left: true,
-                    has_extended_orientations: false,
-                    is_right_handed: true,
-                    is_spawn_flat_side_up: true,
-                    is_spawn_top_block_aligned: true,
-
-                    //rotation_system,
+                    rotation_system: RotationSystem::NRSR,
 
                     randomizer_type: RandomizerType::FullRandom,
                 }
@@ -137,7 +125,6 @@ impl From<RotationSystem> for Rules {
                     spawn_row: 22u8,
                     next_pieces_preview_count: 2u8,
 
-                    wall_kick_rule: WallKickRule::Original,
                     line_clear_rule: LineClearRule::Naive,
 
                     top_out_rule: TopOutRule::BLOCK_OUT | TopOutRule::LOCK_OUT,
@@ -146,18 +133,12 @@ impl From<RotationSystem> for Rules {
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
                     soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
                     line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
-                    gravity_interval: 250_000,
+                    gravity_interval: 1_000_000,
 
                     entry_delay: None,
                     lock_delay: None,
 
-                    spawn_round_left: true,
-                    has_extended_orientations: false,
-                    is_right_handed: false,
-                    is_spawn_flat_side_up: true,
-                    is_spawn_top_block_aligned: true,
-
-                    //rotation_system,
+                    rotation_system: RotationSystem::SRS,
 
                     randomizer_type: RandomizerType::FullRandom,
                 }
@@ -183,6 +164,7 @@ pub enum SoftDropRule {
 }
 */
 
+
 // https://tetris.fandom.com/wiki/Category:Rotation_Systems
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub enum RotationSystem {
@@ -190,25 +172,7 @@ pub enum RotationSystem {
     NRSL,     // Nintendo Rotation System - Left Handed
     NRSR,     // Nintendo Rotation System - Right Handed
     Sega,     // row 20 or 22 in TGMACE
-    ARS,      // Arika Rotation System
+    ARS,      // Arika Rotation System - TGM Rotation
     SRS,      // Super Rotation System
     DTET,
-    Test,
-}
-
-// https://tetris.fandom.com/wiki/Wall_kick
-#[derive(Copy, Clone, Debug, ImDraw)]
-pub enum WallKickRule {
-    Original, // https://tetris.fandom.com/wiki/Original_Rotation_System
-    TGM,      // https://tetris.fandom.com/wiki/TGM_Rotation
-    TGM3,     // https://tetris.fandom.com/wiki/TGM_Rotation
-    DX,       // https://tetris.fandom.com/wiki/Tetris_DX
-    SRS,      // https://tetris.fandom.com/wiki/SRS
-    DTET,     // https://tetris.fandom.com/wiki/DTET
-}
-
-impl Default for WallKickRule {
-    fn default() -> Self {
-        WallKickRule::SRS
-    }
 }

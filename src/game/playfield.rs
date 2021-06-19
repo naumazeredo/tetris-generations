@@ -1,6 +1,6 @@
 use crate::app::ImDraw;
 use crate::linalg::Vec2i;
-use super::piece::PieceType;
+use super::pieces::PieceType;
 
 pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
 

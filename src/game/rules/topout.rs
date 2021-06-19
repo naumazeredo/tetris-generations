@@ -1,7 +1,7 @@
 use crate::app::ImDraw;
 use crate::linalg::Vec2i;
 use crate::game::{
-    piece::Piece,
+    pieces::Piece,
     playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
 };
 
@@ -31,7 +31,7 @@ pub fn blocked_out(
     if !rules.top_out_rule.contains(TopOutRule::BLOCK_OUT) { return false; }
 
     let mut pos = pos;
-    !try_move_piece(piece, &mut pos, playfield, 0, 0)
+    !try_move_piece(piece, &mut pos, playfield, 0, 0, rules.rotation_system)
 }
 
 pub fn locked_out(
@@ -40,7 +40,7 @@ pub fn locked_out(
     rules: &Rules
 ) -> bool {
     if rules.top_out_rule.intersects(TopOutRule::LOCK_OUT | TopOutRule::PARTIAL_LOCK_OUT) {
-        let blocks_locked_out = piece.blocks().iter()
+        let blocks_locked_out = piece.blocks(rules.rotation_system).iter()
             .fold(0, |acc, block_pos| {
                 acc + (pos.y + block_pos.y >= PLAYFIELD_VISIBLE_HEIGHT) as i32
             });

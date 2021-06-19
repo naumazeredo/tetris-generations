@@ -14,7 +14,7 @@ use crate::game::{
         rotation::*,
         topout::*,
     },
-    piece::{ Piece, PieceType },
+    pieces::{ Piece, PieceType },
     playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
     render::*,
 };
@@ -103,7 +103,8 @@ impl SceneTrait for SinglePlayerScene {
                 &mut self.current_piece_pos,
                 &self.playfield,
                 horizontal_movement,
-                0
+                0,
+                self.rules.rotation_system
             ) {
                 self.movement_last_timestamp_x = app.game_timestamp();
                 self.movement_animation_delta_grid_x =
@@ -174,13 +175,12 @@ impl SceneTrait for SinglePlayerScene {
             if hold_button.pressed() {
                 if !self.has_used_hold {
                     match self.hold_piece.take() {
-                        Some(mut hold_piece) => {
-                            // @Cleanup not entirely needed since we reset the rotation on hold
+                        Some(hold_piece) => {
+                            let piece = self.current_piece.as_mut().unwrap();
                             if self.rules.hold_piece_reset_rotation {
-                                hold_piece.rot = 0;
+                                piece.rot = 0;
                             }
 
-                            let piece = self.current_piece.as_mut().unwrap();
                             self.hold_piece = Some(*piece);
 
                             *piece = hold_piece;
@@ -222,10 +222,16 @@ impl SceneTrait for SinglePlayerScene {
                 if try_apply_gravity(
                     self.current_piece.as_ref().unwrap(),
                     &mut self.current_piece_pos,
-                    &self.playfield
+                    &self.playfield,
+                    self.rules.rotation_system
                 ).is_none() {
                     let piece = self.current_piece.as_ref().unwrap();
-                    lock_piece(piece, self.current_piece_pos, &mut self.playfield);
+                    lock_piece(
+                        piece,
+                        self.current_piece_pos,
+                        &mut self.playfield,
+                        self.rules.rotation_system
+                    );
 
                     // @Refactor this is repeated and any lock piece should check for this.
                     if locked_out(piece, self.current_piece_pos, &self.rules) {
@@ -384,9 +390,21 @@ impl SceneTrait for SinglePlayerScene {
                 line_clear_animation_state = None;
             }
 
-            draw_playfield(&self.playfield, line_clear_animation_state, app, persistent);
+            draw_playfield(
+                &self.playfield,
+                line_clear_animation_state,
+                self.rules.rotation_system,
+                app,
+                persistent
+            );
         } else {
-            draw_playfield(&self.playfield, None, app, persistent);
+            draw_playfield(
+                &self.playfield,
+                None,
+                self.rules.rotation_system,
+                app,
+                persistent
+            );
         }
 
         // ghost piece
@@ -398,6 +416,7 @@ impl SceneTrait for SinglePlayerScene {
                     Vec2::new(),
                     Color { r: 1., g: 1., b: 1., a: 0.1 },
                     &self.playfield,
+                    self.rules.rotation_system,
                     app,
                     persistent
                 );
@@ -409,13 +428,20 @@ impl SceneTrait for SinglePlayerScene {
                 let mut ghost_piece = piece.clone();
                 let mut ghost_piece_pos = self.current_piece_pos;
 
-                full_drop_piece(&mut ghost_piece, &mut ghost_piece_pos, &self.playfield);
+                full_drop_piece(
+                    &mut ghost_piece,
+                    &mut ghost_piece_pos,
+                    &self.playfield,
+                    self.rules.rotation_system
+                );
+
                 draw_piece_in_playfield(
                     ghost_piece,
                     ghost_piece_pos,
                     Vec2::new(),
                     Color { r: 1., g: 1., b: 1., a: 0.1 },
                     &self.playfield,
+                    self.rules.rotation_system,
                     app,
                     persistent
                 );
@@ -433,8 +459,9 @@ impl SceneTrait for SinglePlayerScene {
                 piece,
                 self.current_piece_pos,
                 movement_animation_delta_grid,
-                piece.color(),
+                piece.color(self.rules.rotation_system),
                 &self.playfield,
+                self.rules.rotation_system,
                 app,
                 persistent
             );
@@ -465,8 +492,9 @@ impl SceneTrait for SinglePlayerScene {
                 draw_piece_centered(
                     Piece { type_: self.next_piece_types[0], rot: 0 },
                     window_pos,
-                    self.next_piece_types[0].color(),
+                    self.next_piece_types[0].color(self.rules.rotation_system),
                     self.playfield.has_grid,
+                    self.rules.rotation_system,
                     app,
                     persistent
                 );
@@ -500,8 +528,9 @@ impl SceneTrait for SinglePlayerScene {
                 draw_piece_centered(
                     hold_piece,
                     window_pos,
-                    hold_piece.color(),
+                    hold_piece.color(self.rules.rotation_system),
                     self.playfield.has_grid,
+                    self.rules.rotation_system,
                     app,
                     persistent
                 );
@@ -585,7 +614,7 @@ impl SinglePlayerScene {
         let playfield = Playfield::new(playfield_pos, playfield_grid_size, true);
 
         // rules
-        let rules: Rules = RotationSystem::Test.into();
+        let rules: Rules = RotationSystem::SRS.into();
 
         // rng
         let mut randomizer: Randomizer = RandomizerType::Random7Bag.into();
