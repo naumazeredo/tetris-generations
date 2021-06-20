@@ -84,15 +84,15 @@ pub(super) const PIECES_SRS : PieceOrientationData = PieceOrientationData(
         // I
         PieceData {
             blocks: [
+                [Vec2i { x: 0, y: 2 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 3, y: 2 }],
+                [Vec2i { x: 2, y: 3 }, Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 2, y: 0 }],
                 [Vec2i { x: 0, y: 1 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 3, y: 1 }],
-                [Vec2i { x: 2, y: 2 }, Vec2i { x: 2, y: 1 }, Vec2i { x: 2, y: 0 }, Vec2i { x: 2, y: -1 }],
-                [Vec2i { x: 0, y: 0 }, Vec2i { x: 1, y: 0 }, Vec2i { x: 2, y: 0 }, Vec2i { x: 3, y: 0 }],
-                [Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 1, y: 0 }, Vec2i { x: 1, y: -1 }],
+                [Vec2i { x: 1, y: 3 }, Vec2i { x: 1, y: 2 }, Vec2i { x: 1, y: 1 }, Vec2i { x: 1, y: 0 }],
             ],
             min_x: [0, 2, 0, 1],
             max_x: [3, 2, 3, 1],
-            min_y: [1, -1, 0, -1],
-            max_y: [1, 2, 0, 2],
+            min_y: [2, 0, 1, 0],
+            max_y: [2, 3, 1, 3],
             color: Color { r: 0.0, g: 1.0, b: 1.0, a: 1.0 },
         },
 

@@ -23,14 +23,13 @@ pub struct DebugPiecesScene {
 }
 
 impl SceneTrait for DebugPiecesScene {
-    /*
     fn update(
         &mut self,
-        app: &mut App<'_, State>,
-        persistent: &mut PersistentData
+        _app: &mut App<'_, State>,
+        _persistent: &mut PersistentData
     ) {
+        self.rot = ((self.rot % 4) + 4) % 4;
     }
-    */
 
     fn render(
         &mut self,
@@ -41,6 +40,14 @@ impl SceneTrait for DebugPiecesScene {
             &format!("{:?}", self.rotation_system),
             &persistent.font,
             &TransformBuilder::new().pos_xy(10.0, 42.0).layer(1000).build(),
+            32.,
+            WHITE
+        );
+
+        app.queue_draw_text(
+            &format!("rot: {}", self.rot),
+            &persistent.font,
+            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(1000).build(),
             32.,
             WHITE
         );

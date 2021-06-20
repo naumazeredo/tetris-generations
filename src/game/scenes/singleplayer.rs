@@ -160,6 +160,7 @@ impl SceneTrait for SinglePlayerScene {
                     let piece = self.current_piece.as_ref().unwrap();
                     if locked_out(piece, self.current_piece_pos, &self.rules) {
                         self.topped_out = true;
+                        println!("game over: locked out");
                         return;
                     }
 
@@ -236,6 +237,7 @@ impl SceneTrait for SinglePlayerScene {
                     // @Refactor this is repeated and any lock piece should check for this.
                     if locked_out(piece, self.current_piece_pos, &self.rules) {
                         self.topped_out = true;
+                        println!("game over: locked out");
                         return;
                     }
 
@@ -354,6 +356,7 @@ impl SceneTrait for SinglePlayerScene {
 
             if block_out {
                 self.topped_out = true;
+                println!("game over: block out");
                 return;
             }
         }
@@ -371,6 +374,17 @@ impl SceneTrait for SinglePlayerScene {
             32.,
             WHITE
         );
+
+        if let Some(piece) = self.current_piece {
+            let rot = ((piece.rot % 4) + 4) % 4;
+            app.queue_draw_text(
+                &format!("rot: {}", rot),
+                &persistent.font,
+                &TransformBuilder::new().pos_xy(10.0, 84.0).layer(1000).build(),
+                32.,
+                WHITE
+            );
+        }
 
         // playfield
         let playfield_size = get_draw_playfield_size(&self.playfield, persistent.pixel_scale);

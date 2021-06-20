@@ -14,8 +14,8 @@
     - [x] Naive
   - [ ] Rotation systems
     - [x] Original
-    - [ ] SRS
-      - [ ] Wall kick
+    - [x] SRS
+      - [x] Rotation tests
   - [ ] General Mechanics
     - [x] Drop
       - [x] Gravity
@@ -31,7 +31,6 @@
     - [ ] Preview pieces
       - [x] Next piece
       - [ ] 2+ pieces layout
-    - [ ] Extended orientations
   - [x] Randomizer
     - [x] Full random
     - [x] Random Generator (7-Bag)
@@ -94,6 +93,7 @@
 - [x] ImDraw derive to enums
 - [x] Split debug system from the rest (to be able to use dear imgui to draw the app)
   - (Ended up refactoring the App new and run to be able to do this consistently)
+- [ ] Fix fullscreen mode
 
 #### Issues
 
@@ -158,6 +158,7 @@
     the repeating movement if, when verified the next step, the key is not pressed.
     - [x] DAS charge
 - [ ] Customizable piece styles
+- [ ] Test all wall/floor kick rotations! OMG WHYYY!
 
 ### Engine
 
