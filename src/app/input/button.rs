@@ -48,7 +48,13 @@ pub struct Button {
     pressed: bool,
     released: bool,
 
+    // If game is paused, only checking for the timestamp will make the button seem always pressed.
+    // To avoid this, we use a flip-flop to store the last press/release state and only verify
+    // pressed/release states once per click.
+    last_state: bool,
+
     timestamp: u64,
+
 }
 
 impl Button {
@@ -63,6 +69,7 @@ impl Button {
             down: false,
             pressed: false,
             released: false,
+            last_state: false,
             timestamp: 0u64,
         }
     }
@@ -229,15 +236,19 @@ impl Button {
                 self.down = true;
             }
 
-            self.pressed = self.timestamp == timestamp;
+            self.pressed = (self.timestamp == timestamp) && !self.last_state;
             self.released = false;
+
+            self.last_state = true;
         } else {
             //released
 
             self.timestamp = last_released;
             self.down = false;
             self.pressed = false;
-            self.released = self.timestamp == timestamp;
+            self.released = (self.timestamp == timestamp) && self.last_state;
+
+            self.last_state = false;
         }
     }
 

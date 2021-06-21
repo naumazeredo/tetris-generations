@@ -137,11 +137,7 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
 
     fn handle_input(&mut self, event: &Event) {
         match event {
-            Event::Quit {..}
-            | Event::KeyDown { scancode: Some(Scancode::Escape), .. } => {
-                self.running = false;
-                return;
-            }
+            Event::Quit {..} => { self.running = false; }
 
             Event::KeyDown { scancode: Some(Scancode::F1), .. } => {
                 self.show_debug_window = !self.show_debug_window;

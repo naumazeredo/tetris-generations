@@ -82,6 +82,13 @@ impl SceneTrait for SinglePlayerScene {
         app: &mut App<'_, State>,
         persistent: &mut PersistentData
     ) {
+        // pause
+        let options_button = persistent.input_mapping.button("options".to_string());
+        if options_button.pressed() {
+            if app.is_paused() { app.resume(); }
+            else { app.pause(); }
+        }
+
         if app.is_paused() { return; }
 
         if self.topped_out { return; }
@@ -749,14 +756,6 @@ impl SceneTrait for SinglePlayerScene {
         use sdl2::keyboard::Scancode;
 
         match event {
-            Event::KeyDown { scancode: Some(Scancode::F2), .. } => {
-                if app.is_paused() {
-                    app.resume();
-                } else {
-                    app.pause();
-                }
-            }
-
             Event::KeyDown { scancode: Some(Scancode::F3), .. } => {
                 app.set_time_scale(0.1);
             }

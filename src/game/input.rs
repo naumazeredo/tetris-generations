@@ -75,7 +75,8 @@ pub fn get_default_input_mapping() -> InputMapping {
         button.add_key(sdl2::keyboard::Scancode::LShift);
         button.add_key(sdl2::keyboard::Scancode::RShift);
         button.add_controller_button(0, sdl2::controller::Button::X);
-        // Shoulder buttons
+        button.add_controller_button(0, sdl2::controller::Button::LeftShoulder);
+        button.add_controller_button(0, sdl2::controller::Button::RightShoulder);
 
         input_mapping.add_button_mapping("hold".to_string(), button);
     }
@@ -91,6 +92,14 @@ pub fn get_default_input_mapping() -> InputMapping {
         );
 
         input_mapping.add_button_mapping("hard_drop".to_string(), button);
+    }
+
+    {
+        let mut button = Button::new();
+        button.add_key(sdl2::keyboard::Scancode::Escape);
+        button.add_controller_button(0, sdl2::controller::Button::Start);
+
+        input_mapping.add_button_mapping("options".to_string(), button);
     }
 
     input_mapping

@@ -49,11 +49,12 @@
     - [x] ARS
     - [x] SRS
     - [x] DTET
-- [ ] Input mapping from guideline
-  - [ ] Controller
+- [x] Input mapping from guideline
+  - [x] Controller
     - [x] Normal buttons
-    - [ ] Triggers
+    - [x] Triggers
   - [x] Keyboard
+  - [x] Pause
 - [x] Scene system
 - [x] Animations
   - [x] Piece movement
