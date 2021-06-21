@@ -80,7 +80,8 @@ fn generate(ast: DeriveInput) -> TokenStream {
 
                         quote! {
                             #name::#ident(#(#match_fields)*) => {
-                                imgui::TreeNode::new(crate::im_str2!(label)).build(ui, || {
+                                let display_label = format!("{}: {}", label, stringify!(#ident));
+                                imgui::TreeNode::new(crate::im_str2!(display_label)).build(ui, || {
                                     let id = ui.push_id(label);
                                     #(#fields_operations)*
                                     id.pop(ui);
@@ -106,7 +107,8 @@ fn generate(ast: DeriveInput) -> TokenStream {
 
                         quote! {
                             #name::#ident { #(#match_fields)* } => {
-                                imgui::TreeNode::new(crate::im_str2!(label)).build(ui, || {
+                                let display_label = format!("{}: {}", label, stringify!(#ident));
+                                imgui::TreeNode::new(crate::im_str2!(display_label)).build(ui, || {
                                     let id = ui.push_id(label);
                                     #(#fields_operations)*
                                     id.pop(ui);

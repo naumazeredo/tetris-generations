@@ -16,6 +16,13 @@ impl ImDraw for Color {
     }
 }
 
+impl Color {
+    pub fn alpha(mut self, a: f32) -> Self {
+        self.a = a;
+        self
+    }
+}
+
 #[allow(dead_code)]
 pub static WHITE: Color   = Color { r: 1., g: 1., b: 1., a: 1. };
 #[allow(dead_code)]

@@ -26,11 +26,14 @@
     - [x] Ghost piece
     - [ ] Spawn drop
     - [x] Spawn row
-    - [ ] ARE
-    - [ ] Lock delay
-    - [ ] Preview pieces
+    - [x] ARE
+    - [x] Lock delay
+      - [x] Entry reset
+      - [x] Step reset
+      - [x] Move reset
+    - [x] Preview pieces
       - [x] Next piece
-      - [ ] 2+ pieces layout
+      - [x] 2+ pieces layout
   - [x] Randomizer
     - [x] Full random
     - [x] Random Generator (7-Bag)
@@ -60,11 +63,12 @@
 - [x] [cleanup] Move piece draw functions to game/piece.rs and reuse them in debug_pieces scene
 - [x] Restart button for testing
 - [x] Playfield grid (1px)
+- [ ] Refactor orientation rule usage and rules functions
 - [ ] [game render] Change all rendering to be pixel perfect
   - [x] pixel_scale to u8
   - [ ] BLOCK_SCALE to u8
   - [ ] All render functions to receive Vec2i or integers instead of floats
-- [ ] Refactor orientation rule usage and rules functions
+- [ ] [game render] Draw functions with different block textures and different pixel scales
 
 ### Engine
 
@@ -93,17 +97,19 @@
 - [x] ImDraw derive to enums
 - [x] Split debug system from the rest (to be able to use dear imgui to draw the app)
   - (Ended up refactoring the App new and run to be able to do this consistently)
+- [x] [imdraw] Enums should have the variant name in label
 - [ ] Fix fullscreen mode
 
 #### Issues
 
+- [ ] [game animations] animations are skipped if the piece is locked in the middle of the animation
 - [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
     were made, so this bug is still there)
 - [ ] [bug] Piece movement animation makes the rendering be outside of the playfield. This should be
     fixed with rendering on a framebuffer instead of directly on the screen
 - [x] [system design] Rename animations, time and tasks to *_system
-- [x] [deps] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of the app
-    code
+- [x] [deps] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of
+    the app code
 
 ## Backlog
 
@@ -120,16 +126,14 @@
     - [ ] ARS
     - [ ] DTET
   - [ ] General Mechanics
+    - [ ] Lock delay
+      - [ ] Move reset Infinity
+      - [ ] Step reset not infinity?
     - [ ] Soft drop speed
     - [ ] Firm drop
     - [ ] IRS
     - [ ] IHS
-    - [ ] General piece positioning
-      - [ ] Round left
-      - [ ] Right handed
-      - [ ] Flat side up/down
     - [ ] Wall kick rules
-      - [ ] Original
       - [ ] TGM
       - [ ] TGM3
       - [ ] DX
@@ -144,6 +148,9 @@
 - [ ] Improve animations
 - [ ] Game menu
   - [ ] Select game rules and start game
+  - [ ] Styling options
+    - [ ] Draw grid option
+    - [ ] Customize piece styles (maybe be able to add new styles)
 - [ ] Scoring
   - [ ] Piece drops
   - [ ] Single/Double/Triple/Tetris
@@ -152,13 +159,18 @@
   - [ ] Combo (https://tetris.fandom.com/wiki/Line_clear)
   - [ ] Twists/Spins (https://tetris.fandom.com/wiki/List_of_twists)
 - [ ] Speed/difficulty progression
-- [ ] Draw grid option
 - [ ] 9-slicing texture for windows
 - [ ] Fix DAS -> DAS (Delayed Auto Shift) is verified only when the time has passed: it only stops
     the repeating movement if, when verified the next step, the key is not pressed.
     - [x] DAS charge
-- [ ] Customizable piece styles
-- [ ] Test all wall/floor kick rotations! OMG WHYYY!
+- [ ] Rotation system tutorial/explanations
+  - Show which rules and timings the system has
+  - Show lock delay animation (show a progress bar indicating the duration, show when it keeps going
+      and when it resets)
+  - Show all wall kicks (with animations: show piece moving, when rotation was triggered and which
+      positions it tested against)
+  - Show all piece orientations (with spawn height indicator)
+- [ ] [test] Test all wall/floor kick rotations!
 
 ### Engine
 

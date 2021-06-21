@@ -10,6 +10,7 @@ use crate::game::{
     rules::{
         Rules,
         RotationSystem,
+        LockDelayRule,
         movement::*,
         rotation::*,
         topout::*,
@@ -47,6 +48,12 @@ pub struct SinglePlayerScene {
     hold_piece: Option<Piece>,
     has_used_hold: bool,
 
+    is_locking: bool,
+    has_moved: bool,
+    has_rotated: bool,
+    has_stepped: bool,
+    remaining_lock_delay: LockDelayRule,
+
     preview_window_delta_pos: Vec2,
     hold_window_delta_pos: Vec2,
 
@@ -64,6 +71,9 @@ pub struct SinglePlayerScene {
     is_line_clear_animation_playing: bool,
     line_clear_animation_timestamp: u64,
     line_clear_animation_state: LineClearAnimationState,
+
+    locking_animation_timestamp: u64,
+    locking_animation_duration: u64,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -76,6 +86,117 @@ impl SceneTrait for SinglePlayerScene {
 
         if self.topped_out { return; }
 
+        // locking
+        // This is done in the start of the frame to be just and consider the time the piece is
+        // locking is the last frame duration. If the piece locks, all input will be ignored this
+        // frame, even if there's no entry delay
+        if self.current_piece.is_some() && self.rules.lock_delay != LockDelayRule::NoDelay {
+            let was_locking = self.is_locking;
+            self.is_locking = is_piece_locking(
+                self.current_piece.as_ref().unwrap(),
+                self.current_piece_pos,
+                &self.playfield,
+                self.rules.rotation_system
+            );
+
+            let has_locked = match self.remaining_lock_delay {
+                // Locking duration resets when a new piece enters
+                LockDelayRule::EntryReset(ref mut duration) => {
+                    if was_locking && self.is_locking {
+                        *duration = duration.saturating_sub(app.last_frame_timestamp());
+                    }
+
+                    *duration == 0
+                },
+
+                // Every step (gravity movement) resets the locking duration
+                LockDelayRule::StepReset(ref mut duration) => {
+                    if self.has_stepped {
+                        match self.rules.lock_delay {
+                            LockDelayRule::StepReset(lock_duration) => {
+                                *duration = lock_duration;
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+
+                    if self.is_locking {
+                        *duration = duration.saturating_sub(app.last_frame_timestamp());
+                        *duration == 0
+                    } else {
+                        false
+                    }
+                },
+
+                // Every rotation and movement (not gravity movement), when piece is in locking
+                // position, resets the locking duration.
+                // There's a limit to movements and rotations.
+                LockDelayRule::MoveReset {
+                    ref mut duration,
+                    ref mut rotations,
+                    ref mut movements,
+                } => {
+                    // Only reset duration if has movements/rotations left
+                    if (self.has_moved && *movements > 0) || (self.has_rotated && *rotations > 0) {
+                        match self.rules.lock_delay {
+                            LockDelayRule::MoveReset { duration: lock_duration, .. } => {
+                                *duration = lock_duration;
+                            }
+                            _ => unreachable!(),
+                        }
+                    };
+
+                    if self.is_locking {
+                        if !self.has_moved && !self.has_rotated {
+                            *duration = duration.saturating_sub(app.last_frame_timestamp());
+                        }
+
+                        if self.has_moved   { *movements = movements.saturating_sub(1); }
+                        if self.has_rotated { *rotations = rotations.saturating_sub(1); }
+
+                        *duration == 0
+                    } else {
+                        false
+                    }
+                },
+
+                _ => { false }
+            };
+
+            if has_locked {
+                let piece = self.current_piece.as_ref().unwrap();
+                lock_piece(
+                    piece,
+                    self.current_piece_pos,
+                    &mut self.playfield,
+                    self.rules.rotation_system
+                );
+
+                // @Refactor this is repeated and any lock piece should check for this.
+                if locked_out(piece, self.current_piece_pos, &self.rules) {
+                    self.topped_out = true;
+                    println!("game over: locked out");
+                    return;
+                }
+
+                self.current_piece = None;
+                self.lock_piece_timestamp = app.game_timestamp();
+            }
+
+            // animation
+            if !was_locking && self.is_locking {
+                self.locking_animation_timestamp = app.game_timestamp();
+            }
+        } else {
+            self.is_locking = false;
+        }
+
+        // reset frame values
+        self.has_moved = false;
+        self.has_rotated = false;
+        self.has_stepped = false;
+
+        // movement input
         if self.current_piece.is_some() {
             // horizontal movement logic
             let mut horizontal_movement = 0;
@@ -109,6 +230,8 @@ impl SceneTrait for SinglePlayerScene {
                 self.movement_last_timestamp_x = app.game_timestamp();
                 self.movement_animation_delta_grid_x =
                     self.movement_animation_current_delta_grid.x - horizontal_movement as f32;
+
+                self.has_moved = true;
             }
 
             // soft drop
@@ -123,6 +246,9 @@ impl SceneTrait for SinglePlayerScene {
                     self.movement_last_timestamp_y = app.game_timestamp();
                     self.movement_animation_delta_grid_y =
                         self.movement_animation_current_delta_grid.y + 1.0;
+
+                    self.has_moved = true;
+                    self.has_stepped = true;
                 }
             }
 
@@ -137,7 +263,15 @@ impl SceneTrait for SinglePlayerScene {
 
             if rotation != 0 {
                 if let Some(ref mut piece) = self.current_piece {
-                    try_rotate_piece(piece, &mut self.current_piece_pos, rotation > 0, &self.playfield, &self.rules);
+                    if try_rotate_piece(
+                        piece,
+                        &mut self.current_piece_pos,
+                        rotation > 0,
+                        &self.playfield,
+                        &self.rules
+                    ) {
+                        self.has_rotated = true;
+                    }
                 }
             }
         }
@@ -217,36 +351,42 @@ impl SceneTrait for SinglePlayerScene {
             // Gravity
             // @TODO move this to Rules (or something)
             if app.game_timestamp() >= self.movement_last_timestamp_y + self.rules.gravity_interval {
-                self.movement_last_timestamp_y = app.game_timestamp();
-                self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
-
                 if try_apply_gravity(
                     self.current_piece.as_ref().unwrap(),
                     &mut self.current_piece_pos,
                     &self.playfield,
                     self.rules.rotation_system
-                ).is_none() {
-                    let piece = self.current_piece.as_ref().unwrap();
-                    lock_piece(
-                        piece,
-                        self.current_piece_pos,
-                        &mut self.playfield,
-                        self.rules.rotation_system
-                    );
+                ) {
+                    self.has_stepped = true;
 
-                    // @Refactor this is repeated and any lock piece should check for this.
-                    if locked_out(piece, self.current_piece_pos, &self.rules) {
-                        self.topped_out = true;
-                        println!("game over: locked out");
-                        return;
+                    self.movement_last_timestamp_y = app.game_timestamp();
+                    self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
+                } else {
+                    // Only lock on gravity movement if there's no lock delay
+                    if self.rules.lock_delay == LockDelayRule::NoDelay {
+                        let piece = self.current_piece.as_ref().unwrap();
+                        lock_piece(
+                            piece,
+                            self.current_piece_pos,
+                            &mut self.playfield,
+                            self.rules.rotation_system
+                        );
+
+                        // @Refactor this is repeated and any lock piece should check for this.
+                        if locked_out(piece, self.current_piece_pos, &self.rules) {
+                            self.topped_out = true;
+                            println!("game over: locked out");
+                            return;
+                        }
+
+                        self.current_piece = None;
+                        self.lock_piece_timestamp = app.game_timestamp();
                     }
-
-                    self.current_piece = None;
-                    self.lock_piece_timestamp = app.game_timestamp();
                 }
             }
         }
 
+        // @Maybe move this to render?
         // piece movement animation
         if self.has_movement_animation {
             if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
@@ -339,8 +479,10 @@ impl SceneTrait for SinglePlayerScene {
             can_spawn_new_piece = true;
         }
 
-        // check if we should create the new piece
-        if self.current_piece.is_none() && can_spawn_new_piece {
+        // new piece
+        if self.current_piece.is_none() && can_spawn_new_piece &&
+            app.game_timestamp() >= self.lock_piece_timestamp + self.rules.entry_delay
+        {
             self.new_piece();
 
             self.movement_last_timestamp_x = app.game_timestamp();
@@ -442,23 +584,27 @@ impl SceneTrait for SinglePlayerScene {
                 let mut ghost_piece = piece.clone();
                 let mut ghost_piece_pos = self.current_piece_pos;
 
-                full_drop_piece(
+                // Only render if ghost is not on top of the current piece
+                // @Maybe improve this and just draw the different pixels. Since there's piece
+                //        movement animation, not rendering the ghost in the middle of the piece
+                //        movement may be visually weird
+                if full_drop_piece(
                     &mut ghost_piece,
                     &mut ghost_piece_pos,
                     &self.playfield,
                     self.rules.rotation_system
-                );
-
-                draw_piece_in_playfield(
-                    ghost_piece,
-                    ghost_piece_pos,
-                    Vec2::new(),
-                    Color { r: 1., g: 1., b: 1., a: 0.1 },
-                    &self.playfield,
-                    self.rules.rotation_system,
-                    app,
-                    persistent
-                );
+                ) {
+                    draw_piece_in_playfield(
+                        ghost_piece,
+                        ghost_piece_pos,
+                        Vec2::new(),
+                        Color { r: 1., g: 1., b: 1., a: 0.1 },
+                        &self.playfield,
+                        self.rules.rotation_system,
+                        app,
+                        persistent
+                    );
+                }
             }
 
             // render piece
@@ -469,44 +615,64 @@ impl SceneTrait for SinglePlayerScene {
                 movement_animation_delta_grid = Vec2::new();
             }
 
+            let color;
+            if self.is_locking {
+                let delta_time = app.game_timestamp() - self.locking_animation_timestamp;
+                let alpha = 2.0 * std::f32::consts::PI * delta_time as f32;
+                let alpha = alpha / (self.locking_animation_duration as f32);
+                let alpha = ((1.0 + alpha.sin()) / 2.0) / 2.0 + 0.5;
+
+                color = piece.color(self.rules.rotation_system).alpha(alpha);
+            } else {
+                color = piece.color(self.rules.rotation_system);
+            }
+
             draw_piece_in_playfield(
                 piece,
                 self.current_piece_pos,
                 movement_animation_delta_grid,
-                piece.color(self.rules.rotation_system),
+                color,
                 &self.playfield,
                 self.rules.rotation_system,
                 app,
                 persistent
             );
+        }
 
-            // render preview
-            if self.rules.next_pieces_preview_count > 0 {
-                let window_size;
-                if self.playfield.has_grid {
-                    let size = persistent.pixel_scale as f32* ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
-                    window_size = Vec2 { x: size as f32, y: size as f32 };
-                } else {
-                    let size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
-                    window_size = Vec2 { x: size as f32, y: size as f32 };
-                }
+        // render preview
+        if self.rules.next_pieces_preview_count > 0 {
+            let size;
+            if self.playfield.has_grid {
+                size = persistent.pixel_scale as f32 * ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
+            } else {
+                size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
+            }
+            let window_size = Vec2 {
+                x: size,
+                y: size * self.rules.next_pieces_preview_count as f32,
+            };
 
-                let window_pos =
-                    Vec2::from(self.playfield.pos) + self.preview_window_delta_pos +
-                    Vec2 { x: playfield_size.x, y: 0.0 };
+            let window_pos =
+                Vec2::from(self.playfield.pos) + self.preview_window_delta_pos +
+                Vec2 { x: playfield_size.x, y: 0.0 };
 
-                draw_rect_window(
-                    window_pos,
-                    window_size,
-                    persistent.pixel_scale,
-                    app,
-                    persistent
-                );
+            draw_rect_window(
+                window_pos,
+                window_size,
+                persistent.pixel_scale,
+                app,
+                persistent
+            );
 
+            assert!(self.rules.next_pieces_preview_count <= 8);
+            for i in 0..self.rules.next_pieces_preview_count {
                 draw_piece_centered(
-                    Piece { type_: self.next_piece_types[0], rot: 0 },
-                    window_pos,
-                    self.next_piece_types[0].color(self.rules.rotation_system),
+                    Piece { type_: self.next_piece_types[i as usize], rot: 0 },
+                    Vec2 {
+                        x: window_pos.x,
+                        y: window_pos.y + i as f32 * size,
+                    },
+                    self.next_piece_types[i as usize].color(self.rules.rotation_system),
                     self.playfield.has_grid,
                     self.rules.rotation_system,
                     app,
@@ -517,14 +683,14 @@ impl SceneTrait for SinglePlayerScene {
 
         // hold piece
         if self.rules.has_hold_piece {
-                let window_size;
-                if self.playfield.has_grid {
-                    let size = persistent.pixel_scale as f32 * ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
-                    window_size = Vec2 { x: size as f32, y: size as f32 };
-                } else {
-                    let size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
-                    window_size = Vec2 { x: size as f32, y: size as f32 };
-                }
+            let window_size;
+            if self.playfield.has_grid {
+                let size = persistent.pixel_scale as f32 * ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
+                window_size = Vec2 { x: size as f32, y: size as f32 };
+            } else {
+                let size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
+                window_size = Vec2 { x: size as f32, y: size as f32 };
+            }
 
             let window_pos =
                 Vec2::from(self.playfield.pos) + self.hold_window_delta_pos +
@@ -644,6 +810,9 @@ impl SinglePlayerScene {
         // hold window
         let hold_window_delta_pos = Vec2 { x: -20.0, y: 0.0 };
 
+        // locking
+        let remaining_lock_delay = rules.lock_delay;
+
         Self {
             debug_pieces_scene_opened: false,
 
@@ -660,6 +829,12 @@ impl SinglePlayerScene {
 
             hold_piece: None,
             has_used_hold: false,
+
+            is_locking: false,
+            has_moved: false,
+            has_rotated: false,
+            has_stepped: false,
+            remaining_lock_delay,
 
             preview_window_delta_pos,
             hold_window_delta_pos,
@@ -682,6 +857,9 @@ impl SinglePlayerScene {
                 step: 0,
                 lines_to_clear: Vec::new(),
             },
+
+            locking_animation_timestamp: 0,
+            locking_animation_duration: 250_000,
         }
     }
 
@@ -705,6 +883,8 @@ impl SinglePlayerScene {
         self.movement_animation_current_delta_grid = Vec2::new();
 
         self.has_used_hold = false;
+
+        self.remaining_lock_delay = self.rules.lock_delay;
     }
 }
 

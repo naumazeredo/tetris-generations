@@ -33,7 +33,7 @@ pub fn try_move_piece(
     true
 }
 
-fn should_start_lock_delay(
+pub fn is_piece_locking(
     piece: &Piece,
     pos: Vec2i,
     playfield: &Playfield,
@@ -56,16 +56,8 @@ pub fn try_apply_gravity(
     pos: &mut Vec2i,
     playfield: &Playfield,
     rotation_system: RotationSystem
-) -> Option<PieceState> {
-    if try_move_piece(piece, pos, playfield, 0, -1, rotation_system) {
-        if should_start_lock_delay(piece, *pos, playfield, rotation_system) {
-            Some(PieceState::Locking)
-        } else {
-            Some(PieceState::Falling)
-        }
-    } else {
-        None
-    }
+) -> bool {
+    try_move_piece(piece, pos, playfield, 0, -1, rotation_system)
 }
 
 // @TODO Rules method?
@@ -115,8 +107,10 @@ pub fn full_drop_piece(
     pos: &mut Vec2i,
     playfield: &Playfield,
     rotation_system: RotationSystem
-) {
-    while try_apply_gravity(piece, pos, playfield, rotation_system).is_some() {}
+) -> bool {
+    let has_moved = try_apply_gravity(piece, pos, playfield, rotation_system);
+    while try_apply_gravity(piece, pos, playfield, rotation_system) {}
+    has_moved
 }
 
 #[cfg(test)]

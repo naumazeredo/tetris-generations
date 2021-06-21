@@ -82,6 +82,10 @@ impl<S> App<'_, S> {
         to_seconds(self.time_system.game_frame_duration)
     }
 
+    pub fn last_frame_timestamp(&self) -> u64 {
+        self.time_system.game_frame_duration
+    }
+
     pub fn game_time(&self) -> f32 {
         to_seconds(self.time_system.game_time)
     }

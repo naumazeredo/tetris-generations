@@ -55,13 +55,15 @@ pub struct Rules {
     //                   pieces that lock in the bottom two rows are followed by 10 frames of entry
     //                   delay, and each group of 4 rows above that has an entry delay 2 frames
     //                   longer than the last;
-    pub entry_delay: Option<u32>, // aka ARE
-    pub lock_delay: Option<u32>,  // microsecs
+    pub entry_delay: u64, // aka ARE
+
+    pub lock_delay: LockDelayRule,
 
     // piece positioning rules
     pub rotation_system: RotationSystem,
     //pub does_ceiling_prevents_rotation: bool, // Sega
-    //pub double_rotation: bool // DTET
+    //pub double_rotation: bool, // DTET
+    //pub has_wall_kicks: bool, // Disable/enable wall kicks
 
     // @Design this is part of the rotation system!
     //pub has_ccw_rotation: bool,
@@ -100,8 +102,8 @@ impl From<RotationSystem> for Rules {
                     line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
                     gravity_interval: 1_000_000,
 
-                    entry_delay: None,
-                    lock_delay: None,
+                    entry_delay: 0,
+                    lock_delay: LockDelayRule::NoDelay,
 
                     rotation_system: RotationSystem::NRSR,
 
@@ -123,7 +125,7 @@ impl From<RotationSystem> for Rules {
                     has_initial_hold_system: false,
 
                     spawn_row: 22u8,
-                    next_pieces_preview_count: 2u8,
+                    next_pieces_preview_count: 4u8,
 
                     line_clear_rule: LineClearRule::Naive,
 
@@ -133,10 +135,14 @@ impl From<RotationSystem> for Rules {
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
                     soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
                     line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
-                    gravity_interval: 1_000_000,
+                    gravity_interval: 250_000,
 
-                    entry_delay: None,
-                    lock_delay: None,
+                    entry_delay: 0,
+                    lock_delay: LockDelayRule::MoveReset {
+                        duration: 500_000,
+                        rotations: 5,
+                        movements: 5,
+                    },
 
                     rotation_system: RotationSystem::SRS,
 
@@ -175,4 +181,13 @@ pub enum RotationSystem {
     ARS,      // Arika Rotation System - TGM Rotation
     SRS,      // Super Rotation System
     DTET,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ImDraw)]
+pub enum LockDelayRule {
+    NoDelay,
+    EntryReset(u64),
+    StepReset(u64),
+    MoveReset { duration: u64, rotations: u8, movements: u8 },
+    //MoveResetInfinity(u64),
 }
