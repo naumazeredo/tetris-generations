@@ -501,6 +501,24 @@ impl SceneTrait for SinglePlayerScene {
                 println!("game over: block out");
                 return;
             }
+
+            // spawn drop
+            if self.rules.spawn_drop {
+                while blocks_out_of_playfield(
+                    self.current_piece.as_ref().unwrap(),
+                    self.current_piece_pos,
+                    &self.rules
+                ) > 0 {
+                    if !try_apply_gravity(
+                        self.current_piece.as_ref().unwrap(),
+                        &mut self.current_piece_pos,
+                        &self.playfield,
+                        self.rules.rotation_system
+                    ) {
+                        break;
+                    }
+                }
+            }
         }
     }
 

@@ -25,7 +25,7 @@ pub struct Rules {
     pub has_hold_piece: bool,
     pub has_ghost_piece: bool,
     pub hold_piece_reset_rotation: bool,   // usually hold resets rotation
-    pub spawn_immediate_drop: bool, // "Immediately drop one space if no existing Block is in its path"
+    pub spawn_drop: bool, // "Immediately drop one space if no existing Block is in its path"
 
     // @Maybe these are just related to spawning before entry delay
     pub has_initial_rotation_system: bool, // IRS
@@ -84,7 +84,7 @@ impl From<RotationSystem> for Rules {
                     has_hold_piece: false,
                     has_ghost_piece: false,
                     hold_piece_reset_rotation: true,
-                    spawn_immediate_drop: false,
+                    spawn_drop: false,
 
                     has_initial_rotation_system: false,
                     has_initial_hold_system: false,
@@ -119,7 +119,7 @@ impl From<RotationSystem> for Rules {
                     has_hold_piece: true,
                     has_ghost_piece: true,
                     hold_piece_reset_rotation: true,
-                    spawn_immediate_drop: false,
+                    spawn_drop: true,
 
                     has_initial_rotation_system: false,
                     has_initial_hold_system: false,
