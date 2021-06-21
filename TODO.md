@@ -16,7 +16,7 @@
     - [x] Original
     - [x] SRS
       - [x] Rotation tests
-  - [ ] General Mechanics
+  - [x] General Mechanics
     - [x] Drop
       - [x] Gravity
     - [x] Soft drop
@@ -24,7 +24,7 @@
     - [x] Hold
       - [x] Reset rotation
     - [x] Ghost piece
-    - [ ] Spawn drop
+    - [x] Spawn drop
     - [x] Spawn row
     - [x] ARE
     - [x] Lock delay
@@ -69,6 +69,8 @@
   - [ ] BLOCK_SCALE to u8
   - [ ] All render functions to receive Vec2i or integers instead of floats
 - [ ] [game render] Draw functions with different block textures and different pixel scales
+
+- [ ] General refactor/cleanup
 
 ### Engine
 
