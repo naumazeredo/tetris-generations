@@ -174,11 +174,11 @@ pub fn get_draw_playfield_size(
 ) -> Vec2 {
     let x;
     if playfield.has_grid { x = (1.0 + BLOCK_SCALE) * playfield.grid_size.x as f32 + 1.0; }
-    else        { x = BLOCK_SCALE * playfield.grid_size.x as f32; }
+    else { x = BLOCK_SCALE * playfield.grid_size.x as f32; }
 
     let y;
     if playfield.has_grid { y = (1.0 + BLOCK_SCALE) * PLAYFIELD_VISIBLE_HEIGHT as f32 + 1.0; }
-    else        { y = BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32; }
+    else { y = BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32; }
 
     pixel_scale as f32 * Vec2 { x, y }
 }

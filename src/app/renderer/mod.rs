@@ -68,7 +68,7 @@ pub(in crate::app) struct Renderer {
 }
 
 impl Renderer {
-    pub fn new() -> Self {
+    pub(in crate::app) fn new(window_size: (u32, u32)) -> Self {
         let mut vao = 0;
         let mut bo = [0; 5];
 
@@ -78,7 +78,11 @@ impl Renderer {
         }
 
         let view_mat = mat4::IDENTITY;
-        let proj_mat = mat4::ortho(0., 1280., 960., 0.0, 0.01, 1000.);
+        let proj_mat = mat4::ortho(
+            0., window_size.0 as f32,
+            window_size.1 as f32, 0.0,
+            0.01, 1000.
+        );
 
         // @TODO move this (to asset manager maybe)
         // Create GLSL shaders
@@ -556,6 +560,18 @@ impl Renderer {
     fn change_texture(&mut self, new_texture_object: TextureObject) {
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, new_texture_object);
+        }
+    }
+
+    pub(in crate::app) fn window_resize_callback(&mut self, window_size: (u32, u32)) {
+        self.proj_mat = mat4::ortho(
+            0., window_size.0 as f32,
+            window_size.1 as f32, 0.0,
+            0.01, 1000.
+        );
+
+        unsafe {
+            gl::Viewport(0, 0, window_size.0 as _, window_size.1 as _);
         }
     }
 }

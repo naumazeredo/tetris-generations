@@ -101,7 +101,7 @@
 - [x] Split debug system from the rest (to be able to use dear imgui to draw the app)
   - (Ended up refactoring the App new and run to be able to do this consistently)
 - [x] [imdraw] Enums should have the variant name in label
-- [ ] Fix fullscreen mode
+- [x] Fix fullscreen mode
 
 #### Issues
 
@@ -174,6 +174,7 @@
       positions it tested against)
   - Show all piece orientations (with spawn height indicator)
 - [ ] [test] Test all wall/floor kick rotations!
+- [ ] PAL vs NTSC framerates (update speeds to frames)
 
 ### Engine
 

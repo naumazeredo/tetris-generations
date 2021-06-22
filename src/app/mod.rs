@@ -31,6 +31,7 @@ pub use {
 
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
+use sdl2::event::WindowEvent;
 
 use asset_system::*;
 use debug::*;
@@ -64,7 +65,7 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
 
         let input_system = InputSystem::new(sdl_context.controller_subsystem.clone());
         let time_system = TimeSystem::new(sdl_context.timer_subsystem.clone());
-        let renderer = Renderer::new();
+        let renderer = Renderer::new(video_system.window.size());
 
         let animation_system = AnimationSystem::new();
         let task_system = TaskSystem::new();
@@ -142,6 +143,18 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
             Event::KeyDown { scancode: Some(Scancode::F1), .. } => {
                 self.show_debug_window = !self.show_debug_window;
             }
+
+            Event::Window { win_event: WindowEvent::SizeChanged(w, h), .. }
+            | Event::Window { win_event: WindowEvent::Resized(w, h), .. }
+            => {
+                self.renderer.window_resize_callback((*w as u32, *h as u32));
+            }
+
+            /*
+            Event::Window { win_event, .. } => {
+                println!("win event: {:?}", win_event);
+            }
+            */
 
             _ => {}
         }

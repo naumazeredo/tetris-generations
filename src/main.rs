@@ -31,14 +31,8 @@ fn main() {
 
 #[derive(ImDraw)]
 pub struct State {
-    pub test: Test,
-
     pub persistent: PersistentData,
     pub scene_manager: SceneManager,
-}
-
-#[derive(ImDraw)]
-pub struct Test {
 }
 
 const BLOCK_SCALE : f32 = 8.0;
@@ -54,10 +48,6 @@ impl GameState for State {
         );
 
         Self {
-            test: Test {
-                //debug: app::debug::Debug::new(&app.video_system.window),
-            },
-
             persistent,
             scene_manager,
         }

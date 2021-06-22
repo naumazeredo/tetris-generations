@@ -1,4 +1,5 @@
 use super::{
+    App,
     AppConfig,
     ImDraw,
 };
@@ -37,6 +38,7 @@ impl VideoSystem {
             )
             .opengl()
             .position_centered()
+            //.resizable()
             .build()
             .unwrap();
 
@@ -73,5 +75,11 @@ impl VideoSystem {
 
     pub(in crate::app) fn swap_buffers(&self) {
         self.window.gl_swap_window();
+    }
+}
+
+impl<S> App<'_, S> {
+    pub fn window_size(&self) -> (u32, u32) {
+        self.video_system.window.size()
     }
 }
