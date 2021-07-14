@@ -4,7 +4,7 @@ use crate::linalg::*;
 use crate::State;
 
 use crate::game::{
-    pieces::{ Piece },
+    pieces::{ get_piece_type_color, Piece },
     playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
     rules::RotationSystem,
     scenes::PersistentData,
@@ -19,11 +19,10 @@ pub fn draw_piece_in_playfield(
     delta_pos: Vec2,
     color: Color,
     playfield: &Playfield,
-    rotation_system: RotationSystem,
     app: &mut App<'_, State>,
     persistent: &PersistentData
 ) {
-    for block_pos in piece.blocks(rotation_system) {
+    for block_pos in piece.blocks() {
         draw_block_in_playfield(
             pos + *block_pos,
             delta_pos,
@@ -105,11 +104,10 @@ pub fn draw_piece(
     pos: Vec2,
     color: Color,
     has_grid: bool,
-    rotation_system: RotationSystem,
     app: &mut App<'_, State>,
     persistent: &PersistentData
 ) {
-    for block_pos in piece.blocks(rotation_system) {
+    for block_pos in piece.blocks() {
         let block_pos = Vec2 { x: block_pos.x as f32, y: (3 - block_pos.y) as f32 };
 
         let draw_pos;
@@ -134,12 +132,11 @@ pub fn draw_piece_centered(
     pos: Vec2,
     color: Color,
     has_grid: bool,
-    rotation_system: RotationSystem,
     app: &mut App<'_, State>,
     persistent: &PersistentData
 ) {
-    let min_max_x = piece.min_max_x(rotation_system);
-    let min_max_y = piece.min_max_y(rotation_system);
+    let min_max_x = piece.min_max_x();
+    let min_max_y = piece.min_max_y();
 
     let delta =
         Vec2 {
@@ -147,7 +144,7 @@ pub fn draw_piece_centered(
             y: -((min_max_y.0 + min_max_y.1 + 1) as f32 / 2.0),
         };
 
-    for block_pos in piece.blocks(rotation_system) {
+    for block_pos in piece.blocks() {
         let block_pos = Vec2 { x: (block_pos.x + 2) as f32, y: (1 - block_pos.y) as f32 };
 
         let draw_pos;
@@ -186,6 +183,7 @@ pub fn get_draw_playfield_size(
 pub fn draw_playfield(
     playfield: &Playfield,
     line_clear_animation_state: Option<&LineClearAnimationState>,
+    lines_to_clear: &[u8],
     rotation_system: RotationSystem,
     app: &mut App<'_, State>,
     persistent: &PersistentData
@@ -211,7 +209,8 @@ pub fn draw_playfield(
                         draw_block_in_playfield(
                             Vec2i { x: col, y: row },
                             Vec2::new(),
-                            piece_type.color(rotation_system),
+                            // @Refactor style
+                            get_piece_type_color(piece_type, rotation_system),
                             playfield,
                             app,
                             persistent
@@ -222,7 +221,7 @@ pub fn draw_playfield(
         },
 
         Some(anim_state) => {
-            let mut line_clear_iter = anim_state.lines_to_clear.iter();
+            let mut line_clear_iter = lines_to_clear.iter();
             let mut current_line_to_clear = line_clear_iter.next();
 
             // @Refactor cache playfield/draw to framebuffer
@@ -237,7 +236,8 @@ pub fn draw_playfield(
                             draw_block_in_playfield(
                                 Vec2i { x: col, y: row },
                                 Vec2::new(),
-                                piece_type.color(rotation_system),
+                                // @Refactor style
+                                get_piece_type_color(piece_type, rotation_system),
                                 playfield,
                                 app,
                                 persistent
@@ -253,7 +253,8 @@ pub fn draw_playfield(
                             draw_block_in_playfield(
                                 Vec2i { x: col, y: row },
                                 Vec2::new(),
-                                piece_type.color(rotation_system),
+                                // @Refactor style
+                                get_piece_type_color(piece_type, rotation_system),
                                 playfield,
                                 app,
                                 persistent
@@ -329,7 +330,6 @@ pub fn draw_piece_window(
     piece: Piece,
     is_centered: bool,
     has_grid: bool,
-    rotation_system: RotationSystem,
     app: &mut App<'_, State>,
     persistent: &mut PersistentData
 ) {
@@ -354,9 +354,8 @@ pub fn draw_piece_window(
         draw_piece_centered(
             piece,
             pos.into(),
-            piece.color(rotation_system),
+            piece.color(),
             has_grid,
-            rotation_system,
             app,
             persistent
         );
@@ -364,9 +363,8 @@ pub fn draw_piece_window(
         draw_piece(
             piece,
             pos.into(),
-            piece.color(rotation_system),
+            piece.color(),
             has_grid,
-            rotation_system,
             app,
             persistent
         );
@@ -378,7 +376,6 @@ pub fn draw_piece_window(
 pub struct LineClearAnimationState {
     pub type_: LineClearAnimationType,
     pub step: u8,
-    pub lines_to_clear: Vec<u8>,
 }
 
 #[derive(Clone, Debug, ImDraw)]

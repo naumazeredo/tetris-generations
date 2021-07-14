@@ -73,27 +73,15 @@ impl Playfield {
         self.blocks[pos] = false;
     }
 
-    pub fn has_clear_lines(&self) -> bool {
-        let all_not_full = (0..self.grid_size.y)
-            .all(|i| {
-                let line_start = (i * self.grid_size.x) as usize;
-                let line_end   = ((i+1) * self.grid_size.x) as usize;
-                let cnt = self.blocks[line_start..line_end]
-                    .iter()
-                    .fold(0, |acc, &x| if x { acc + 1 } else { acc });
-
-                cnt != self.grid_size.x
-            });
-
-        !all_not_full
-    }
-
-    pub fn get_clear_lines(&self) -> Option<Vec<u8>> {
+    pub fn get_lines_to_clear(&self) -> (u8, [u8; 4]) {
         // @Maybe refactor to use Vec::chunks
         // self.blocks.chunks(self.grid_size.x).iter()
 
-        let lines = (0..self.grid_size.y)
-            .filter_map(|i| {
+        let mut total_lines_to_clear = 0u8;
+        let mut lines_to_clear = [0u8; 4];
+
+        (0..self.grid_size.y)
+            .for_each(|i| {
                 let line_start = (i * self.grid_size.x) as usize;
                 let line_end   = ((i+1) * self.grid_size.x) as usize;
                 let cnt = self.blocks[line_start..line_end]
@@ -101,18 +89,12 @@ impl Playfield {
                     .fold(0, |acc, &x| if x { acc + 1 } else { acc });
 
                 if cnt == self.grid_size.x {
-                    return Some(i as u8);
-                } else {
-                    return None;
+                    lines_to_clear[total_lines_to_clear as usize] = i as u8;
+                    total_lines_to_clear += 1;
                 }
-            })
-            .collect::<Vec<u8>>();
+            });
 
-        if lines.len() == 0 {
-            None
-        } else {
-            Some(lines)
-        }
+        (total_lines_to_clear, lines_to_clear)
     }
 
     pub fn clear_lines_naive(&mut self) -> u8 {

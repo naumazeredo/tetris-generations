@@ -27,11 +27,11 @@ pub enum RandomizerType {
     // @TODO TGM3 35-piece bag?
 }
 
-impl From<RandomizerType> for Randomizer {
-    fn from(ty: RandomizerType) -> Self {
-        match ty {
-            RandomizerType::FullRandom => Randomizer::RandomizerFullRandom(RandomizerFullRandom::new()),
-            RandomizerType::Random7Bag => Randomizer::Randomizer7Bag(Randomizer7Bag::new()),
+impl RandomizerType {
+    pub fn build(self, seed: u64) -> Randomizer {
+        match self {
+            RandomizerType::FullRandom => Randomizer::RandomizerFullRandom(RandomizerFullRandom::new(seed)),
+            RandomizerType::Random7Bag => Randomizer::Randomizer7Bag(Randomizer7Bag::new(seed)),
             RandomizerType::Sequential => Randomizer::RandomizerSequential(RandomizerSequential::new()),
             _ => unimplemented!("Randomizer type not yet supported"),
         }

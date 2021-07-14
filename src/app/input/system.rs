@@ -143,6 +143,9 @@ impl InputSystem {
         }
     }
 
+    // @TODO refactor duration
+    // frequencies go from 0 to 0xffff
+    // duration in milliseconds
     fn set_controller_rumble(
         &mut self,
         controller_index: usize,

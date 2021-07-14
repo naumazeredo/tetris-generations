@@ -27,7 +27,7 @@ pub fn try_rotate_piece(
         | RotationSystem::DTET
 
         => {
-            for block_pos in piece.type_.blocks(piece.rot + delta_rot, rules.rotation_system) {
+            for block_pos in piece.blocks_with_rot(piece.rot + delta_rot) {
                 let x = pos.x + block_pos.x;
                 let y = pos.y + block_pos.y;
                 if playfield.block(x, y).is_some() {
@@ -42,8 +42,8 @@ pub fn try_rotate_piece(
         | RotationSystem::SRS
         => {
             for delta_pos in get_srs_rotation_tests(piece, is_clockwise) {
-                let can_rotate = piece.type_
-                    .blocks(piece.rot + delta_rot, rules.rotation_system)
+                let can_rotate = piece
+                    .blocks_with_rot(piece.rot + delta_rot)
                     .iter()
                     .all(|block_pos| {
                         let x = pos.x + block_pos.x + delta_pos.x;

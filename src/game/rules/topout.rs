@@ -31,7 +31,7 @@ pub fn blocked_out(
     if !rules.top_out_rule.contains(TopOutRule::BLOCK_OUT) { return false; }
 
     let mut pos = pos;
-    !try_move_piece(piece, &mut pos, playfield, 0, 0, rules.rotation_system)
+    !try_move_piece(piece, &mut pos, playfield, 0, 0)
 }
 
 pub fn locked_out(
@@ -40,7 +40,7 @@ pub fn locked_out(
     rules: &Rules
 ) -> bool {
     if rules.top_out_rule.intersects(TopOutRule::LOCK_OUT | TopOutRule::PARTIAL_LOCK_OUT) {
-        let blocks_locked_out = blocks_out_of_playfield(piece, pos, rules);
+        let blocks_locked_out = blocks_out_of_playfield(piece, pos);
         if rules.top_out_rule.contains(TopOutRule::LOCK_OUT) {
             return blocks_locked_out == 4;
         } else {
@@ -54,9 +54,8 @@ pub fn locked_out(
 pub fn blocks_out_of_playfield(
     piece: &Piece,
     pos: Vec2i,
-    rules: &Rules
 ) -> u8 {
-    piece.blocks(rules.rotation_system).iter()
+    piece.blocks().iter()
         .fold(0, |acc, block_pos| {
             acc + (pos.y + block_pos.y >= PLAYFIELD_VISIBLE_HEIGHT) as u8
         })

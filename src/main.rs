@@ -33,6 +33,8 @@ fn main() {
 pub struct State {
     pub persistent: PersistentData,
     pub scene_manager: SceneManager,
+
+    seed: u64,
 }
 
 const BLOCK_SCALE : f32 = 8.0;
@@ -42,14 +44,18 @@ impl GameState for State {
         // persistent data
         let mut persistent = PersistentData::new(app);
 
+        // seed
+        let seed = app.system_time();
+
         // scene
         let scene_manager = SceneManager::new(
-            Scene::SinglePlayerScene(SinglePlayerScene::new(app, &mut persistent))
+            Scene::SinglePlayerScene(SinglePlayerScene::new(seed, app, &mut persistent))
         );
 
         Self {
             persistent,
             scene_manager,
+            seed,
         }
     }
 
@@ -91,7 +97,16 @@ impl GameState for State {
                 app.restart_time_system();
 
                 self.scene_manager = SceneManager::new(
-                    Scene::SinglePlayerScene(SinglePlayerScene::new(app, &mut self.persistent))
+                    Scene::SinglePlayerScene(SinglePlayerScene::new(self.seed, app, &mut self.persistent))
+                );
+            }
+
+            // New game
+            Event::KeyDown { scancode: Some(Scancode::T), .. } => {
+                app.restart_time_system();
+
+                self.scene_manager = SceneManager::new(
+                    Scene::SinglePlayerScene(SinglePlayerScene::new(app.system_time(), app, &mut self.persistent))
                 );
             }
 

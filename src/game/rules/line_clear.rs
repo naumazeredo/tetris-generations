@@ -1,8 +1,5 @@
 use crate::app::ImDraw;
-use crate::game::{
-    //piece::Piece,
-    playfield::Playfield,
-};
+use crate::game::playfield::Playfield;
 
 use super::*;
 
@@ -15,6 +12,8 @@ pub enum LineClearRule {
 }
 
 impl Rules {
+    // @TODO is this really a try? I think it's always called correctly
+    //pub fn try_clear_lines(&self, playfield: &mut Playfield) -> Option<LineClear> {
     pub fn try_clear_lines(&self, playfield: &mut Playfield) -> u8 {
         match self.line_clear_rule {
             LineClearRule::Naive => playfield.clear_lines_naive(),

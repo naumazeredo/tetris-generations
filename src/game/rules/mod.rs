@@ -1,12 +1,17 @@
 use crate::app::ImDraw;
 use super::randomizer::RandomizerType;
 
+pub mod instance;
 pub mod line_clear;
+pub mod lock;
 pub mod movement;
 pub mod rotation;
+pub mod scoring;
 pub mod topout;
 
+use lock::{ LockedPieceResult, LockedPiece };
 use line_clear::LineClearRule;
+use scoring::ScoringRule;
 use topout::TopOutRule;
 
 // Guideline: https://tetris.fandom.com/wiki/Tetris_Guideline
@@ -44,11 +49,15 @@ pub struct Rules {
     // @TODO some games implement a progression for these intervals (faster levels = smaller ARE,
     //       line clear delays and faster DAS). So we may need to accept a closure that receives the
     //       level
-    pub das_repeat_delay: u64,
-    pub das_repeat_interval: u64,
+    pub das_repeat_delay: u64, // DAS - Delayed Auto Shift (initial delay)
+    pub das_repeat_interval: u64, // ARR - Auto-Repeat Rate (all other delays)
     pub soft_drop_interval: u64,
     pub line_clear_delay: u64,
-    pub gravity_interval: u64,
+
+    pub gravity_curve: GravityCurve,
+    pub scoring_curve: ScoringRule,
+    pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
+    pub start_level: u8,
 
     // @TODO depend on last lock height.
     //       Tetris NES: ARE is 10~18 frames depending on the height at which the piece locked;
@@ -90,7 +99,7 @@ impl From<RotationSystem> for Rules {
                     has_initial_hold_system: false,
 
                     spawn_row: 20u8,
-                    next_pieces_preview_count: 0u8,
+                    next_pieces_preview_count: 1u8,
 
                     line_clear_rule: LineClearRule::Naive,
 
@@ -100,7 +109,11 @@ impl From<RotationSystem> for Rules {
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
                     soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
                     line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
-                    gravity_interval: 1_000_000,
+
+                    gravity_curve: GravityCurve::Classic,
+                    scoring_curve: ScoringRule::Classic,
+                    level_curve: LevelCurve::Classic,
+                    start_level: 0,
 
                     entry_delay: 0,
                     lock_delay: LockDelayRule::NoDelay,
@@ -135,7 +148,11 @@ impl From<RotationSystem> for Rules {
                     das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
                     soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
                     line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
-                    gravity_interval: 250_000,
+
+                    gravity_curve: GravityCurve::Classic,
+                    scoring_curve: ScoringRule::Classic,
+                    level_curve: LevelCurve::Classic,
+                    start_level: 1,
 
                     entry_delay: 0,
                     lock_delay: LockDelayRule::MoveReset {
@@ -191,3 +208,82 @@ pub enum LockDelayRule {
     MoveReset { duration: u64, rotations: u8, movements: u8 },
     //MoveResetInfinity(u64),
 }
+
+#[derive(Copy, Clone, Debug, ImDraw)]
+pub enum GravityCurve {
+    //Original,
+    Classic,
+    Guideline,
+    //Tetris99,
+}
+
+#[derive(Copy, Clone, Debug, ImDraw)]
+pub enum LevelCurve {
+    //Original,
+    Classic,
+    Guideline,
+}
+
+impl Rules {
+    // @TODO move to gravity.rs
+    pub fn get_gravity_interval(&self, level: u32) -> u64 {
+        match self.gravity_curve {
+            GravityCurve::Classic => {
+                let gravity = match level {
+                    0       => 48,
+                    1       => 43,
+                    2       => 38,
+                    3       => 33,
+                    4       => 28,
+                    5       => 23,
+                    6       => 18,
+                    7       => 13,
+                    8       => 8,
+                    9       => 6,
+                    10..=12 => 5,
+                    13..=15 => 4,
+                    16..=18 => 3,
+                    19..=28 => 2,
+                    _ => 1,
+                };
+
+                let frame_duration = (1_000_000.0 / 60.0988) as u64;
+                gravity * frame_duration
+            },
+
+            _ => { 1_000_000 }
+        }
+    }
+
+    // @TODO move somewhere else (level.rs? progress.rs? difficulty?)
+    // @XXX this seems a very bad design. The player can't just start at any level, for example
+    pub fn get_level(&self, _score: u32, total_lines_cleared: u32) -> u32 {
+        match self.level_curve {
+            LevelCurve::Classic => {
+                // @TODO implement the real classic bugged logic
+                //https://meatfighter.com/nintendotetrisai/#Lines_and_Statistics
+
+                let lines_to_next_level_from_start_level = [
+                    0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 90, 90, 90, 90, 90, 90,
+                    100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 190, 190
+                ];
+
+                let line_diff_from_start =
+                    total_lines_cleared.saturating_sub(
+                        lines_to_next_level_from_start_level[self.start_level as usize]
+                    );
+
+                self.start_level as u32 + (line_diff_from_start / 10)
+            }
+
+            _ => { 0 }
+        }
+    }
+    /*
+    enum LevelProgressData {
+        Classic { total_lines_cleared: u32 },
+        Guideline { score: u32 },
+    }
+    */
+}
+

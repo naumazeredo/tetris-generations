@@ -16,9 +16,9 @@ pub struct Randomizer7Bag {
 }
 
 impl Randomizer7Bag {
-    pub fn new() -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
-            rng: rand_pcg::Pcg32::new(0xcafef00dd15ea5e5, 0xa02bdbf7bb3c0a7),
+            rng: rand_pcg::Pcg32::new(seed, 0xa02bdbf7bb3c0a7),
             sequence: [0, 1, 2, 3, 4, 5, 6],
             index: 7,
         }

@@ -60,10 +60,10 @@ impl SceneTrait for DebugPiecesScene {
             Piece {
                 type_: PIECES[0],
                 rot: self.rot,
+                rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            self.rotation_system,
             app,
             persistent
         );
@@ -76,10 +76,10 @@ impl SceneTrait for DebugPiecesScene {
             Piece {
                 type_: PIECES[1],
                 rot: self.rot,
+                rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            self.rotation_system,
             app,
             persistent
         );
@@ -90,10 +90,10 @@ impl SceneTrait for DebugPiecesScene {
             Piece {
                 type_: PIECES[2],
                 rot: self.rot,
+                rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            self.rotation_system,
             app,
             persistent
         );
@@ -104,10 +104,10 @@ impl SceneTrait for DebugPiecesScene {
             Piece {
                 type_: PIECES[3],
                 rot: self.rot,
+                rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            self.rotation_system,
             app,
             persistent
         );
@@ -119,10 +119,10 @@ impl SceneTrait for DebugPiecesScene {
             Piece {
                 type_: PIECES[4],
                 rot: self.rot,
+                rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            self.rotation_system,
             app,
             persistent
         );
@@ -133,10 +133,10 @@ impl SceneTrait for DebugPiecesScene {
             Piece {
                 type_: PIECES[5],
                 rot: self.rot,
+                rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            self.rotation_system,
             app,
             persistent
         );
@@ -147,10 +147,10 @@ impl SceneTrait for DebugPiecesScene {
             Piece {
                 type_: PIECES[6],
                 rot: self.rot,
+                rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            self.rotation_system,
             app,
             persistent
         );

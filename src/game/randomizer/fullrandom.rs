@@ -14,9 +14,9 @@ pub struct RandomizerFullRandom {
 }
 
 impl RandomizerFullRandom {
-    pub fn new() -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
-            rng: rand_pcg::Pcg32::new(0xcafef00dd15ea5e5, 0xa02bdbf7bb3c0a7),
+            rng: rand_pcg::Pcg32::new(seed, 0xa02bdbf7bb3c0a7),
         }
     }
 }

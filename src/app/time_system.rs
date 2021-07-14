@@ -94,12 +94,20 @@ impl<S> App<'_, S> {
         self.time_system.game_time
     }
 
+    pub fn real_timestamp(&self) -> u64 {
+        self.time_system.real_time
+    }
+
     pub fn restart_time_system(&mut self) {
         self.time_system = TimeSystem::new(self.sdl_context.timer_subsystem.clone());
     }
 
     pub fn frame(&self) -> u32 {
         self.time_system.frame_count
+    }
+
+    pub fn system_time(&self) -> u64 {
+        system_time(&self.sdl_context.timer_subsystem)
     }
 }
 
