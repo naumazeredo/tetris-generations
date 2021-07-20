@@ -4,6 +4,7 @@ extern crate imgui_opengl_renderer;
 pub mod animation_system;
 pub mod asset_system;
 pub mod debug;
+pub mod font_system;
 pub mod game_state;
 pub mod id_manager;
 #[macro_use] pub mod imgui_wrapper;
@@ -18,6 +19,7 @@ pub mod video_system;
 
 pub use {
     animation_system::*,
+    font_system::*,
     game_state::*,
     id_manager::*,
     input::*,
@@ -42,6 +44,7 @@ use time_system::*;
 pub struct App<'a, S> {
     asset_system: AssetSystem,
     animation_system: AnimationSystem,
+    font_system: FontSystem,
     input_system: InputSystem,
     renderer: Renderer,
     sdl_context: SdlContext,
@@ -63,6 +66,7 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
         let sdl_context = SdlContext::new();
         let video_system = VideoSystem::new(config, sdl_context.video_subsystem.clone());
 
+        let font_system = FontSystem::default();
         let input_system = InputSystem::new(sdl_context.controller_subsystem.clone());
         let time_system = TimeSystem::new(sdl_context.timer_subsystem.clone());
         let renderer = Renderer::new(video_system.window.size());
@@ -77,6 +81,7 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
             sdl_context,
             video_system,
 
+            font_system,
             input_system,
             time_system,
             renderer,

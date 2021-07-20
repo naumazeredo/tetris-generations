@@ -13,7 +13,7 @@ pub struct Sprites {
 #[derive(ImDraw)]
 pub struct PersistentData {
     pub input_mapping: InputMapping,
-    pub font: Font,
+    pub font: FontRef,
     pub sprites: Sprites,
     pub pixel_scale: u8,
 }

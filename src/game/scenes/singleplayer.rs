@@ -58,7 +58,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("time: {:.2}", app.game_time()),
-            &persistent.font,
+            persistent.font,
             &TransformBuilder::new().pos_xy(10.0, 42.0).layer(1000).build(),
             32.,
             WHITE
@@ -66,7 +66,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("level: {}", self.rules_instance.level()),
-            &persistent.font,
+            persistent.font,
             &TransformBuilder::new().pos_xy(10.0, 84.0).layer(1000).build(),
             32.,
             WHITE
@@ -74,7 +74,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("score: {}", self.rules_instance.score()),
-            &persistent.font,
+            persistent.font,
             &TransformBuilder::new().pos_xy(10.0, 126.0).layer(1000).build(),
             32.,
             WHITE
@@ -82,7 +82,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("lines: {}", self.rules_instance.total_lines_cleared()),
-            &persistent.font,
+            persistent.font,
             &TransformBuilder::new().pos_xy(10.0, 168.0).layer(1000).build(),
             32.,
             WHITE

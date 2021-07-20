@@ -38,7 +38,7 @@ impl SceneTrait for DebugPiecesScene {
     ) {
         app.queue_draw_text(
             &format!("{:?}", self.rotation_system),
-            &persistent.font,
+            persistent.font,
             &TransformBuilder::new().pos_xy(10.0, 42.0).layer(1000).build(),
             32.,
             WHITE
@@ -46,7 +46,7 @@ impl SceneTrait for DebugPiecesScene {
 
         app.queue_draw_text(
             &format!("rot: {}", self.rot),
-            &persistent.font,
+            persistent.font,
             &TransformBuilder::new().pos_xy(10.0, 84.0).layer(1000).build(),
             32.,
             WHITE
