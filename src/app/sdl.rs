@@ -30,6 +30,9 @@ impl SdlContext {
 
         let _sdl_image_context = sdl2::image::init(sdl2::image::InitFlag::PNG).unwrap();
 
+        // @XXX Dear ImGUI is starting the text input for us. Is this a problem?
+        //video_subsystem.text_input().stop();
+
         Self {
             sdl,
             event_pump,

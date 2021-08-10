@@ -1,5 +1,6 @@
 use crate::State;
 use crate::app::*;
+use crate::linalg::Vec2i;
 
 use super::*;
 
@@ -15,6 +16,10 @@ use crate::game::{
 pub struct SinglePlayerScene {
     debug_pieces_scene_opened: bool,
     rules_instance: RulesInstance,
+
+    checkbox_test: bool,
+    input_i32_test: i32,
+    input_str_test: String,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -40,6 +45,40 @@ impl SceneTrait for SinglePlayerScene {
         app: &mut App<'_, State>,
         persistent: &mut PersistentData
     ) {
+        if app.is_paused() {
+            // Ui
+            let window_layout = Layout {
+                pos: Vec2i { x: 12, y: 12 },
+                size: Vec2i { x: 300, y: 400 }
+            };
+            app.new_ui(window_layout);
+
+            app.text("test 1");
+            app.indent();
+            app.text("test 2");
+            app.unindent();
+            app.text("test 3");
+
+            if app.button("button") {
+                println!("test");
+            }
+
+            app.checkbox("checkbox", &mut self.checkbox_test);
+
+            if self.checkbox_test {
+                app.indent();
+                app.text("test 4");
+                app.unindent();
+            }
+
+            app.input_i32("my i32", &mut self.input_i32_test);
+            app.input_str("my str", &mut self.input_str_test);
+
+            if app.button("resume") {
+                app.resume();
+            }
+        }
+
         /*
         let pixel_scale = persistent.pixel_scale;
 
@@ -58,40 +97,33 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("time: {:.2}", app.game_time()),
-            persistent.font,
-            &TransformBuilder::new().pos_xy(10.0, 42.0).layer(1000).build(),
+            &TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
             32.,
             WHITE
         );
 
         app.queue_draw_text(
             &format!("level: {}", self.rules_instance.level()),
-            persistent.font,
-            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(1000).build(),
+            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
             32.,
             WHITE
         );
 
         app.queue_draw_text(
             &format!("score: {}", self.rules_instance.score()),
-            persistent.font,
-            &TransformBuilder::new().pos_xy(10.0, 126.0).layer(1000).build(),
+            &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
             32.,
             WHITE
         );
 
         app.queue_draw_text(
             &format!("lines: {}", self.rules_instance.total_lines_cleared()),
-            persistent.font,
-            &TransformBuilder::new().pos_xy(10.0, 168.0).layer(1000).build(),
+            &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
             32.,
             WHITE
         );
 
         self.rules_instance.render(app, persistent);
-
-        // queue rendering
-        app.render_queued();
     }
 
     fn handle_input(
@@ -151,6 +183,10 @@ impl SinglePlayerScene {
         Self {
             debug_pieces_scene_opened: false,
             rules_instance,
+
+            checkbox_test: false,
+            input_i32_test: 0,
+            input_str_test: String::new(),
         }
     }
 }

@@ -24,30 +24,27 @@ pub struct Sprite {
     pub size: Vec2,
 }
 
-// @Refactor move to App
-impl Renderer {
-    fn queue_draw_sprite(
-        &mut self,
-        transform: &Transform,
-        sprite: &Sprite,
-        color: Color,
-    ) {
-        self.world_draw_cmds.push(DrawCommand {
-            program: self.default_program,
-            texture: sprite.texture,
-            layer: transform.layer,
-            color,
-            pos: transform.pos,
-            scale: transform.scale,
-            rot: transform.rot,
-            cmd: Command::DrawSprite {
-                texture_flip: sprite.texture_flip,
-                uvs: sprite.uvs,
-                pivot: sprite.pivot,
-                size: sprite.size,
-            },
-        });
-    }
+pub(super) fn queue_draw_sprite(
+    renderer: &mut Renderer,
+    transform: &Transform,
+    sprite: &Sprite,
+    color: Color,
+) {
+    renderer.world_draw_cmds.push(DrawCommand {
+        program: renderer.default_program,
+        texture: sprite.texture,
+        layer: transform.layer,
+        color,
+        pos: transform.pos,
+        scale: transform.scale,
+        rot: transform.rot,
+        cmd: Command::DrawSprite {
+            texture_flip: sprite.texture_flip,
+            uvs: sprite.uvs,
+            pivot: sprite.pivot,
+            size: sprite.size,
+        },
+    });
 }
 
 impl<S> App<'_, S> {
@@ -57,6 +54,6 @@ impl<S> App<'_, S> {
         sprite: &Sprite,
         color: Color,
     ) {
-        self.renderer.queue_draw_sprite(transform, sprite, color);
+        queue_draw_sprite(&mut self.renderer, transform, sprite, color);
     }
 }

@@ -10,6 +10,8 @@ use super::{
     utils::string_ref::StringRef,
 };
 
+// @Refactor AssetSystem should just handle what should be loaded and what should be unloaded, not
+//           hold all data from all systems (the systems will hold their data)
 #[derive(ImDraw)]
 pub(super) struct AssetSystem {
     textures: BTreeMap<StringRef, Texture>,

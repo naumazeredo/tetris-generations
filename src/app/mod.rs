@@ -15,6 +15,7 @@ pub mod task_system;
 pub mod transform;
 pub mod time_system;
 pub mod utils;
+pub mod ui;
 pub mod video_system;
 
 pub use {
@@ -27,6 +28,7 @@ pub use {
     renderer::*,
     task_system::*,
     transform::*,
+    ui::*,
     utils::*,
     video_system::*,
 };
@@ -50,6 +52,7 @@ pub struct App<'a, S> {
     sdl_context: SdlContext,
     task_system: TaskSystem<'a, S>,
     time_system: TimeSystem,
+    ui_system: UiSystem,
 
     running: bool,
     // @Fix clicking on this bool in imgui window will make imgui consume all events
@@ -65,14 +68,17 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
 
         let sdl_context = SdlContext::new();
         let video_system = VideoSystem::new(config, sdl_context.video_subsystem.clone());
+        println!("{}", sdl_context.video_subsystem.text_input().is_active());
 
-        let font_system = FontSystem::default();
+        let font_system = FontSystem::new(&sdl_context.ttf_context);
         let input_system = InputSystem::new(sdl_context.controller_subsystem.clone());
         let time_system = TimeSystem::new(sdl_context.timer_subsystem.clone());
         let renderer = Renderer::new(video_system.window.size());
 
         let animation_system = AnimationSystem::new();
         let task_system = TaskSystem::new();
+
+        let ui_system = UiSystem::new();
 
         Self {
             asset_system: AssetSystem::new(),
@@ -84,6 +90,8 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
             font_system,
             input_system,
             time_system,
+
+            ui_system,
             renderer,
 
             task_system,
@@ -106,10 +114,11 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
                 // This needs to be done before state since it needs to be consistent.
                 // We might remove the asserts from the input system and make it handle the
                 // inconsistencies
-                let timestamp = self.time_system.game_time;
+                let timestamp = self.time_system.real_time;
                 self.input_system.handle_input(&event, timestamp);
 
-                if debug.handle_event(&event) { continue; }
+                if self.ui_system.handle_input(&event) { continue; }
+                if debug.handle_input(&event) { continue; }
 
                 // Handle game input first to allow it consuming the input
                 // This can be useful if the game has some meta components, like
@@ -120,11 +129,17 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
                 self.handle_input(&event);
             }
 
+            self.update_ui_system();
             state.update(self);
 
             // Render
             self.renderer.prepare_render();
             state.render(self);
+
+            self.queue_draw_uis();
+
+            // Rendering
+            self.render_queued();
 
             if self.show_debug_window {
                 debug.render(self, |ui, app| {
@@ -133,6 +148,7 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
                 });
             }
 
+            // @Maybe move this to renderer
             self.video_system.swap_buffers();
         }
     }

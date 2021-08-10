@@ -28,7 +28,7 @@ use super::{
     let down = button.down();
     let pressed = button.pressed();
     let released = button.released();
-    let long_press = button.pressed_for(1_000_000, app.time_system.game_time);
+    let long_press = button.pressed_for(1_000_000, app.time_system.real_time);
 
     if down { println!("down!"); }
     if pressed { println!("pressed!"); }
@@ -54,7 +54,6 @@ pub struct Button {
     last_state: bool,
 
     timestamp: u64,
-
 }
 
 impl Button {
@@ -277,23 +276,23 @@ impl Button {
         if !self.down { return false; }
         if self.pressed { return true; }
 
-        let game_time = app.time_system.game_time;
+        let real_time = app.time_system.real_time;
         let frame_duration = app.time_system.game_frame_duration;
 
         // Check underflow cases
         let prev_press_count;
-        if game_time < frame_duration + self.timestamp + repeat_delay {
+        if real_time < frame_duration + self.timestamp + repeat_delay {
             prev_press_count = 0;
         } else {
-            let total_time = game_time - frame_duration - self.timestamp - repeat_delay;
+            let total_time = real_time - frame_duration - self.timestamp - repeat_delay;
             prev_press_count = 1 + total_time / repeat_interval;
         }
 
         let curr_press_count;
-        if game_time < self.timestamp + repeat_delay {
+        if real_time < self.timestamp + repeat_delay {
             curr_press_count = 0;
         } else {
-            curr_press_count = 1 + (game_time - self.timestamp - repeat_delay) / repeat_interval;
+            curr_press_count = 1 + (real_time - self.timestamp - repeat_delay) / repeat_interval;
         }
 
         prev_press_count < curr_press_count

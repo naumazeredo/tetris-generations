@@ -97,7 +97,7 @@ impl ImguiSdl2 {
     }
   }
 
-  pub fn handle_event(
+  pub fn handle_input(
     &mut self,
     imgui: &mut Context,
     event: &Event,

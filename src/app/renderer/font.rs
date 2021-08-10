@@ -1,60 +1,66 @@
-use crate::{
-    app::{
-        App,
-        font_system::FontRef,
+use crate::app::{
+    font_system::{
+        FontId,
+        FontSystem,
     },
-    linalg::Vec2,
     transform::Transform,
 };
-
 use super::{
-    color::Color,
-    sprite::Sprite,
-    texture::TextureFlip,
+    Color,
+    Renderer,
+    TextureFlip,
+    sprite::{
+        queue_draw_sprite,
+        Sprite,
+    },
 };
+use crate::linalg::Vec2;
 
-impl<S> App<'_, S>{
-    pub fn queue_draw_text(
-        &mut self,
-        //program: Program,
-        text: &str,
-        font_ref: FontRef,
-        transform: &Transform,
-        font_size: f32,
-        color: Color,
-    ) {
-        let font_texture = self.font_system.fonts.get(&font_ref).unwrap().texture;
+pub(in crate::app) fn queue_draw_text(
+    renderer: &mut Renderer,
+    font_system: &FontSystem,
 
-        let mut pos = Vec2::new();
-        for ch in text.chars() {
-            if let Some(&char_data) = self.font_system.fonts.get(&font_ref).unwrap().get_char_data(ch) {
-                let uvs = char_data.get_uvs();
+    //program: ShaderProgram,
+    text: &str,
+    font: FontId,
+    transform: &Transform,
+    font_size: f32,
+    color: Color,
+) {
+    // @Refactor hold the font reference instead of getting it every char
+    let font_texture = font_system.fonts.get(&font).unwrap().texture;
 
-                let scale = font_size / 64.;
-                let char_top_left = Vec2 {
-                    x:  char_data.metrics.minx as f32 * scale,
-                    y: -char_data.metrics.maxy as f32 * scale
-                };
-                let size = Vec2 {
-                    x: char_data.metrics.w as f32 * scale,
-                    y: char_data.metrics.h as f32 * scale
-                };
+    let mut pos = Vec2::new();
+    for ch in text.chars() {
+        if let Some(&char_data) = font_system.fonts.get(&font).unwrap().get_char_data(ch) {
+            let uvs = char_data.get_uvs();
 
-                self.queue_draw_sprite(
-                    transform,
-                    &Sprite {
-                        texture: font_texture,
-                        texture_flip: TextureFlip::NO,
-                        uvs,
-                        pivot: - (pos + char_top_left),
-                        size,
-                    },
-                    color,
-                );
+            let scale = font_size / 64.;
+            let char_top_left = Vec2 {
+                x:  char_data.metrics.minx as f32 * scale,
+                y: -char_data.metrics.maxy as f32 * scale
+            };
+            let size = Vec2 {
+                x: char_data.metrics.w as f32 * scale,
+                y: char_data.metrics.h as f32 * scale
+            };
 
-                let advance = char_data.metrics.advance as f32 * scale;
-                pos.x += advance;
-            }
+            queue_draw_sprite(
+                renderer,
+
+                transform,
+                &Sprite {
+                    texture: font_texture,
+                    texture_flip: TextureFlip::NO,
+                    uvs,
+                    pivot: - (pos + char_top_left),
+                    size,
+                },
+                color,
+            );
+
+            let advance = char_data.metrics.advance as f32 * scale;
+            pos.x += advance;
         }
     }
 }

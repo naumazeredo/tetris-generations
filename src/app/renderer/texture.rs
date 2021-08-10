@@ -84,6 +84,37 @@ pub(in crate::app) fn load_texture<P: AsRef<Path>>(path: P) -> Texture {
     load_texture_from_surface(surface)
 }
 
+pub(in crate::app) fn create_texture(pixels: &[u8], w: u32, h: u32) -> Texture {
+    let mut obj : TextureObject = 0;
+
+    unsafe {
+        gl::GenTextures(1, &mut obj);
+        gl::BindTexture(gl::TEXTURE_2D, obj);
+
+        gl::PixelStorei(gl::UNPACK_ROW_LENGTH, 0);
+
+        // @TODO verify image format
+        gl::TexImage2D(
+            gl::TEXTURE_2D, // GLenum target,
+            0, // GLint level,
+            gl::RGBA as _, // GLint internalformat,
+            w as _, // GLsizei width,
+            h as _, // GLsizei height,
+            0, // GLint border,
+            gl::RGBA, // GLenum format,
+            gl::UNSIGNED_BYTE, // GLenum type,
+            pixels.as_ptr() as _ // const void * data);
+        );
+
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as _);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as _);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _);
+    }
+
+    Texture { obj, w, h }
+}
+
 // ------
 // ImDraw
 // ------

@@ -14,6 +14,8 @@
 
 ### Engine
 
+- [ ] Refactor systems to be data and App interface to implement the logic
+  - [ ] Refactor systems to have a uniform interface
 - [ ] Logger system
 - [ ] Asset system
 - [ ] Audio system
@@ -22,42 +24,33 @@
     over action, etc)
     - (design: `app.update_timer(&mut timer); let elapsed_time = timer.elapsed_time();`)
 - [ ] Duration/Time struct (mainly to better integrate with SDL times)
-- [ ] Refactor systems to hava a uniform interface
 - [ ] [font render] fix background not being transparent
 - [ ] [imdraw] Remove imgui::im_str2
 - [ ] [imdraw derive] check for #[imdraw_ignore] to not show some fields
 - [ ] [render]
-  - [ ] Stack commands (change matrices, color alpha, etc)
-  - [ ] Batch rendering
-  - [ ] Shader struct
-  - [ ] Render to framebuffer + post render effects
-  - [ ] verify gl errors
-- [ ] Input system
-  - [ ] Flush/Reset
-  - [ ] Mapping
-    - [ ] Bind mapping to a controller and detect input change from keyboard to controller
-  - [ ] Virtual button
-    - [ ] Accumulated time (instead of taking the time difference)
-    - [ ] Joystick button
-    - [ ] Joystick axis
-    - [ ] (extra) Multimedia button
-  - [ ] Virtual axis
-    - [ ] Keyboard
-    - [ ] Mouse
-    - [ ] Controller button
-    - [ ] Controller axis
-    - [ ] Joystick button
-    - [ ] Joystick axis
-    - [ ] (extra) Multimedia button
-  - [ ] Feedback
-    - [ ] Dualsense extra feedbacks
-- [ ] [ui] Command buffer "immediate mode"
-- [ ] [debug] imgui architecture make it not possible to pass App down to callbacks
+  - [ ] Axis-aligned (+ scissor) rendering
+  - [ ] Stack of modifier commands (blend enabled, framebuffer target, proj matrix, etc)
+- [ ] UI system
+  - [ ] Widgets
+    - [x] Text
+    - [x] Button
+    - [x] Checkbox
+    - [ ] Input integer range
+    - [ ] Input float range
+    - [ ] Input text
+    - [ ] Input color
+    - [ ] Input key
+  - [ ] Keyboard/Controller support
+  - [ ] Styling options
+  - [ ] Command buffer "immediate mode"
 - [ ] [debug] rename to Editor and implement an Immediate Mode GUI from scratch (or use the, to be
     implemented, UI system)
+- [ ] [asset] Asset System should not hold all data, each component can hold its own data.
+    It should handle what should be loaded and unloaded into/from memory.
 
 #### Issues
 
+- [ ] cargo clippy warnings
 - [ ] [game animations] animations are skipped if the piece is locked in the middle of the animation
 - [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
     were made, so this bug is still there)
@@ -240,6 +233,37 @@
     - Doing this can be a good opportunity to remove the State generics from App!
 - [ ] Multithread
   - [ ] Maybe use persistent structures for rendering (or just have a double/triple buffer)
+- [ ] [render]
+  - [ ] Stack commands (change matrices, color alpha, etc)
+  - [ ] Batch rendering
+  - [ ] Shader struct
+  - [ ] Render to framebuffer + post render effects
+  - [ ] verify gl errors
+- [ ] [ui system]
+  - [ ] Stretching sizes
+  - [ ] Anchored positioning
+  - [ ] Render scissor
+  - [ ] Cache rendered components
+- [ ] [input system]
+  - [x] Use real time and somehow manage game system
+  - [ ] Flush/Reset
+  - [ ] Mapping
+    - [ ] Bind mapping to a controller and detect input change from keyboard to controller
+  - [ ] Virtual button
+    - [ ] Accumulated time (instead of taking the time difference)
+    - [ ] Joystick button
+    - [ ] Joystick axis
+    - [ ] (extra) Multimedia button
+  - [ ] Virtual axis
+    - [ ] Keyboard
+    - [ ] Mouse
+    - [ ] Controller button
+    - [ ] Controller axis
+    - [ ] Joystick button
+    - [ ] Joystick axis
+    - [ ] (extra) Multimedia button
+  - [ ] Feedback
+    - [ ] Dualsense extra feedbacks
 
 ### Build system
 

@@ -25,6 +25,11 @@ impl Vec2i {
     pub fn new() -> Self {
         Self { x: 0, y: 0 }
     }
+
+    #[inline(always)]
+    pub fn is_inside(self, pos: Vec2i, size: Vec2i) -> bool {
+        !(self.x < pos.x || self.x > pos.x + size.x || self.y < pos.y || self.y > pos.y + size.y)
+    }
 }
 
 impl Add for Vec2i {
@@ -132,6 +137,21 @@ impl Neg for Vec2i {
             x: -self.x,
             y: -self.y,
         }
+    }
+}
+
+impl From<super::Vec2> for Vec2i {
+    fn from(v: super::Vec2) -> Self {
+        Self {
+            x: v.x as i32,
+            y: v.y as i32,
+        }
+    }
+}
+
+impl From<(i32, i32)> for Vec2i {
+    fn from(v: (i32, i32)) -> Self {
+        Self { x: v.0, y: v.1 }
     }
 }
 

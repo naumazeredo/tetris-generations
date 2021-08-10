@@ -26,20 +26,20 @@ use crate::app::{ App, ImDraw };
 
 pub use color::*;
 pub use draw_command::*;
-pub use font::*;
 use shader::*;
 pub use sprite::*;
 pub use texture::*;
 
 pub type VertexArray    = GLuint;
 pub type BufferObject   = GLuint;
-pub type Program        = GLuint;
+pub type ShaderProgram  = GLuint;
 pub type Shader         = GLuint;
 pub type ShaderLocation = GLuint;
 
 #[derive(Debug, ImDraw)]
 pub(in crate::app) struct Renderer {
-    default_program: Program,
+    default_program: ShaderProgram,
+    default_texture: Texture,
 
     view_mat: Mat4,
     proj_mat: Mat4,
@@ -84,10 +84,10 @@ impl Renderer {
             0.01, 1000.
         );
 
-        // @TODO move this (to asset manager maybe)
-        // Create GLSL shaders
+        // Create default shader program and texture.
+        // These are used when no shader program or texture is passed to a draw command.
         let default_program = create_shader_program("assets/shaders/default.vert", "assets/shaders/default.frag");
-
+        let default_texture = create_texture(&[0xff, 0xff, 0xff, 0xff], 1, 1);
 
         // Reserve a lot of space -> 2000 quads
         // @TODO use a frame allocator to avoid extra allocations
@@ -108,6 +108,7 @@ impl Renderer {
 
         Self {
             default_program,
+            default_texture,
 
             view_mat,
             proj_mat,
@@ -316,6 +317,15 @@ impl Renderer {
             let mut vs;
 
             match draw_cmd.cmd {
+                Command::DrawSolid { size } => {
+                    pivot = Vec2::new();
+                    w = size.x * draw_cmd.scale.x;
+                    h = size.y * draw_cmd.scale.y;
+
+                    us = vec![0.0, 1.0, 1.0, 0.0];
+                    vs = vec![0.0, 0.0, 1.0, 1.0];
+                },
+
                 Command::DrawSprite { texture_flip, uvs, pivot: piv, size } => {
                     pivot = Vec2 { x: piv.x * draw_cmd.scale.x, y: piv.y * draw_cmd.scale.y };
                     w = size.x * draw_cmd.scale.x;
@@ -516,7 +526,7 @@ impl Renderer {
         }
     }
 
-    fn change_shader_program(&mut self, new_program: Program) {
+    fn change_shader_program(&mut self, new_program: ShaderProgram) {
         unsafe {
             gl::UseProgram(new_program);
 
@@ -597,7 +607,7 @@ impl<S> App<'_, S> {
 // TODO move this
 #[derive(Copy, Clone, Debug)]
 struct DrawCall {
-    program: Program,
+    program: ShaderProgram,
     texture_object: TextureObject,
     start: usize,
     count: usize,

@@ -23,18 +23,12 @@ impl Color {
     }
 }
 
-#[allow(dead_code)]
-pub static WHITE: Color   = Color { r: 1., g: 1., b: 1., a: 1. };
-#[allow(dead_code)]
-pub static BLACK: Color   = Color { r: 0., g: 0., b: 0., a: 1. };
-#[allow(dead_code)]
-pub static RED: Color     = Color { r: 1., g: 0., b: 0., a: 1. };
-#[allow(dead_code)]
-pub static GREEN: Color   = Color { r: 0., g: 1., b: 0., a: 1. };
-#[allow(dead_code)]
-pub static BLUE: Color    = Color { r: 0., g: 0., b: 1., a: 1. };
-#[allow(dead_code)]
-pub static MAGENTA: Color = Color { r: 1., g: 0., b: 1., a: 1. };
+#[allow(dead_code)] pub static WHITE: Color   = Color { r: 1., g: 1., b: 1., a: 1. };
+#[allow(dead_code)] pub static BLACK: Color   = Color { r: 0., g: 0., b: 0., a: 1. };
+#[allow(dead_code)] pub static RED: Color     = Color { r: 1., g: 0., b: 0., a: 1. };
+#[allow(dead_code)] pub static GREEN: Color   = Color { r: 0., g: 1., b: 0., a: 1. };
+#[allow(dead_code)] pub static BLUE: Color    = Color { r: 0., g: 0., b: 1., a: 1. };
+#[allow(dead_code)] pub static MAGENTA: Color = Color { r: 1., g: 0., b: 1., a: 1. };
 
 impl From<[f32; 4]> for Color {
     #[inline]

@@ -11,6 +11,10 @@ impl FNVHasher {
     pub fn new() -> Self {
         Self { hash: FNV_OFFSET }
     }
+
+    pub fn cont(hash: u64) -> Self {
+        Self { hash }
+    }
 }
 
 impl Hasher for FNVHasher {

@@ -16,25 +16,26 @@ use crate::{
 };
 
 use super::{
-    CharData,
+    FontSystem,
+    char_data::CharData,
     packing::pack_font,
 };
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct FontRef(StringRef);
-impl FontRef {
+pub struct FontId(StringRef);
+impl FontId {
     fn new(s: String) -> Self {
         Self(StringRef::new(s))
     }
 }
 
-impl std::fmt::Display for FontRef {
+impl std::fmt::Display for FontId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "FontRef {}", self.0)
+        write!(f, "FontId {}", self.0)
     }
 }
 
-impl_imdraw_todo!(FontRef);
+impl_imdraw_todo!(FontId);
 
 #[derive(Clone, Debug, ImDraw)]
 pub(in crate::app) struct Font {
@@ -81,55 +82,65 @@ impl Font {
     }
 }
 
-impl<S> App<'_, S>{
-    // @TODO return Result
-    pub fn bake_font<P: AsRef<Path>>(&mut self, path: P) -> Option<FontRef> {
-        let font_ref = FontRef::new(path.as_ref().to_string_lossy().to_string());
+// @TODO return Result
+pub(super) fn bake_font<P: AsRef<Path>>(
+    path: P,
+    ttf_context: &sdl2::ttf::Sdl2TtfContext
+) -> Option<(FontId, Font)> {
 
-        // @Check if it's already baked?
+    let font_id = FontId::new(path.as_ref().to_string_lossy().to_string());
 
-        match Font::bake(path, &self.sdl_context.ttf_context) {
-            Some(font) => {
-                self.font_system.fonts.insert(font_ref, font);
-                Some(font_ref)
-            }
+    // @Check if it's already baked?
 
-            None => None,
+    match Font::bake(path, ttf_context) {
+        Some(font) => Some((font_id, font)),
+        None => None,
+    }
+}
+
+// @TODO return offset. Some glyphs can have negative minx or miny
+pub(in crate::app) fn calculate_draw_text_size(
+    font_system: &FontSystem,
+    text: &str,
+    font_id: FontId,
+    font_size: f32,
+) -> Vec2 {
+    let font = font_system.fonts.get(&font_id).unwrap();
+
+    let mut pos = Vec2::new();
+    let mut max_size = Vec2 { x: 0.0, y: font_size };
+
+    for ch in text.chars() {
+        if let Some(char_data) = font.get_char_data(ch) {
+            let scale = font_size / 64.;
+            let char_top_left = Vec2 {
+                x:  char_data.metrics.minx as f32 * scale,
+                y: -char_data.metrics.maxy as f32 * scale
+            };
+            let size = Vec2 {
+                x: char_data.metrics.w as f32 * scale,
+                y: char_data.metrics.h as f32 * scale
+            };
+
+            max_size.x = max_size.x.max(pos.x + char_top_left.x + size.x);
+
+            let advance = char_data.metrics.advance as f32 * scale;
+            pos.x += advance;
         }
     }
 
-    // @TODO return offset. Some glyphs can have negative minx or miny
-    pub fn calculate_draw_text_size(
-        &mut self,
-        text: &str,
-        font_ref: FontRef,
-        font_size: f32,
-    ) -> Vec2 {
-        let font = self.font_system.fonts.get(&font_ref).unwrap();
+    max_size
+}
 
-        let mut pos = Vec2::new();
-        let mut max_size = Vec2::new();
-
-        for ch in text.chars() {
-            if let Some(char_data) = font.get_char_data(ch) {
-                let scale = font_size / 64.;
-                let char_top_left = Vec2 {
-                    x:  char_data.metrics.minx as f32 * scale,
-                    y: -char_data.metrics.maxy as f32 * scale
-                };
-                let size = Vec2 {
-                    x: char_data.metrics.w as f32 * scale,
-                    y: char_data.metrics.h as f32 * scale
-                };
-
-                let advance = char_data.metrics.advance as f32 * scale;
-                pos.x += advance;
-
-                max_size.x = max_size.x.max(pos.x);
-            }
+impl<S> App<'_, S>{
+    // @TODO return Result
+    pub fn bake_font<P: AsRef<Path>>(&mut self, path: P) -> Option<FontId> {
+        if let Some((font_id, font)) = bake_font(path, &self.sdl_context.ttf_context) {
+            self.font_system.fonts.insert(font_id, font);
+            Some(font_id)
+        } else {
+            None
         }
-
-        max_size
     }
 }
 

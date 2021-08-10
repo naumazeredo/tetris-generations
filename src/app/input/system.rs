@@ -28,6 +28,8 @@ pub(in crate::app) struct InputSystem {
     pub(super) keyboard: KeyboardState,
     pub(super) mouse: MouseState,
     pub(super) controllers: ControllerStateContainer,
+
+    //default_ui_mapping: InputMapping,
 }
 
 impl InputSystem {
@@ -162,7 +164,7 @@ impl InputSystem {
 
 impl<S> App<'_, S> {
     pub fn update_input_mapping(&mut self, mapping: &mut InputMapping) {
-        let timestamp = self.time_system.game_time;
+        let timestamp = self.time_system.real_time;
         self.input_system.update_input_mapping(mapping, timestamp);
     }
 
@@ -179,6 +181,31 @@ impl<S> App<'_, S> {
             high_frequency,
             duration
         );
+    }
+
+    // @Refactor refactor to C-like to avoid references to App
+    pub fn get_mouse_position(&self) -> (i32, i32) {
+        self.input_system.mouse.get_pos()
+    }
+
+    // @Refactor refactor to C-like to avoid references to App
+    pub fn mouse_left_down(&self) -> bool {
+        let button = sdl2::mouse::MouseButton::Left as usize;
+        self.input_system.mouse.buttons[button].down
+    }
+
+    // @Refactor refactor to C-like to avoid references to App
+    pub fn mouse_left_pressed(&self) -> bool {
+        let timestamp = self.time_system.real_time;
+        let button = sdl2::mouse::MouseButton::Left as usize;
+        self.input_system.mouse.buttons[button].down_timestamp() == timestamp
+    }
+
+    // @Refactor refactor to C-like to avoid references to App
+    pub fn mouse_left_released(&self) -> bool {
+        let timestamp = self.time_system.real_time;
+        let button = sdl2::mouse::MouseButton::Left as usize;
+        self.input_system.mouse.buttons[button].up_timestamp() == timestamp
     }
 }
 
@@ -206,6 +233,14 @@ impl ButtonState {
         assert!(self.down);
         self.timestamp = timestamp;
         self.down = false;
+    }
+
+    fn down_timestamp(&self) -> u64 {
+        (self.down as u64) * self.timestamp
+    }
+
+    fn up_timestamp(&self) -> u64 {
+        (!self.down as u64) * self.timestamp
     }
 }
 

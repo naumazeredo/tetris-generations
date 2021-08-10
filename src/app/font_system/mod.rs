@@ -2,13 +2,13 @@
 
 // construction
 
-let font = app.bake_font("assets/fonts/Monocons.ttf").unwrap();
+let font_id = app.bake_font("assets/fonts/Monocons.ttf").unwrap();
 
 // render
 
 app.queue_draw_text(
     "Hello world",
-    &self.font,
+    font_id,
     &Transform {
         pos: Vec2 { x: 200., y: 200. },
         rot: 0.,
@@ -19,65 +19,35 @@ app.queue_draw_text(
 );
 */
 
+mod char_data;
 mod font;
 mod packing;
+mod render;
 
 pub use font::*;
+pub use render::*;
 
 use std::collections::BTreeMap;
 
-use crate::{
-    app::imgui_wrapper::ImDraw,
-    linalg::Vec2i,
-};
+use crate::app::imgui_wrapper::ImDraw;
 
-#[derive(ImDraw, Default)]
+#[derive(ImDraw)]
 pub(in crate::app) struct FontSystem {
-    pub(super) fonts: BTreeMap<FontRef, Font>,
+    pub(super) default_font_id: FontId,
+    // @TODO use a method to abstract fonts
+    pub(super) fonts: BTreeMap<FontId, Font>,
 }
 
-// ----------
-// Structures
-// ----------
+impl FontSystem {
+    pub(in crate::app) fn new(ttf_context: &sdl2::ttf::Sdl2TtfContext) -> Self {
+        let (default_font_id, default_font) = bake_font("assets/fonts/Monocons.ttf", ttf_context).unwrap();
 
-#[derive(Copy, Clone, Debug, ImDraw)]
-pub(in crate::app) struct Metrics {
-    pub minx: i32,
-    pub maxy: i32,
-    pub w: i32,
-    pub h: i32,
-    pub advance: i32
-}
+        let mut fonts = BTreeMap::new();
+        fonts.insert(default_font_id, default_font);
 
-impl From<sdl2::ttf::GlyphMetrics> for Metrics {
-    fn from(metrics: sdl2::ttf::GlyphMetrics) -> Self {
-        Metrics {
-            minx: metrics.minx,
-            maxy: metrics.maxy,
-            w: metrics.maxx - metrics.minx,
-            h: metrics.maxy - metrics.miny,
-            advance: metrics.advance,
+        Self {
+            default_font_id,
+            fonts,
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug, ImDraw)]
-pub(in crate::app) struct CharData {
-    pub pos: (u32, u32),
-    pub metrics: Metrics,
-}
-
-impl CharData {
-    pub(in crate::app) fn get_uvs(&self) -> (Vec2i, Vec2i) {
-        (
-            Vec2i {
-                x: self.pos.0 as i32,
-                y: self.pos.1 as i32
-            },
-            Vec2i {
-                x: self.pos.0 as i32 + self.metrics.w,
-                y: self.pos.1 as i32 + self.metrics.h,
-            }
-        )
     }
 }

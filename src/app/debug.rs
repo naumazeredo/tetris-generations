@@ -36,8 +36,8 @@ impl Debug {
         }
     }
 
-    pub fn handle_event(&mut self, event: &sdl2::event::Event) -> bool {
-        self.imgui_sdl2.handle_event(&mut self.imgui, event);
+    pub fn handle_input(&mut self, event: &sdl2::event::Event) -> bool {
+        self.imgui_sdl2.handle_input(&mut self.imgui, event);
         return self.imgui_sdl2.ignore_event(&event);
     }
 

@@ -52,7 +52,7 @@ pub(super) fn compile_shader_from_file<P: AsRef<Path>>(path: P, shader_type: GLe
     compile_shader(&buffer, shader_type)
 }
 
-pub(super) fn link_shader_program(vs: Shader, fs: Shader) -> Program {
+pub(super) fn link_shader_program(vs: Shader, fs: Shader) -> ShaderProgram {
     let program;
     unsafe {
         program = gl::CreateProgram();
@@ -88,7 +88,7 @@ pub(super) fn link_shader_program(vs: Shader, fs: Shader) -> Program {
     program
 }
 
-pub(super) fn create_shader_program<P: AsRef<Path>>(vs_path: P, fs_path: P) -> Program {
+pub(super) fn create_shader_program<P: AsRef<Path>>(vs_path: P, fs_path: P) -> ShaderProgram {
     let vs = compile_shader_from_file(vs_path, gl::VERTEX_SHADER);
     let fs = compile_shader_from_file(fs_path, gl::FRAGMENT_SHADER);
     let program = link_shader_program(vs, fs);

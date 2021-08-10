@@ -13,16 +13,12 @@ pub struct Sprites {
 #[derive(ImDraw)]
 pub struct PersistentData {
     pub input_mapping: InputMapping,
-    pub font: FontRef,
     pub sprites: Sprites,
     pub pixel_scale: u8,
 }
 
 impl PersistentData {
     pub fn new(app: &mut App<'_, State>) -> Self {
-        // Fonts
-        let font = app.bake_font("assets/fonts/Monocons.ttf").unwrap();
-
         // Sprites
         let build_sprite = |tex, x, y, w, h| {
             Sprite {
@@ -48,7 +44,6 @@ impl PersistentData {
 
         Self {
             input_mapping,
-            font,
             sprites: Sprites {
                 blank,
                 block,

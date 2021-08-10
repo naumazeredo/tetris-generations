@@ -3,10 +3,7 @@
 // ------------
 
 use std::collections::BTreeMap;
-use super::{
-    CharData,
-    Metrics,
-};
+use super::char_data::{CharData, Metrics};
 
 pub(super) fn pack_font<'a>(
     font: sdl2::ttf::Font,
