@@ -19,6 +19,7 @@ pub struct SinglePlayerScene {
 
     checkbox_test: bool,
     input_i32_test: i32,
+    input_u32_test: u32,
     input_str_test: String,
 }
 
@@ -78,6 +79,7 @@ impl SceneTrait for SinglePlayerScene {
             app.input_str("my str", &mut self.input_str_test);
 
             app.slider_i32("my i32", &mut self.input_i32_test, -10, 10);
+            app.slider_u32("my u32", &mut self.input_u32_test, 0, 200);
 
             if app.button("resume") {
                 app.resume();
@@ -191,6 +193,7 @@ impl SinglePlayerScene {
 
             checkbox_test: false,
             input_i32_test: 0,
+            input_u32_test: 0,
             input_str_test: String::new(),
         }
     }

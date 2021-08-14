@@ -85,11 +85,13 @@ impl_drag!(u8);
 impl_drag!(u16);
 impl_drag!(u32);
 impl_drag!(u64);
+//impl_drag!(u128);
 
 impl_drag!(i8);
 impl_drag!(i16);
 impl_drag!(i32);
 impl_drag!(i64);
+//impl_drag!(i128);
 
 impl_drag!(f32 with speed(0.1));
 impl_drag!(f64 with speed(0.1));
