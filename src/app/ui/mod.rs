@@ -20,7 +20,7 @@ pub(in crate::app) struct UiSystem {
     input_focus: Option<Id>,
     input_state: String, // @Refactor buffer allocation instead of regular reallocs
     input_state_buffer: String, // @Refactor buffer allocation instead of regular reallocs
-    input_flags: InputFlags,
+    input_variant: InputVariant,
     input_complete: bool, // @Refactor this should be removed when we add an UI default input mapping
 
     input_cursor_timestamp: u64,
@@ -43,7 +43,7 @@ impl UiSystem {
             input_focus: None,
             input_state: String::new(),
             input_state_buffer: String::new(),
-            input_flags: InputFlags::default(),
+            input_variant: InputVariant::Str { max_length: 8 },
             input_complete: false,
 
             input_cursor_timestamp: 0,
@@ -91,36 +91,47 @@ impl UiSystem {
         false
     }
 
-    fn try_update_input(&mut self, new_input: &str) {
-        if self.input_flags.contains(InputFlags::INTEGER) {
-            if self.input_flags.contains(InputFlags::SIGNED) {
+    // Verifies if the current input state appending the new text is valid, if it is, update the
+    // input state, otherwise do nothing.
+    fn add_input(&mut self, text: &str) {
+        let new_input = [self.input_state.as_str(), text].concat();
+
+        match self.input_variant {
+            InputVariant::Str { max_length } => {
+                if new_input.len() <= max_length {
+                    self.input_state = new_input;
+                }
+            }
+
+            InputVariant::I32 { min, max, .. } => {
                 // Accept the minus sign by itself
                 if new_input == "-" {
+                    if let Some(x) = min {
+                        if x >= 0 { return; }
+                    }
                     self.input_state = new_input.to_owned();
-                    return;
                 } else {
+                    // @FixMe without min/max, under/overflowing i32 won't saturate to min/max i32
                     match new_input.parse::<i32>() {
-                        Ok(num) => self.input_state = format!("{}", num),
+                        Ok(mut num) => {
+                            if let Some(x) = min { num = std::cmp::max(num, x); }
+                            if let Some(x) = max { num = std::cmp::min(num, x); }
+
+                            self.input_state = format!("{}", num);
+                        }
                         Err(_) => {},
                     }
                 }
-            } else {
+            }
+
+            /*
+            InputVariant::U32 { min, max } => {
                 match new_input.parse::<u32>() {
                     Ok(num) => self.input_state = format!("{}", num),
                     Err(_) => {},
                 }
             }
-        } else {
-            unreachable!();
-        }
-    }
-
-    fn add_input(&mut self, text: &str) {
-        if self.input_flags.contains(InputFlags::INTEGER) {
-            let s = [self.input_state.as_str(), text].concat();
-            self.try_update_input(&s);
-        } else {
-            self.input_state.push_str(text);
+            */
         }
     }
 }
@@ -191,6 +202,15 @@ pub struct Style {
     input_box_width: u32,
     input_box_padding: i32,
     input_focused_color: Color,
+
+    slider_box_width:    u32,
+    slider_box_height:   u32,
+    slider_box_padding:  i32,
+    slider_box_color:    Color,
+    slider_cursor_width: u32,
+    slider_cursor_hover_color:     Color,
+    slider_cursor_unfocused_color: Color,
+    slider_cursor_focused_color:   Color,
 }
 
 impl Default for Style {
@@ -224,6 +244,15 @@ impl Default for Style {
             input_box_width: 48,
             input_box_padding: 4,
             input_focused_color: Color { r: 0.8, g: 0.8, b: 1.0, a: 0.5 },
+
+            slider_box_width:    128,
+            slider_box_height:   20,
+            slider_box_padding:  4,
+            slider_box_color:    Color { r: 0.2, g: 0.2, b: 0.2, a: 0.5 },
+            slider_cursor_width: 12,
+            slider_cursor_hover_color:     Color { r: 0.8, g: 0.8, b: 0.8, a: 0.5 },
+            slider_cursor_unfocused_color: Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 },
+            slider_cursor_focused_color:   Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
         }
     }
 }
@@ -246,10 +275,8 @@ struct State {
     down: bool,
     hovering: bool,
 
-    // If it's focusable, and if has focus or not
-    input_focus: Option<bool>,
-    input_flags: InputFlags,
-    input_complete: bool,
+    // Some if element is focusable, Some(true) if it's currently the focus, Some(false) otherwise
+    //focus: Option<bool>,
 
     //custom_style: Option<Style>,
 
@@ -261,7 +288,33 @@ enum ElementVariant {
     Text     { text: String, },
     Button   { text: String, },
     Checkbox { value: bool },
-    Input    { value: String },
+    Input    {
+        input_focus: Option<bool>,
+        input_complete: bool,
+
+        value_str: String,
+        variant: InputVariant,
+    },
+    Slider {
+        percent: f32,
+        variant: SliderVariant,
+    }
+}
+
+#[derive(Copy, Clone, Debug, ImDraw)]
+enum InputVariant {
+    Str { max_length: usize },
+
+    // @TODO macro this to multiple types
+    I32 { value: i32, min: Option<i32>, max: Option<i32> },
+    //U32 { value: u32, min: Option<u32>, max: Option<u32> },
+}
+
+#[derive(Copy, Clone, Debug, ImDraw)]
+enum SliderVariant {
+    // @TODO macro this to multiple types
+    I32 { value: i32, min: i32, max: i32 },
+    //U32 { value: u32, min: u32, max: u32 },
 }
 
 impl State {
@@ -270,9 +323,6 @@ impl State {
             pressed: false,
             down: false,
             hovering: false,
-            input_focus: None,
-            input_flags: InputFlags::default(),
-            input_complete: false,
             variant: ElementVariant::Text { text: text.to_owned() },
         }
     }
@@ -282,9 +332,6 @@ impl State {
             pressed: false,
             down: false,
             hovering: false,
-            input_focus: None,
-            input_flags: InputFlags::default(),
-            input_complete: false,
             variant: ElementVariant::Button { text: text.to_owned() },
         }
     }
@@ -294,43 +341,51 @@ impl State {
             pressed: false,
             down: false,
             hovering: false,
-            input_focus: None,
-            input_flags: InputFlags::default(),
-            input_complete: false,
             variant: ElementVariant::Checkbox { value },
         }
     }
 
-    fn new_input_i32(value: i32) -> Self {
+    fn new_input_i32(value: i32, min: Option<i32>, max: Option<i32>) -> Self {
         Self {
             pressed: false,
             down: false,
             hovering: false,
-            input_focus: Some(false),
-            input_flags: InputFlags::INTEGER | InputFlags::SIGNED,
-            input_complete: false,
-            variant: ElementVariant::Input { value: format!("{}", value) },
+            variant: ElementVariant::Input {
+                input_focus: Some(false),
+                input_complete: false,
+
+                value_str: format!("{}", value),
+                variant: InputVariant::I32 { value, min, max },
+            },
         }
     }
 
-    fn new_input_str(value: &str) -> Self {
+    fn new_input_str(value: &str, max_length: usize) -> Self {
         Self {
             pressed: false,
             down: false,
             hovering: false,
-            input_focus: Some(false),
-            input_flags: InputFlags::default(),
-            input_complete: false,
-            variant: ElementVariant::Input { value: value.to_owned() },
+            variant: ElementVariant::Input {
+                input_focus: Some(false),
+                input_complete: false,
+
+                value_str: value.to_owned(),
+                variant: InputVariant::Str { max_length },
+            },
         }
     }
-}
 
-bitflags! {
-    #[derive(Default, ImDraw)]
-    struct InputFlags : u8 {
-        const INTEGER = 0b00000001;
-        const SIGNED  = 0b00000010;
+    fn new_slider_i32(value: i32, min: i32, max: i32) -> Self {
+        let percent = (value - min) as f32 / (max - min) as f32;
+        Self {
+            pressed: false,
+            down: false,
+            hovering: false,
+            variant: ElementVariant::Slider {
+                percent,
+                variant: SliderVariant::I32 { value, min, max },
+            },
+        }
     }
 }
 
@@ -362,6 +417,10 @@ impl<S> App<'_, S> {
         self.ui_system.uis.push(ui);
     }
 
+    //------------------
+    // Text
+    //------------------
+
     pub fn text(&mut self, text: &str) {
         let id = Id::new(text);
         let layout = self.new_layout(self.calculate_text_size(text));
@@ -374,6 +433,10 @@ impl<S> App<'_, S> {
         self.ui_system.states.entry(id)
             .or_insert_with(|| State::new_text(text));
     }
+
+    //------------------
+    // Button
+    //------------------
 
     pub fn button(&mut self, text: &str) -> bool {
         // @Maybe add text using the app.text method instead of calculating everything
@@ -396,13 +459,17 @@ impl<S> App<'_, S> {
         state.pressed
     }
 
-    pub fn checkbox(&mut self, text: &str, value: &mut bool) {
-        // Add text
-        self.text(text);
+    //------------------
+    // Checkbox
+    //------------------
+
+    pub fn checkbox(&mut self, label: &str, value: &mut bool) {
+        // Add label
+        self.text(label);
         self.same_line();
 
         // Update/create box state
-        let id = Id::new(text).add("#checkbox");
+        let id = Id::new(label).add("#checkbox");
 
         let ui = &self.ui_system.uis.last().unwrap();
         let checkbox_box_size = ui.style.checkbox_box_size;
@@ -432,12 +499,16 @@ impl<S> App<'_, S> {
         self.add_element(id, layout);
     }
 
-    pub fn input_i32(&mut self, text: &str, value: &mut i32) {
-        // Add text
-        self.text(text);
+    //------------------
+    // Input integer
+    //------------------
+
+    fn input_i32_internal(&mut self, label: &str, value: &mut i32, min: Option<i32>, max: Option<i32>) {
+        // Add label
+        self.text(label);
         self.same_line();
 
-        let id = Id::new(text).add("#input");
+        let id = Id::new(label).add("#input");
 
         let ui = &self.ui_system.uis.last().unwrap();
         let size = Vec2i {
@@ -452,28 +523,64 @@ impl<S> App<'_, S> {
             size
         };
 
-        // @TODO we should update the input state in case referenced value changed
         self.ui_system.states.entry(id)
-            .or_insert_with(|| State::new_input_i32(*value));
-
-        let state = self.update_state_interaction(id, layout);
-        if state.input_complete {
-            if let ElementVariant::Input { value: v } = &mut state.variant {
-                if !v.is_empty() {
-                    *value = i32::from_str_radix(&v, 10).unwrap_or_default();
+            .and_modify(|state| {
+                // Update the value
+                if let ElementVariant::Input {
+                    value_str,
+                    variant,
+                    ..
+                } = &mut state.variant {
+                    if let InputVariant::I32 { value: v, .. } = variant {
+                        if *v != *value {
+                            *v = *value;
+                            *value_str = format!("{}", *value);
+                        }
+                    } else {
+                        unreachable!();
+                    }
                 }
-            } else { panic!("text focusable element that is not an ElementVariant::Input"); }
+            })
+            .or_insert_with(|| State::new_input_i32(*value, min, max));
+
+        let state = self.update_state_interaction(id, layout);
+        if let ElementVariant::Input {
+            input_complete: true,
+            value_str,
+            variant,
+            ..
+        } = &mut state.variant {
+            *value = i32::from_str_radix(&value_str, 10).unwrap_or_default();
+            *value_str = format!("{}", *value);
+
+            if let InputVariant::I32 { value: v, .. } = variant {
+                *v = *value;
+            } else {
+                unreachable!();
+            }
         }
 
         self.add_element(id, layout);
     }
 
-    pub fn input_str(&mut self, text: &str, value: &mut String) {
-        // Add text
-        self.text(text);
+    pub fn input_i32(&mut self, label: &str, value: &mut i32) {
+        self.input_i32_internal(label, value, None, None);
+    }
+
+    pub fn input_i32_range(&mut self, label: &str, value: &mut i32, min: i32, max: i32) {
+        self.input_i32_internal(label, value, Some(min), Some(max));
+    }
+
+    //------------------
+    // Input string
+    //------------------
+
+    fn input_str_internal(&mut self, label: &str, value: &mut String, max_length: usize) {
+        // Add label
+        self.text(label);
         self.same_line();
 
-        let id = Id::new(text).add("#input");
+        let id = Id::new(label).add("#input");
 
         let ui = &self.ui_system.uis.last().unwrap();
         let size = Vec2i {
@@ -490,17 +597,111 @@ impl<S> App<'_, S> {
 
         // @TODO we should update the input state in case referenced value changed
         self.ui_system.states.entry(id)
-            .or_insert_with(|| State::new_input_str(&value));
+            .or_insert_with(|| State::new_input_str(&value, max_length));
 
         let state = self.update_state_interaction(id, layout);
-        if state.input_complete {
-            if let ElementVariant::Input { value: v } = &mut state.variant {
-                *value = v.clone();
-            } else { panic!("text focusable element that is not an ElementVariant::Input"); }
+        if let ElementVariant::Input {
+            input_complete: true,
+            value_str,
+            ..
+        } = &mut state.variant {
+            *value = value_str.clone();
         }
 
         self.add_element(id, layout);
     }
+
+    pub fn input_str(&mut self, label: &str, value: &mut String) {
+        self.input_str_internal(label, value, 64);
+    }
+
+    pub fn input_str_with_max_length(&mut self, label: &str, value: &mut String, max_length: usize) {
+        self.input_str_internal(label, value, max_length);
+    }
+
+    //------------------
+    // Slider integer
+    //------------------
+
+    // @TODO macro this to multiple types
+    // @TODO accept a format string for the type
+    pub fn slider_i32(&mut self, label: &str, value: &mut i32, min: i32, max: i32) {
+        // Add label
+        self.text(label);
+        self.same_line();
+
+        let id = Id::new(label).add("#slider");
+
+        let ui = &self.ui_system.uis.last().unwrap();
+        let size = Vec2i {
+            x: ui.style.slider_box_width as i32,
+            y: ui.style.slider_box_height as i32,
+        };
+        let layout = Layout {
+            pos: Vec2i {
+                x: self.ui_system.cursor.x,
+                y: self.ui_system.cursor.y + (ui.style.font_size as i32 - ui.style.slider_box_height as i32) / 2,
+            },
+            size
+        };
+
+        // @TODO we should update the input state in case referenced value changed
+        self.ui_system.states.entry(id)
+            .and_modify(|state| {
+                if let ElementVariant::Slider {
+                    percent,
+                    variant: SliderVariant::I32 { value: v, min, max },
+                } = &mut state.variant {
+                    if *v != *value {
+                        *v = *value;
+                        *percent = (*v - *min) as f32 / (*max - *min) as f32;
+                    }
+                } else {
+                    unreachable!();
+                }
+            })
+            .or_insert_with(|| State::new_slider_i32(*value, min, max));
+
+        // Copy values that require self reference access
+        let mouse_pos_x = self.get_mouse_position().0 as i32;
+        let ui = &self.ui_system.uis.last().unwrap();
+        let slider_box_padding = ui.style.slider_box_padding;
+        let slider_cursor_width = ui.style.slider_cursor_width;
+
+        let state = self.update_state_interaction(id, layout);
+        if state.down {
+            let mouse_pos_x = mouse_pos_x - layout.pos.x - slider_box_padding;
+            let mouse_pos_x = mouse_pos_x as f32 - slider_cursor_width as f32 / 2.0;
+            let cursor_horizontal_space =
+                layout.size.x - 2 * slider_box_padding - slider_cursor_width as i32;
+
+            let mut new_percent = mouse_pos_x / cursor_horizontal_space as f32;
+            if new_percent < 0.0 { new_percent = 0.0; }
+            if new_percent > 1.0 { new_percent = 1.0; }
+
+            if let ElementVariant::Slider {
+                percent,
+                variant: SliderVariant::I32 { value: v, min, max },
+            } = &mut state.variant {
+                *v = ((*max - *min) as f32 * new_percent + (*min as f32)).round() as i32;
+                *percent = (*v - *min) as f32 / (*max - *min) as f32;
+                *value = *v;
+            } else {
+                unreachable!();
+            }
+        }
+
+        self.add_element(id, layout);
+
+        // Add number value
+        self.same_line();
+        // @TODO cache this string
+        self.text(&format!("{}", value));
+    }
+
+    //------------------
+    // Layout functions
+    //------------------
 
     pub fn indent(&mut self) {
         let ui = &mut self.ui_system.uis.last_mut().unwrap();
@@ -601,29 +802,29 @@ impl<S> App<'_, S> {
 
         state.pressed = false;
         state.hovering = false;
-        state.input_complete = false;
 
         // Handle input focus lost and input completion before mouse interactions
-        if state.input_focus == Some(true) {
-            if (mouse_left_released && !mouse_hovering) || self.ui_system.input_complete {
-                // Input completion
+        if let ElementVariant::Input { input_focus, input_complete, value_str, ..  } = &mut state.variant {
+            *input_complete = false;
+            if *input_focus == Some(true) {
+                if (mouse_left_released && !mouse_hovering) || self.ui_system.input_complete {
+                    // Input completion
 
-                state.input_complete = true;
-                state.input_focus = Some(false);
+                    *input_complete = true;
+                    *input_focus = Some(false);
 
-                // Update the input value to the input_state.
-                // The input_state is saved into input_state_buffer since ui elements are in immediate
-                // mode and the logic to handle having a focused input and clicking on a different
-                // input element would be tricky. Thus, we have a App.update_ui_system function that
-                // stores the input_state into input_state_buffer when we have to update the element
-                // input
-                if let ElementVariant::Input { value } = &mut state.variant {
-                    *value = std::mem::take(&mut self.ui_system.input_state_buffer);
-                } else { panic!("text focusable element that is not an ElementVariant::Input"); }
-            } else if self.ui_system.input_focus.is_none() {
-                // Input focus lost
+                    // Update the input value to the input_state.
+                    // The input_state is saved into input_state_buffer since ui elements are in immediate
+                    // mode and the logic to handle having a focused input and clicking on a different
+                    // input element would be tricky. Thus, we have a App.update_ui_system function that
+                    // stores the input_state into input_state_buffer when we have to update the element
+                    // input
+                    *value_str = std::mem::take(&mut self.ui_system.input_state_buffer);
+                } else if self.ui_system.input_focus.is_none() {
+                    // Input focus lost
 
-                state.input_focus = Some(false);
+                    *input_focus = Some(false);
+                }
             }
         }
 
@@ -635,20 +836,26 @@ impl<S> App<'_, S> {
             } else if mouse_left_released {
                 state.pressed = true;
 
-                if state.input_focus == Some(false) {
-                    state.input_focus = Some(true);
+                if let ElementVariant::Input {
+                    input_focus,
+                    variant,
+                    value_str,
+                    ..
+                } = &mut state.variant {
+                    if *input_focus == Some(false) {
+                        *input_focus = Some(true);
 
-                    self.ui_system.input_focus = Some(id);
-                    self.ui_system.input_flags = state.input_flags;
-                    println!("focus change: {}", id);
-                    println!("input flags: {:?}", self.ui_system.input_flags);
+                        self.ui_system.input_focus = Some(id);
+                        self.ui_system.input_variant = *variant;
 
-                    // Update input_state to the current input value.
-                    if let ElementVariant::Input { value } = &mut state.variant {
-                        self.ui_system.input_state = value.clone();
-                    } else { panic!("text focusable element that is not an ElementVariant::Input"); }
+                        println!("focus change: {}", id);
+                        println!("input variant: {:?}", self.ui_system.input_variant);
 
-                    self.ui_system.input_cursor_timestamp = timestamp;
+                        // Update input_state to the current input value.
+                        self.ui_system.input_state = value_str.clone();
+
+                        self.ui_system.input_cursor_timestamp = timestamp;
+                    }
                 }
             }
         }
@@ -656,7 +863,6 @@ impl<S> App<'_, S> {
         if mouse_left_released {
             state.down = false;
         }
-
 
         state
     }

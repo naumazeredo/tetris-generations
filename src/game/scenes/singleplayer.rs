@@ -71,8 +71,13 @@ impl SceneTrait for SinglePlayerScene {
                 app.unindent();
             }
 
+            //app.input_i32_range("my i32", &mut self.input_i32_test, -10, 10);
             app.input_i32("my i32", &mut self.input_i32_test);
+
+            //app.input_str_with_max_length("my str", &mut self.input_str_test, 10);
             app.input_str("my str", &mut self.input_str_test);
+
+            app.slider_i32("my i32", &mut self.input_i32_test, -10, 10);
 
             if app.button("resume") {
                 app.resume();

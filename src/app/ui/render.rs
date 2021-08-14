@@ -130,14 +130,14 @@ impl Ui {
                     );
                 }
 
-                ElementVariant::Input { value } => {
+                ElementVariant::Input { value_str, input_focus, .. } => {
                     // Calculate input box color
                     let color;
                     if state.down {
                         color = self.style.box_down_color;
                     } else if state.hovering {
                         color = self.style.box_hover_color;
-                    } else if state.input_focus == Some(true) {
+                    } else if *input_focus == Some(true) {
                         color = self.style.input_focused_color;
                     } else {
                         color = self.style.box_color;
@@ -164,10 +164,10 @@ impl Ui {
                         };
 
                     let text;
-                    if state.input_focus == Some(true) {
+                    if *input_focus == Some(true) {
                         text = &app.ui_system.input_state;
                     } else {
-                        text = &value;
+                        text = &value_str;
                     }
 
                     queue_draw_text(
@@ -191,7 +191,7 @@ impl Ui {
                     let cursor_timestamp = app.ui_system.input_cursor_timestamp;
                     let current_timestamp = app.real_timestamp();
 
-                    if state.input_focus == Some(true) &&
+                    if *input_focus == Some(true) &&
                        ((current_timestamp - cursor_timestamp) / cursor_duration) % 2 == 0 {
 
                         let draw_text_size: Vec2i = calculate_draw_text_size(
@@ -226,7 +226,56 @@ impl Ui {
                     }
                 }
 
-                _ => { unimplemented!(); }
+                ElementVariant::Slider { percent, .. } => {
+                    queue_draw_solid(
+                        &mut app.renderer,
+                        &Transform {
+                            pos: layout.pos.into(),
+                            scale: Vec2 { x: 1.0, y: 1.0 },
+                            rot: 0.0,
+                            layer: 1000,
+                        },
+                        layout.size.into(),
+                        self.style.slider_box_color,
+                    );
+
+                    // Draw cursor
+                    let color;
+                    if state.hovering {
+                        color = self.style.slider_cursor_hover_color;
+                    } else {
+                        color = self.style.slider_cursor_unfocused_color;
+                    }
+
+                    // @Refactor this into a function since it's used for both rendering and state
+                    //           update
+                    let cursor_horizontal_space = layout.size.x -
+                        2 * self.style.slider_box_padding - self.style.slider_cursor_width as i32;
+                    let pos = layout.pos + Vec2i {
+                        x: self.style.slider_box_padding +
+                            (cursor_horizontal_space as f32 * (*percent)).round() as i32,
+                        y: self.style.slider_box_padding,
+                    };
+
+                    let size = Vec2i {
+                        x: self.style.slider_cursor_width as i32,
+                        y: layout.size.y - 2 * self.style.slider_box_padding,
+                    };
+
+                    queue_draw_solid(
+                        &mut app.renderer,
+                        &Transform {
+                            pos: pos.into(),
+                            scale: Vec2 { x: 1.0, y: 1.0 },
+                            rot: 0.0,
+                            layer: 1000,
+                        },
+                        size.into(),
+                        color,
+                    );
+                }
+
+                //_ => { unimplemented!(); }
             }
         }
     }
