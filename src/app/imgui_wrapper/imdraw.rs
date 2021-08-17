@@ -105,6 +105,12 @@ impl ImDraw for bool {
     }
 }
 
+impl ImDraw for &str {
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        ui.text(format!("{}: {}", label, self));
+    }
+}
+
 impl ImDraw for String {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
         let mut im_str = self.clone().into();
@@ -350,5 +356,34 @@ where
                 self[i].imdraw(&format!("[{}]", i), ui);
             }
         });
+    }
+}
+
+// slices
+/*
+impl<T> ImDraw for &[T]
+where
+    T: ImDraw
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            for i in 0..self.len() {
+                self[i].imdraw(&format!("[{}]", i), ui);
+            }
+
+            /*
+            self.iter()
+                .enumerate()
+                .for_each(|(i, elem)| elem.imdraw(&format!("[{}]", i), ui));
+            */
+        });
+    }
+}
+*/
+
+impl<T> ImDraw for &[T]
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        ui.text(format!("{}: (todo)", label));
     }
 }

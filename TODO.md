@@ -31,15 +31,21 @@
   - [ ] Axis-aligned (+ scissor) rendering
   - [ ] Stack of modifier commands (blend enabled, framebuffer target, proj matrix, etc)
 - [ ] UI system
+  - [ ] Position/size should be calculated on rendering call. The calls should store the layout and
+      state
+    - [ ] Layout: size (auto+min+max, fixed)
+    - [ ] Extra commands: indent, unindent, same line, (group start/end? -> maybe this will require
+        two passes: calculate position/size, render)
   - [ ] Widgets
     - [x] Text
     - [x] Button
     - [x] Checkbox
-    - [ ] Input integer range
+    - [x] Input integer range
+    - [x] Input text
     - [ ] Input float range
-    - [ ] Input text
     - [ ] Input color
     - [ ] Input key
+    - [x] Combobox
   - [ ] Keyboard/Controller support
   - [ ] Styling options
   - [ ] Command buffer "immediate mode"

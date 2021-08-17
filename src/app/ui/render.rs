@@ -16,7 +16,7 @@ impl Ui {
                 pos: self.layout.pos.into(),
                 scale: Vec2 { x: 1.0, y: 1.0 },
                 rot: 0.0,
-                layer: 1000,
+                layer: 900,
             },
             self.layout.size.into(),
             self.style.background_color,
@@ -47,7 +47,7 @@ impl Ui {
                             pos: pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         self.style.font_size as f32,
                         self.style.text_color,
@@ -71,7 +71,7 @@ impl Ui {
                             pos: layout.pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         layout.size.into(),
                         color,
@@ -94,7 +94,7 @@ impl Ui {
                             pos: pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         self.style.font_size as f32,
                         self.style.text_color,
@@ -123,7 +123,7 @@ impl Ui {
                             pos: layout.pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         layout.size.into(),
                         color,
@@ -149,14 +149,14 @@ impl Ui {
                             pos: layout.pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         layout.size.into(),
                         color,
                     );
 
                     // Draw input text
-                    let padding = self.style.input_box_padding;
+                    let padding = self.style.box_padding;
                     let pos = layout.pos +
                         Vec2i {
                             x: padding,
@@ -180,7 +180,7 @@ impl Ui {
                             pos: pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         self.style.font_size as f32,
                         self.style.text_color,
@@ -218,7 +218,7 @@ impl Ui {
                                 pos: pos.into(),
                                 scale: Vec2 { x: 1.0, y: 1.0 },
                                 rot: 0.0,
-                                layer: 1000,
+                                layer: 910,
                             },
                             size.into(),
                             self.style.text_color,
@@ -233,7 +233,7 @@ impl Ui {
                             pos: layout.pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         layout.size.into(),
                         self.style.slider_box_color,
@@ -268,10 +268,106 @@ impl Ui {
                             pos: pos.into(),
                             scale: Vec2 { x: 1.0, y: 1.0 },
                             rot: 0.0,
-                            layer: 1000,
+                            layer: 910,
                         },
                         size.into(),
                         color,
+                    );
+                }
+
+                ElementVariant::Combobox { text, .. } => {
+                    // Draw button background
+                    let color;
+                    if state.down {
+                        color = self.style.box_down_color;
+                    } else if state.hovering {
+                        color = self.style.box_hover_color;
+                    } else {
+                        color = self.style.box_color;
+                    }
+
+                    queue_draw_solid(
+                        &mut app.renderer,
+                        &Transform {
+                            pos: layout.pos.into(),
+                            scale: Vec2 { x: 1.0, y: 1.0 },
+                            rot: 0.0,
+                            layer: 910,
+                        },
+                        layout.size.into(),
+                        color,
+                    );
+
+                    // Fix text position since it's rendered from the bottom
+                    let padding = self.style.box_padding;
+                    let pos = layout.pos +
+                        Vec2i { x: 0, y: self.style.font_size as i32 } +
+                        Vec2i { x: padding, y: padding };
+
+                    // Draw text
+                    queue_draw_text(
+                        &mut app.renderer,
+                        &app.font_system,
+
+                        text,
+                        app.font_system.default_font_id,
+                        &Transform {
+                            pos: pos.into(),
+                            scale: Vec2 { x: 1.0, y: 1.0 },
+                            rot: 0.0,
+                            layer: 910,
+                        },
+                        self.style.font_size as f32,
+                        self.style.text_color,
+                    );
+                }
+
+                ElementVariant::ComboboxOption { selected, text } => {
+                    // Draw button background
+                    let color;
+                    if state.down {
+                        color = self.style.box_down_color;
+                    } else if state.hovering {
+                        color = self.style.box_hover_color;
+                    } else if *selected {
+                        color = self.style.combobox_selected_option_color;
+                    } else {
+                        color = self.style.box_color;
+                    }
+
+                    queue_draw_solid(
+                        &mut app.renderer,
+                        &Transform {
+                            pos: layout.pos.into(),
+                            scale: Vec2 { x: 1.0, y: 1.0 },
+                            rot: 0.0,
+                            layer: 920,
+                        },
+                        layout.size.into(),
+                        color,
+                    );
+
+                    // Fix text position since it's rendered from the bottom
+                    let padding = self.style.box_padding;
+                    let pos = layout.pos +
+                        Vec2i { x: 0, y: self.style.font_size as i32 } +
+                        Vec2i { x: padding, y: padding };
+
+                    // Draw text
+                    queue_draw_text(
+                        &mut app.renderer,
+                        &app.font_system,
+
+                        text,
+                        app.font_system.default_font_id,
+                        &Transform {
+                            pos: pos.into(),
+                            scale: Vec2 { x: 1.0, y: 1.0 },
+                            rot: 0.0,
+                            layer: 920,
+                        },
+                        self.style.font_size as f32,
+                        self.style.text_color,
                     );
                 }
 

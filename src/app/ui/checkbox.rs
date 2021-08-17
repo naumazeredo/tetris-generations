@@ -1,14 +1,12 @@
 use crate::app::App;
 use super::*;
 
-impl State {
-    fn new_checkbox(value: bool) -> Self {
-        Self {
-            pressed: false,
-            down: false,
-            hovering: false,
-            variant: ElementVariant::Checkbox { value },
-        }
+fn new_checkbox(value: bool) -> State {
+    State {
+        pressed: false,
+        down: false,
+        hovering: false,
+        variant: ElementVariant::Checkbox { value },
     }
 }
 
@@ -33,7 +31,7 @@ impl<S> App<'_, S> {
                     _ => unreachable!()
                 }
             })
-            .or_insert_with(|| State::new_checkbox(*value));
+            .or_insert_with(|| new_checkbox(*value));
 
         let state = self.update_state_interaction(id, layout);
         if state.pressed {

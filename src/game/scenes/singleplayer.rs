@@ -17,10 +17,13 @@ pub struct SinglePlayerScene {
     debug_pieces_scene_opened: bool,
     rules_instance: RulesInstance,
 
+    seed: u64,
+
     checkbox_test: bool,
     input_i32_test: i32,
     input_u32_test: u32,
     input_str_test: String,
+    combobox_index_test: usize,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -50,28 +53,25 @@ impl SceneTrait for SinglePlayerScene {
             // Ui
             let window_layout = Layout {
                 pos: Vec2i { x: 12, y: 12 },
-                size: Vec2i { x: 300, y: 400 }
+                size: Vec2i { x: 400, y: 400 }
             };
             app.new_ui(window_layout);
 
-            app.text("test 1");
-            app.indent();
-            app.text("test 2");
-            app.unindent();
-            app.text("test 3");
-
-            if app.button("button") {
-                println!("test");
+            app.text("RULES");
+            app.checkbox("hard drop", &mut self.rules_instance.rules.has_hard_drop);
+            if self.rules_instance.rules.has_hard_drop {
+                app.checkbox("hard drop lock", &mut self.rules_instance.rules.has_hard_drop_lock);
             }
 
-            app.checkbox("checkbox", &mut self.checkbox_test);
-
-            if self.checkbox_test {
-                app.indent();
-                app.text("test 4");
-                app.unindent();
+            app.checkbox("soft drop", &mut self.rules_instance.rules.has_soft_drop);
+            if self.rules_instance.rules.has_soft_drop {
+                app.checkbox("soft drop lock", &mut self.rules_instance.rules.has_soft_drop_lock);
             }
 
+            app.checkbox("hold piece", &mut self.rules_instance.rules.has_hold_piece);
+            app.checkbox("ghost piece", &mut self.rules_instance.rules.has_ghost_piece);
+
+            /*
             //app.input_i32_range("my i32", &mut self.input_i32_test, -10, 10);
             app.input_i32("my i32", &mut self.input_i32_test);
 
@@ -80,8 +80,19 @@ impl SceneTrait for SinglePlayerScene {
 
             app.slider_i32("my i32", &mut self.input_i32_test, -10, 10);
             app.slider_u32("my u32", &mut self.input_u32_test, 0, 200);
+            */
 
-            if app.button("resume") {
+            app.combobox("combobox", &mut self.combobox_index_test, combobox::COMBOBOX_TEST_OPTIONS);
+
+            app.input_u64("seed", &mut self.seed);
+
+            if app.button("Restart") {
+                println!("restart");
+            }
+
+            app.same_line();
+
+            if app.button("Resume") {
                 app.resume();
             }
         }
@@ -191,10 +202,13 @@ impl SinglePlayerScene {
             debug_pieces_scene_opened: false,
             rules_instance,
 
+            seed,
+
             checkbox_test: false,
             input_i32_test: 0,
             input_u32_test: 0,
             input_str_test: String::new(),
+            combobox_index_test: 0,
         }
     }
 }

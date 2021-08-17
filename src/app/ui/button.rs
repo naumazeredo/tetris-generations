@@ -1,14 +1,12 @@
 use crate::app::App;
 use super::*;
 
-impl State {
-    fn new_button(text: &str) -> Self {
-        Self {
-            pressed: false,
-            down: false,
-            hovering: false,
-            variant: ElementVariant::Button { text: text.to_owned() },
-        }
+fn new_button(text: &str) -> State {
+    State {
+        pressed: false,
+        down: false,
+        hovering: false,
+        variant: ElementVariant::Button { text: text.to_owned() },
     }
 }
 
@@ -28,7 +26,7 @@ impl<S> App<'_, S> {
         self.add_element(id, layout);
 
         self.ui_system.states.entry(id)
-            .or_insert_with(|| State::new_button(text));
+            .or_insert_with(|| new_button(text));
 
         let state = self.update_state_interaction(id, layout);
         state.pressed

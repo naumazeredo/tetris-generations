@@ -1,14 +1,12 @@
 use crate::app::App;
 use super::*;
 
-impl State {
-    fn new_text(text: &str) -> Self {
-        Self {
-            pressed: false,
-            down: false,
-            hovering: false,
-            variant: ElementVariant::Text { text: text.to_owned() },
-        }
+fn new_text(text: &str) -> State {
+    State {
+        pressed: false,
+        down: false,
+        hovering: false,
+        variant: ElementVariant::Text { text: text.to_owned() },
     }
 }
 
@@ -23,6 +21,6 @@ impl<S> App<'_, S> {
         //       Maybe create a function that compares the strings (or the string ids) and swap the
         //       contents in case they are different
         self.ui_system.states.entry(id)
-            .or_insert_with(|| State::new_text(text));
+            .or_insert_with(|| new_text(text));
     }
 }

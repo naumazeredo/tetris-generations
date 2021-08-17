@@ -3,6 +3,7 @@ use crate::app::{
     renderer::color::{self, Color},
 };
 
+
 #[derive(Clone, ImDraw)]
 pub struct Style {
     //font_id: FontId,
@@ -11,6 +12,8 @@ pub struct Style {
     pub padding:     i32,
 
     pub background_color: Color,
+
+    // @TODO move to specific files
 
     pub input_cursor_duration: u64,
     pub input_cursor_size: u32,
@@ -26,6 +29,7 @@ pub struct Style {
     pub box_color:       Color,
     pub box_hover_color: Color,
     pub box_down_color:  Color,
+    pub box_padding: i32,
 
     pub button_padding: i32,
 
@@ -36,10 +40,8 @@ pub struct Style {
     pub checkbox_selected_hover_color:   Color,
 
     pub input_box_width: u32,
-    pub input_box_padding: i32,
     pub input_focused_color: Color,
 
-    // @TODO move this to slider.rs
     pub slider_box_width:    u32,
     pub slider_box_height:   u32,
     pub slider_box_padding:  i32,
@@ -48,6 +50,9 @@ pub struct Style {
     pub slider_cursor_hover_color:     Color,
     pub slider_cursor_unfocused_color: Color,
     pub slider_cursor_focused_color:   Color,
+
+    pub combobox_box_width: u32,
+    pub combobox_selected_option_color: Color,
 }
 
 impl Default for Style {
@@ -57,7 +62,7 @@ impl Default for Style {
             indent_size: 12,
             padding:     12,
 
-            background_color: color::BLACK,
+            background_color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.95 },
 
             input_cursor_duration: 500_000,
             input_cursor_size: 4,
@@ -69,6 +74,7 @@ impl Default for Style {
             box_color:       Color { r: 0.3, g: 0.3, b: 0.3, a: 0.5 },
             box_hover_color: Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 },
             box_down_color:  Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
+            box_padding: 4,
 
             button_padding: 8,
 
@@ -78,8 +84,7 @@ impl Default for Style {
             checkbox_selected_color:         Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
             checkbox_selected_hover_color:   Color { r: 0.8, g: 0.8, b: 0.8, a: 0.5 },
 
-            input_box_width: 48,
-            input_box_padding: 4,
+            input_box_width: 64,
             input_focused_color: Color { r: 0.8, g: 0.8, b: 1.0, a: 0.5 },
 
             slider_box_width:    128,
@@ -90,6 +95,9 @@ impl Default for Style {
             slider_cursor_hover_color:     Color { r: 0.8, g: 0.8, b: 0.8, a: 0.5 },
             slider_cursor_unfocused_color: Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 },
             slider_cursor_focused_color:   Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
+
+            combobox_box_width: 160,
+            combobox_selected_option_color: Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
         }
     }
 }

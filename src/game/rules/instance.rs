@@ -29,7 +29,7 @@ pub struct RulesInstance {
     // @Maybe add which topout rule was the cause
     topped_out: bool, // per game
 
-    rules: Rules,           // per game
+    pub rules: Rules,           // per game
     playfield: Playfield,   // per game
     randomizer: Randomizer, // per game
 

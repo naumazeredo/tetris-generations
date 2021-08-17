@@ -1,5 +1,6 @@
 pub mod button;
 pub mod checkbox;
+pub mod combobox;
 pub mod input;
 pub mod render;
 pub mod slider;
@@ -31,8 +32,10 @@ pub(in crate::app) struct UiSystem {
     input_state_buffer: String, // @Refactor buffer allocation instead of regular reallocs
     input_variant: InputVariant,
     input_complete: bool, // @Refactor this should be removed when we add an UI default input mapping
-
     input_cursor_timestamp: u64,
+
+    modal_open: Option<Id>,
+    modal_change: Option<Id>,
 
     // Placer variables
     indentation: u8,
@@ -54,8 +57,10 @@ impl UiSystem {
             input_state_buffer: String::new(),
             input_variant: InputVariant::Str { max_length: 8 },
             input_complete: false,
-
             input_cursor_timestamp: 0,
+
+            modal_open: None,
+            modal_change: None,
 
             indentation: 0,
             cursor: Vec2i::new(),
@@ -173,6 +178,14 @@ enum ElementVariant {
     Slider {
         percent: f32,
         variant: SliderVariant,
+    },
+    Combobox {
+        index: usize,
+        text: String,
+    },
+    ComboboxOption {
+        selected: bool,
+        text: String,
     }
 }
 
@@ -276,6 +289,11 @@ impl<S> App<'_, S> {
         }
     }
 
+    fn add_modal_element(&mut self, id: Id, layout: Layout) {
+        let ui = &mut self.ui_system.uis.last_mut().unwrap();
+        ui.elements.push(Element { id, layout });
+    }
+
     /*
     fn begin_element(&mut self, element: Element) {
         self.add_element(element, Vec2i::new());
@@ -294,6 +312,88 @@ impl<S> App<'_, S> {
     // @TODO somehow refactor this function to be able to have a state tied to a deeper level
     //       of the app, instead of self
     fn update_state_interaction(&mut self, id: Id, layout: Layout) -> &mut State {
+        // @TODO only update if mouse is inside the element container (we will need to propagate
+        //       the container size)
+
+        // Get mouse state
+        let mouse_pos: Vec2i = self.get_mouse_position().into();
+        let mouse_left_pressed = self.mouse_left_pressed();
+        let mouse_left_released = self.mouse_left_released();
+        let mouse_hovering = mouse_pos.is_inside(layout.pos, layout.size);
+
+        let mut state = self.ui_system.states.get_mut(&id).unwrap();
+
+        // Update mouse interaction
+
+        state.pressed = false;
+        state.hovering = false;
+
+        // Check modal opened
+        if self.ui_system.modal_open.is_some() {
+            state.down = false;
+            return state;
+        }
+
+        // Handle mouse interactions
+        if mouse_hovering {
+            state.hovering = true;
+            if mouse_left_pressed {
+                state.down = true;
+            } else if mouse_left_released {
+                state.pressed = true;
+            }
+        }
+
+        if mouse_left_released {
+            state.down = false;
+        }
+
+        state
+    }
+
+    // @TODO somehow refactor this function to be able to have a state tied to a deeper level
+    //       of the app, instead of self
+    fn update_modal_state_interaction(&mut self, id: Id, layout: Layout) -> &mut State {
+        // @TODO only update if mouse is inside the element container (we will need to propagate
+        //       the container size)
+
+        // Get mouse state
+        let mouse_pos: Vec2i = self.get_mouse_position().into();
+        let mouse_left_pressed = self.mouse_left_pressed();
+        let mouse_left_released = self.mouse_left_released();
+        let mouse_hovering = mouse_pos.is_inside(layout.pos, layout.size);
+
+        let mut state = self.ui_system.states.get_mut(&id).unwrap();
+
+        // Update mouse interaction
+
+        state.pressed = false;
+        state.hovering = false;
+
+        // Handle mouse interactions
+        if mouse_hovering {
+            state.hovering = true;
+            if mouse_left_pressed {
+                state.down = true;
+            } else if mouse_left_released {
+                state.pressed = true;
+            }
+        }
+
+        if mouse_left_released {
+            state.down = false;
+            self.ui_system.modal_change = None;
+        }
+
+        state
+    }
+
+    // @TODO somehow refactor this function to be able to have a state tied to a deeper level
+    //       of the app, instead of self
+    fn update_input_state_interaction(&mut self, id: Id, layout: Layout) -> &mut State {
+        // @TODO only update if mouse is inside the element container (we will need to propagate
+        //       the container size)
+
         // Get mouse state
         let mouse_pos: Vec2i = self.get_mouse_position().into();
         let mouse_left_pressed = self.mouse_left_pressed();
@@ -307,6 +407,12 @@ impl<S> App<'_, S> {
 
         state.pressed = false;
         state.hovering = false;
+
+        // Check modal opened
+        if self.ui_system.modal_open.is_some() {
+            state.down = false;
+            return state;
+        }
 
         // Handle input focus lost and input completion before mouse interactions
         if let ElementVariant::Input { input_focus, input_complete, value_str, ..  } = &mut state.variant {
@@ -382,5 +488,7 @@ impl<S> App<'_, S> {
             self.ui_system.input_focus = None;
             self.ui_system.input_state_buffer = std::mem::take(&mut self.ui_system.input_state);
         }
+
+        self.ui_system.modal_open = self.ui_system.modal_change;
     }
 }
