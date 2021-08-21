@@ -259,6 +259,19 @@ impl<S> App<'_, S> {
         Layout { pos: self.ui_system.cursor, size }
     }
 
+    // @Cleanup this seems unnecessary. The design will change and we will be able to remove this
+    fn new_layout_right(&self, size: Vec2i) -> Layout {
+        let ui = &self.ui_system.uis.last().unwrap();
+        let pos = Vec2i {
+            // What is happening? Why adding the padding breaks it?
+            //x: ui.layout.size.x - ui.style.padding - size.x,
+            x: ui.layout.size.x - size.x,
+            y: self.ui_system.cursor.y,
+        };
+
+        Layout { pos, size }
+    }
+
     fn calculate_text_size(&self, text: &str) -> Vec2i {
         let ui = &self.ui_system.uis.last().unwrap();
         calculate_draw_text_size(
@@ -269,6 +282,8 @@ impl<S> App<'_, S> {
         ).into()
     }
 
+    // @TODO no need for this same line/next line logic. We won't use it and it's making the whole
+    //       design worse (this is too general)
     fn add_element(&mut self, id: Id, layout: Layout) {
         let ui = &mut self.ui_system.uis.last_mut().unwrap();
         ui.elements.push(Element { id, layout });
@@ -282,7 +297,8 @@ impl<S> App<'_, S> {
         self.ui_system.same_line_cursor.y = self.ui_system.cursor.y;
 
         self.ui_system.cursor.x = ui_layout.pos.x + padding + indent_size * self.ui_system.indentation as i32;
-        self.ui_system.cursor.y += layout.size.y + spacing;
+        //self.ui_system.cursor.y += layout.size.y + spacing;
+        self.ui_system.cursor.y += ui.style.line_height + spacing;
 
         if self.ui_system.input_focus == Some(id) {
             self.ui_system.found_input_focus = true;
@@ -305,8 +321,17 @@ impl<S> App<'_, S> {
     }
     */
 
-    fn get_state(&self, id: Id) -> &State {
-        self.ui_system.states.get(&id).unwrap()
+    fn is_mouse_hovering(&self, layout: Layout) -> bool {
+        let mouse_pos: Vec2i = self.get_mouse_position().into();
+
+        let ui = &self.ui_system.uis.last().unwrap();
+        let padding = Vec2i { x: ui.style.padding, y: ui.style.padding };
+        let ui_layout = ui.layout;
+
+        return
+            mouse_pos.is_inside(ui_layout.pos, ui_layout.size - padding) &&
+            mouse_pos.is_inside(layout.pos, layout.size)
+        ;
     }
 
     // @TODO somehow refactor this function to be able to have a state tied to a deeper level
@@ -316,10 +341,9 @@ impl<S> App<'_, S> {
         //       the container size)
 
         // Get mouse state
-        let mouse_pos: Vec2i = self.get_mouse_position().into();
         let mouse_left_pressed = self.mouse_left_pressed();
         let mouse_left_released = self.mouse_left_released();
-        let mouse_hovering = mouse_pos.is_inside(layout.pos, layout.size);
+        let mouse_hovering = self.is_mouse_hovering(layout);
 
         let mut state = self.ui_system.states.get_mut(&id).unwrap();
 

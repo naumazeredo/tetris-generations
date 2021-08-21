@@ -68,7 +68,6 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
 
         let sdl_context = SdlContext::new();
         let video_system = VideoSystem::new(config, sdl_context.video_subsystem.clone());
-        println!("{}", sdl_context.video_subsystem.text_input().is_active());
 
         let font_system = FontSystem::new(&sdl_context.ttf_context);
         let input_system = InputSystem::new(sdl_context.controller_subsystem.clone());

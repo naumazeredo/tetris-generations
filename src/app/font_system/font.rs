@@ -122,9 +122,14 @@ pub(in crate::app) fn calculate_draw_text_size(
                 y: char_data.metrics.h as f32 * scale
             };
 
-            max_size.x = max_size.x.max(pos.x + char_top_left.x + size.x);
-
             let advance = char_data.metrics.advance as f32 * scale;
+
+            if ch.is_whitespace() {
+                max_size.x = max_size.x.max(pos.x + advance);
+            } else {
+                max_size.x = max_size.x.max(pos.x + char_top_left.x + size.x);
+            }
+
             pos.x += advance;
         }
     }

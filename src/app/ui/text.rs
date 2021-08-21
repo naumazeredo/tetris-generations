@@ -13,7 +13,19 @@ fn new_text(text: &str) -> State {
 impl<S> App<'_, S> {
     pub fn text(&mut self, text: &str) {
         let id = Id::new(text);
-        let layout = self.new_layout(self.calculate_text_size(text));
+        self.text_with_id(id, text);
+    }
+
+    pub(in super) fn text_with_id(&mut self, id: Id, text: &str) {
+        let size = self.calculate_text_size(text);
+        let ui = &self.ui_system.uis.last().unwrap();
+        let layout = Layout {
+            pos: Vec2i {
+                x: self.ui_system.cursor.x,
+                y: self.ui_system.cursor.y + ui.style.box_padding,
+            },
+            size
+        };
 
         self.add_element(id, layout);
 

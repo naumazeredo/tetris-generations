@@ -3,7 +3,11 @@ use crate::app::{
     App,
     Transform,
     renderer::font::queue_draw_text,
-    renderer::draw_command::queue_draw_solid,
+    renderer::draw_command::{
+        queue_draw_solid,
+        push_clip,
+        pop_clip,
+    },
 };
 use crate::linalg::{Vec2, Vec2i};
 
@@ -21,6 +25,10 @@ impl Ui {
             self.layout.size.into(),
             self.style.background_color,
         );
+
+        // Clip region
+        let padding = Vec2i { x: self.style.padding, y: self.style.padding };
+        push_clip(&mut app.renderer, self.layout.pos + padding, self.layout.size - 2 * padding);
 
         let elements = std::mem::take(&mut self.elements);
 
@@ -78,10 +86,10 @@ impl Ui {
                     );
 
                     // Fix text position since it's rendered from the bottom
-                    let padding = self.style.button_padding;
-                    let pos = layout.pos +
-                        Vec2i { x: 0, y: self.style.font_size as i32 } +
-                        Vec2i { x: padding, y: padding };
+                    let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
+                    let pos = layout.pos + Vec2i { x: 0, y: self.style.font_size as i32 } + padding;
+
+                    push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                     // Draw text
                     queue_draw_text(
@@ -99,6 +107,8 @@ impl Ui {
                         self.style.font_size as f32,
                         self.style.text_color,
                     );
+
+                    pop_clip(&mut app.renderer);
                 }
 
                 ElementVariant::Checkbox { value } => {
@@ -156,12 +166,8 @@ impl Ui {
                     );
 
                     // Draw input text
-                    let padding = self.style.box_padding;
-                    let pos = layout.pos +
-                        Vec2i {
-                            x: padding,
-                            y: padding + self.style.font_size as i32
-                        };
+                    let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
+                    let pos = layout.pos + padding + Vec2i { x: 0, y: self.style.font_size as i32 };
 
                     let text;
                     if *input_focus == Some(true) {
@@ -169,6 +175,8 @@ impl Ui {
                     } else {
                         text = &value_str;
                     }
+
+                    push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                     queue_draw_text(
                         &mut app.renderer,
@@ -194,16 +202,16 @@ impl Ui {
                     if *input_focus == Some(true) &&
                        ((current_timestamp - cursor_timestamp) / cursor_duration) % 2 == 0 {
 
-                        let draw_text_size: Vec2i = calculate_draw_text_size(
+                        let text_draw_size: Vec2i = calculate_draw_text_size(
                             &app.font_system,
                             text,
                             app.font_system.default_font_id,
                             self.style.font_size as f32,
                         ).into();
 
-                        let pos = layout.pos + Vec2i { x: padding, y: padding };
+                        let pos = layout.pos + padding;
                         let pos = pos + Vec2i {
-                            x: draw_text_size.x + self.style.input_cursor_padding,
+                            x: text_draw_size.x + self.style.input_cursor_padding,
                             y: -self.style.input_cursor_padding,
                         };
 
@@ -224,9 +232,11 @@ impl Ui {
                             self.style.text_color,
                         );
                     }
+
+                    pop_clip(&mut app.renderer);
                 }
 
-                ElementVariant::Slider { percent, .. } => {
+                ElementVariant::Slider { percent, variant } => {
                     queue_draw_solid(
                         &mut app.renderer,
                         &Transform {
@@ -273,6 +283,38 @@ impl Ui {
                         size.into(),
                         color,
                     );
+
+                    // Value
+                    let text = &variant.to_str();
+
+                    let text_draw_size: Vec2i = calculate_draw_text_size(
+                        &app.font_system,
+                        text,
+                        app.font_system.default_font_id,
+                        self.style.font_size as f32,
+                    ).into();
+
+                    let pos = layout.pos +
+                        Vec2i {
+                            x: (layout.size.x - text_draw_size.x) / 2,
+                            y: self.style.box_padding + self.style.font_size as i32
+                        };
+
+                    queue_draw_text(
+                        &mut app.renderer,
+                        &app.font_system,
+
+                        text,
+                        app.font_system.default_font_id,
+                        &Transform {
+                            pos: pos.into(),
+                            scale: Vec2 { x: 1.0, y: 1.0 },
+                            rot: 0.0,
+                            layer: 910,
+                        },
+                        self.style.font_size as f32,
+                        self.style.text_color,
+                    );
                 }
 
                 ElementVariant::Combobox { text, .. } => {
@@ -299,10 +341,11 @@ impl Ui {
                     );
 
                     // Fix text position since it's rendered from the bottom
-                    let padding = self.style.box_padding;
-                    let pos = layout.pos +
-                        Vec2i { x: 0, y: self.style.font_size as i32 } +
-                        Vec2i { x: padding, y: padding };
+                    let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
+                    let pos = layout.pos + padding +
+                        Vec2i { x: 0, y: self.style.font_size as i32 };
+
+                    push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                     // Draw text
                     queue_draw_text(
@@ -320,6 +363,8 @@ impl Ui {
                         self.style.font_size as f32,
                         self.style.text_color,
                     );
+
+                    pop_clip(&mut app.renderer);
                 }
 
                 ElementVariant::ComboboxOption { selected, text } => {
@@ -348,10 +393,11 @@ impl Ui {
                     );
 
                     // Fix text position since it's rendered from the bottom
-                    let padding = self.style.box_padding;
-                    let pos = layout.pos +
-                        Vec2i { x: 0, y: self.style.font_size as i32 } +
-                        Vec2i { x: padding, y: padding };
+                    let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
+                    let pos = layout.pos + padding +
+                        Vec2i { x: 0, y: self.style.font_size as i32 };
+
+                    push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                     // Draw text
                     queue_draw_text(
@@ -369,11 +415,15 @@ impl Ui {
                         self.style.font_size as f32,
                         self.style.text_color,
                     );
+
+                    pop_clip(&mut app.renderer);
                 }
 
                 //_ => { unimplemented!(); }
             }
         }
+
+        pop_clip(&mut app.renderer);
     }
 }
 

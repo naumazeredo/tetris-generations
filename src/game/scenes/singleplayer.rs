@@ -53,44 +53,71 @@ impl SceneTrait for SinglePlayerScene {
             // Ui
             let window_layout = Layout {
                 pos: Vec2i { x: 12, y: 12 },
-                size: Vec2i { x: 400, y: 400 }
+                size: Vec2i { x: 600, y: 628 }
             };
             app.new_ui(window_layout);
 
             app.text("RULES");
             app.checkbox("hard drop", &mut self.rules_instance.rules.has_hard_drop);
             if self.rules_instance.rules.has_hard_drop {
+                app.indent();
                 app.checkbox("hard drop lock", &mut self.rules_instance.rules.has_hard_drop_lock);
+                app.unindent();
             }
 
             app.checkbox("soft drop", &mut self.rules_instance.rules.has_soft_drop);
             if self.rules_instance.rules.has_soft_drop {
+                app.indent();
                 app.checkbox("soft drop lock", &mut self.rules_instance.rules.has_soft_drop_lock);
+                app.unindent();
             }
 
             app.checkbox("hold piece", &mut self.rules_instance.rules.has_hold_piece);
+            if self.rules_instance.rules.has_hold_piece {
+                app.indent();
+                app.checkbox("reset rotation", &mut self.rules_instance.rules.hold_piece_reset_rotation);
+                app.unindent();
+            }
+
             app.checkbox("ghost piece", &mut self.rules_instance.rules.has_ghost_piece);
 
-            /*
-            //app.input_i32_range("my i32", &mut self.input_i32_test, -10, 10);
-            app.input_i32("my i32", &mut self.input_i32_test);
+            app.checkbox("spawn drop", &mut self.rules_instance.rules.spawn_drop);
 
-            //app.input_str_with_max_length("my str", &mut self.input_str_test, 10);
-            app.input_str("my str", &mut self.input_str_test);
+            app.checkbox("IRS", &mut self.rules_instance.rules.has_initial_rotation_system);
+            app.checkbox("IHS", &mut self.rules_instance.rules.has_initial_hold_system);
 
-            app.slider_i32("my i32", &mut self.input_i32_test, -10, 10);
-            app.slider_u32("my u32", &mut self.input_u32_test, 0, 200);
-            */
+            app.slider_u8("spawn row", &mut self.rules_instance.rules.spawn_row, 0, 24);
+            app.slider_u8("next pieces", &mut self.rules_instance.rules.next_pieces_preview_count, 0, 6);
 
-            app.combobox("combobox", &mut self.combobox_index_test, combobox::COMBOBOX_TEST_OPTIONS);
+            //pub line_clear_rule: LineClearRule,
+            //pub top_out_rule: TopOutRule,
 
-            app.input_u64("seed", &mut self.seed);
+            //app.combobox("combobox", &mut self.combobox_index_test, combobox::COMBOBOX_TEST_OPTIONS);
+
+            // @TODO ui for time values
+            app.slider_u64("DAS", &mut self.rules_instance.rules.das_repeat_delay, 0, 500_000);
+            app.slider_u64("ARR", &mut self.rules_instance.rules.das_repeat_interval, 0, 500_000);
+
+            app.slider_u64("soft drop interval", &mut self.rules_instance.rules.soft_drop_interval, 0, 500_000);
+            app.slider_u64("line clear delay", &mut self.rules_instance.rules.line_clear_delay, 0, 500_000);
+
+            //pub gravity_curve: GravityCurve,
+            //pub scoring_curve: ScoringRule,
+            //pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
+            //pub start_level: u8,
+            app.slider_u8("start level", &mut self.rules_instance.rules.start_level, 1, 255);
+
+            app.slider_u64("entry delay", &mut self.rules_instance.rules.entry_delay, 0, 2_000_000);
+
+            //pub lock_delay: LockDelayRule,
+            //pub rotation_system: RotationSystem,
+
+            //pub randomizer_type: RandomizerType,
+            //app.input_u64_stretch("seed", &mut self.seed);
 
             if app.button("Restart") {
                 println!("restart");
             }
-
-            app.same_line();
 
             if app.button("Resume") {
                 app.resume();

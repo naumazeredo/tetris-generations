@@ -19,6 +19,22 @@ pub(super) enum SliderVariant {
     //U128 { value: u128, min: u128, max: u128 },
 }
 
+impl SliderVariant {
+    pub(super) fn to_str(self) -> String {
+        match self {
+            SliderVariant::I8  { value, .. } => format!("{}", value),
+            SliderVariant::I16 { value, .. } => format!("{}", value),
+            SliderVariant::I32 { value, .. } => format!("{}", value),
+            SliderVariant::I64 { value, .. } => format!("{}", value),
+
+            SliderVariant::U8  { value, .. } => format!("{}", value),
+            SliderVariant::U16 { value, .. } => format!("{}", value),
+            SliderVariant::U32 { value, .. } => format!("{}", value),
+            SliderVariant::U64 { value, .. } => format!("{}", value),
+        }
+    }
+}
+
 macro_rules! slider_variant_integer_impl {
     ($build_fn:ident, $pub_fn:ident, $var:ident, $type:ident) => {
         fn $build_fn(value: $type, min: $type, max: $type) -> State {
@@ -48,17 +64,10 @@ macro_rules! slider_variant_integer_impl {
 
                 let ui = &self.ui_system.uis.last().unwrap();
                 let size = Vec2i {
-                    x: ui.style.slider_box_width as i32,
-                    y: ui.style.slider_box_height as i32,
+                    x: ui.style.box_width as i32,
+                    y: ui.style.line_height as i32,
                 };
-                let layout = Layout {
-                    pos: Vec2i {
-                        x: self.ui_system.cursor.x,
-                        y: self.ui_system.cursor.y +
-                            (ui.style.font_size as i32 - ui.style.slider_box_height as i32) / 2,
-                    },
-                    size
-                };
+                let layout = self.new_layout_right(size);
 
                 // @TODO we should update the input state in case referenced value changed
                 self.ui_system.states.entry(id)
@@ -70,8 +79,7 @@ macro_rules! slider_variant_integer_impl {
                             if *v != *value {
                                 *v = *value;
                                 *percent = (*v - *min) as f32 / (*max - *min) as f32;
-                                if *percent < 0.0 { *percent = 0.0; }
-                                if *percent > 1.0 { *percent = 1.0; }
+                                *percent = percent.clamp(0.0, 1.0);
                             }
                         } else {
                             unreachable!();
@@ -110,10 +118,12 @@ macro_rules! slider_variant_integer_impl {
 
                 self.add_element(id, layout);
 
+                /*
                 // Add number value
                 self.same_line();
                 // @TODO cache this string
                 self.text(&format!("{}", value));
+                */
             }
         }
     }

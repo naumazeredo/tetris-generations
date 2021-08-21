@@ -25,10 +25,11 @@ use crate::linalg::*;
 use crate::app::{ App, ImDraw };
 
 pub use color::*;
-pub use draw_command::*;
 use shader::*;
 pub use sprite::*;
 pub use texture::*;
+
+use draw_command::{Command, DrawCommand, DrawVariant};
 
 pub type VertexArray    = GLuint;
 pub type BufferObject   = GLuint;
@@ -60,11 +61,14 @@ pub(in crate::app) struct Renderer {
     uv_buffer:      Vec<f32>,
     element_buffer: Vec<u32>,
 
-    world_draw_cmds: Vec<DrawCommand>,
+    world_cmds: Vec<Command>,
 
     // ----
     model_mat_buffer_object: BufferObject,
     model_mat_buffer: Vec<f32>,
+
+    // ----
+    window_size: (u32, u32),
 }
 
 impl Renderer {
@@ -124,17 +128,21 @@ impl Renderer {
             uv_buffer,
             element_buffer,
 
-            world_draw_cmds: vec![],
+            world_cmds: vec![],
 
             // ----
             model_mat_buffer_object: bo[4],
-            model_mat_buffer
+            model_mat_buffer,
+
+            window_size,
         }
     }
 
     // @Refactor create methods in App to remap this
     pub(in crate::app) fn prepare_render(&mut self) {
         unsafe {
+            gl::Disable(gl::SCISSOR_TEST);
+
             gl::ClearColor(0.3, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
@@ -149,9 +157,9 @@ impl Renderer {
     // @Refactor create methods in App to remap this
     // @Refactor use a framebuffer to be able to do post processing or custom stuff
     fn render_queued(&mut self) {
-        if self.world_draw_cmds.len() > 0 {
+        if self.world_cmds.len() > 0 {
             //self.bind_arrays();
-            self.flush_draw_cmds();
+            self.flush_cmds();
         }
     }
 
@@ -272,167 +280,184 @@ impl Renderer {
         }
     }
 
-    fn flush_draw_cmds(&mut self) {
-        if self.world_draw_cmds.is_empty() {
+    fn handle_draw_command(&mut self, cmd: DrawCommand, draw_call: &mut DrawCall) {
+        let w;
+        let h;
+        let pivot;
+
+        //let mut us = vec![0., 1., 1., 0.];
+        //let mut vs = vec![0., 0., 1., 1.];
+        let mut us;
+        let mut vs;
+
+        match cmd.variant {
+            DrawVariant::Solid { size } => {
+                pivot = Vec2::new();
+                w = size.x * cmd.scale.x;
+                h = size.y * cmd.scale.y;
+
+                us = vec![0.0, 1.0, 1.0, 0.0];
+                vs = vec![0.0, 0.0, 1.0, 1.0];
+            },
+
+            DrawVariant::Sprite { texture_flip, uvs, pivot: piv, size } => {
+                pivot = Vec2 { x: piv.x * cmd.scale.x, y: piv.y * cmd.scale.y };
+                w = size.x * cmd.scale.x;
+                h = size.y * cmd.scale.y;
+
+                let u_scale = if cmd.texture.w != 0 { cmd.texture.w as f32 } else { 1. };
+                let v_scale = if cmd.texture.h != 0 { cmd.texture.h as f32 } else { 1. };
+
+                us = vec![
+                    uvs.0.x as f32 / u_scale, uvs.1.x as f32 / u_scale,
+                    uvs.1.x as f32 / u_scale, uvs.0.x as f32 / u_scale,
+                ];
+
+                vs = vec![
+                    uvs.0.y as f32 / v_scale, uvs.0.y as f32 / v_scale,
+                    uvs.1.y as f32 / v_scale, uvs.1.y as f32 / v_scale,
+                ];
+
+                if texture_flip.contains(TextureFlip::X) { us.swap(0, 1); us.swap(2, 3); }
+                if texture_flip.contains(TextureFlip::Y) { vs.swap(0, 2); vs.swap(1, 3); }
+            },
+        }
+
+        // HACK do this properly
+        let elem = (self.vertex_buffer.len() / 3) as u32;
+        self.element_buffer.push(elem + 0);
+        self.element_buffer.push(elem + 1);
+        self.element_buffer.push(elem + 2);
+
+        self.element_buffer.push(elem + 2);
+        self.element_buffer.push(elem + 3);
+        self.element_buffer.push(elem + 0);
+
+        // TODO create a 1x1 rect at setup and scale in matrix calculation
+        // positions
+        /*
+        self.vertex_buffer.push(0.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
+        self.vertex_buffer.push(1.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
+        self.vertex_buffer.push(1.); self.vertex_buffer.push(1.); self.vertex_buffer.push(0.);
+        self.vertex_buffer.push(0.); self.vertex_buffer.push(1.); self.vertex_buffer.push(0.);
+        */
+
+        self.vertex_buffer.push(0.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
+        self.vertex_buffer.push(w); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
+        self.vertex_buffer.push(w); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
+        self.vertex_buffer.push(0.); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
+
+        // colors
+        self.color_buffer.push(cmd.color.r);
+        self.color_buffer.push(cmd.color.g);
+        self.color_buffer.push(cmd.color.b);
+        self.color_buffer.push(cmd.color.a);
+
+        self.color_buffer.push(cmd.color.r);
+        self.color_buffer.push(cmd.color.g);
+        self.color_buffer.push(cmd.color.b);
+        self.color_buffer.push(cmd.color.a);
+
+        self.color_buffer.push(cmd.color.r);
+        self.color_buffer.push(cmd.color.g);
+        self.color_buffer.push(cmd.color.b);
+        self.color_buffer.push(cmd.color.a);
+
+        self.color_buffer.push(cmd.color.r);
+        self.color_buffer.push(cmd.color.g);
+        self.color_buffer.push(cmd.color.b);
+        self.color_buffer.push(cmd.color.a);
+
+        // uv
+        self.uv_buffer.push(us[0]); self.uv_buffer.push(vs[0]);
+        self.uv_buffer.push(us[1]); self.uv_buffer.push(vs[1]);
+        self.uv_buffer.push(us[2]); self.uv_buffer.push(vs[2]);
+        self.uv_buffer.push(us[3]); self.uv_buffer.push(vs[3]);
+
+        // model matrix info
+        self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+        self.model_mat_buffer.push(cmd.rot);
+        self.model_mat_buffer.push(cmd.pos.x); self.model_mat_buffer.push(cmd.pos.y); self.model_mat_buffer.push((cmd.layer as f32) / 10. + 0.1);
+
+        self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+        self.model_mat_buffer.push(cmd.rot);
+        self.model_mat_buffer.push(cmd.pos.x); self.model_mat_buffer.push(cmd.pos.y); self.model_mat_buffer.push((cmd.layer as f32) / 10. + 0.1);
+
+        self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+        self.model_mat_buffer.push(cmd.rot);
+        self.model_mat_buffer.push(cmd.pos.x); self.model_mat_buffer.push(cmd.pos.y); self.model_mat_buffer.push((cmd.layer as f32) / 10. + 0.1);
+
+        self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
+        self.model_mat_buffer.push(cmd.rot);
+        self.model_mat_buffer.push(cmd.pos.x); self.model_mat_buffer.push(cmd.pos.y); self.model_mat_buffer.push((cmd.layer as f32) / 10. + 0.1);
+
+        draw_call.count += 6;
+    }
+
+    fn flush_cmds(&mut self) {
+        if self.world_cmds.is_empty() {
             return;
         }
 
         let mut draw_calls = vec![];
-        let mut start = 0usize;
-        let mut count = 0usize;
 
-        let mut current_program = self.world_draw_cmds[0].program;
-        let mut current_texture_object = self.world_draw_cmds[0].texture.obj;
+        let mut draw_call = DrawCall {
+            program: self.default_program,
+            texture_object: self.default_texture.obj,
+            clip: None,
+            start: 0,
+            count: 0,
+        };
 
-        let draw_cmds = std::mem::replace(&mut self.world_draw_cmds, vec![]);
-        for draw_cmd in draw_cmds {
+        let mut clip_stack: Vec<(Vec2i, Vec2i)> = Vec::new();
 
-            // @TODO remove the zero check after we have access to programs outside render
-            if draw_cmd.program != current_program ||
-               draw_cmd.texture.obj != current_texture_object {
+        let cmds = std::mem::take(&mut self.world_cmds);
+        for cmd in cmds {
+            match cmd {
+                Command::Draw(cmd) => {
+                    // @TODO remove the zero check after we have access to programs outside render
+                    if cmd.program != draw_call.program || cmd.texture.obj != draw_call.texture_object {
+                        add_draw_call(&mut draw_call, &mut draw_calls);
 
-                if count != 0 {
-                    draw_calls.push(DrawCall {
-                        program: current_program,
-                        texture_object: current_texture_object,
-                        start,
-                        count,
-                    });
+                        draw_call.program = cmd.program;
+                        draw_call.texture_object = cmd.texture.obj;
+                    }
 
-                    current_program = draw_cmd.program;
-                    current_texture_object = draw_cmd.texture.obj;
+                    self.handle_draw_command(cmd, &mut draw_call);
+                }
 
-                    start += count;
-                    count = 0;
+                Command::PushClip { mut min, mut max, intersect } => {
+                    add_draw_call(&mut draw_call, &mut draw_calls);
+
+                    if intersect && !clip_stack.is_empty() {
+                        let top = clip_stack.last().unwrap();
+                        min.x = std::cmp::max(min.x, top.0.x);
+                        min.y = std::cmp::max(min.y, top.0.y);
+
+                        max.x = std::cmp::min(max.x, top.1.x);
+                        max.y = std::cmp::min(max.y, top.1.y);
+                    }
+
+                    clip_stack.push((min, max));
+                    draw_call.clip = Some((min, max));
+                }
+
+                Command::PopClip => {
+                    add_draw_call(&mut draw_call, &mut draw_calls);
+
+                    clip_stack.pop().expect("clip pop with no push");
+                    draw_call.clip = clip_stack.last().cloned();
                 }
             }
-
-            let w;
-            let h;
-            let pivot;
-
-            //let mut us = vec![0., 1., 1., 0.];
-            //let mut vs = vec![0., 0., 1., 1.];
-            let mut us;
-            let mut vs;
-
-            match draw_cmd.cmd {
-                Command::DrawSolid { size } => {
-                    pivot = Vec2::new();
-                    w = size.x * draw_cmd.scale.x;
-                    h = size.y * draw_cmd.scale.y;
-
-                    us = vec![0.0, 1.0, 1.0, 0.0];
-                    vs = vec![0.0, 0.0, 1.0, 1.0];
-                },
-
-                Command::DrawSprite { texture_flip, uvs, pivot: piv, size } => {
-                    pivot = Vec2 { x: piv.x * draw_cmd.scale.x, y: piv.y * draw_cmd.scale.y };
-                    w = size.x * draw_cmd.scale.x;
-                    h = size.y * draw_cmd.scale.y;
-
-                    let u_scale = if draw_cmd.texture.w != 0 { draw_cmd.texture.w as f32 } else { 1. };
-                    let v_scale = if draw_cmd.texture.h != 0 { draw_cmd.texture.h as f32 } else { 1. };
-
-                    us = vec![
-                        uvs.0.x as f32 / u_scale, uvs.1.x as f32 / u_scale,
-                        uvs.1.x as f32 / u_scale, uvs.0.x as f32 / u_scale,
-                    ];
-
-                    vs = vec![
-                        uvs.0.y as f32 / v_scale, uvs.0.y as f32 / v_scale,
-                        uvs.1.y as f32 / v_scale, uvs.1.y as f32 / v_scale,
-                    ];
-
-                    if texture_flip.contains(TextureFlip::X) { us.swap(0, 1); us.swap(2, 3); }
-                    if texture_flip.contains(TextureFlip::Y) { vs.swap(0, 2); vs.swap(1, 3); }
-                },
-            }
-
-            // HACK do this properly
-            let elem = (self.vertex_buffer.len() / 3) as u32;
-            self.element_buffer.push(elem + 0);
-            self.element_buffer.push(elem + 1);
-            self.element_buffer.push(elem + 2);
-
-            self.element_buffer.push(elem + 2);
-            self.element_buffer.push(elem + 3);
-            self.element_buffer.push(elem + 0);
-
-            // TODO create a 1x1 rect at setup and scale in matrix calculation
-            // positions
-            /*
-            self.vertex_buffer.push(0.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(1.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(1.); self.vertex_buffer.push(1.); self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(0.); self.vertex_buffer.push(1.); self.vertex_buffer.push(0.);
-            */
-
-            self.vertex_buffer.push(0.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(w); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(w); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
-            self.vertex_buffer.push(0.); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
-
-            // colors
-            self.color_buffer.push(draw_cmd.color.r);
-            self.color_buffer.push(draw_cmd.color.g);
-            self.color_buffer.push(draw_cmd.color.b);
-            self.color_buffer.push(draw_cmd.color.a);
-
-            self.color_buffer.push(draw_cmd.color.r);
-            self.color_buffer.push(draw_cmd.color.g);
-            self.color_buffer.push(draw_cmd.color.b);
-            self.color_buffer.push(draw_cmd.color.a);
-
-            self.color_buffer.push(draw_cmd.color.r);
-            self.color_buffer.push(draw_cmd.color.g);
-            self.color_buffer.push(draw_cmd.color.b);
-            self.color_buffer.push(draw_cmd.color.a);
-
-            self.color_buffer.push(draw_cmd.color.r);
-            self.color_buffer.push(draw_cmd.color.g);
-            self.color_buffer.push(draw_cmd.color.b);
-            self.color_buffer.push(draw_cmd.color.a);
-
-            // uv
-            self.uv_buffer.push(us[0]); self.uv_buffer.push(vs[0]);
-            self.uv_buffer.push(us[1]); self.uv_buffer.push(vs[1]);
-            self.uv_buffer.push(us[2]); self.uv_buffer.push(vs[2]);
-            self.uv_buffer.push(us[3]); self.uv_buffer.push(vs[3]);
-
-            // model matrix info
-            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
-            self.model_mat_buffer.push(draw_cmd.rot);
-            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
-
-            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
-            self.model_mat_buffer.push(draw_cmd.rot);
-            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
-
-            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
-            self.model_mat_buffer.push(draw_cmd.rot);
-            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
-
-            self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
-            self.model_mat_buffer.push(draw_cmd.rot);
-            self.model_mat_buffer.push(draw_cmd.pos.x); self.model_mat_buffer.push(draw_cmd.pos.y); self.model_mat_buffer.push((draw_cmd.layer as f32) / 10. + 0.1);
-
-            count += 6;
         }
 
-        if count != 0 {
-            draw_calls.push(DrawCall {
-                program: current_program,
-                texture_object: current_texture_object,
-                start,
-                count,
-            });
-
-            self.render_draw_calls(draw_calls);
-        }
+        add_draw_call(&mut draw_call, &mut draw_calls);
+        self.render_draw_calls(draw_calls);
     }
 
     fn render_draw_calls(&mut self, draw_calls: Vec<DrawCall>) {
+        if draw_calls.is_empty() { return; }
+
         self.change_shader_program(draw_calls[0].program);
         self.change_texture(draw_calls[0].texture_object);
 
@@ -454,6 +479,22 @@ impl Renderer {
             if call.texture_object != current_texture_object {
                 self.change_texture(call.texture_object);
                 current_texture_object = call.texture_object;
+            }
+
+            if let Some((min, max)) = call.clip {
+                let x = min.x;
+                let y = self.window_size.1 as i32 - max.y;
+                let w = max.x - min.x;
+                let h = max.y - min.y;
+
+                unsafe {
+                    gl::Enable(gl::SCISSOR_TEST);
+                    gl::Scissor(x, y, w, h);
+                }
+            } else {
+                unsafe {
+                    gl::Disable(gl::SCISSOR_TEST);
+                }
             }
 
             unsafe {
@@ -579,6 +620,7 @@ impl Renderer {
             window_size.1 as f32, 0.0,
             0.01, 1000.
         );
+        self.window_size = window_size;
 
         unsafe {
             gl::Viewport(0, 0, window_size.0 as _, window_size.1 as _);
@@ -609,6 +651,16 @@ impl<S> App<'_, S> {
 struct DrawCall {
     program: ShaderProgram,
     texture_object: TextureObject,
+    clip: Option<(Vec2i, Vec2i)>,
     start: usize,
     count: usize,
+}
+
+
+fn add_draw_call(draw_call: &mut DrawCall, draw_calls: &mut Vec<DrawCall>) {
+    if draw_call.count != 0 {
+        draw_calls.push(*draw_call);
+        draw_call.start += draw_call.count;
+        draw_call.count = 0;
+    }
 }

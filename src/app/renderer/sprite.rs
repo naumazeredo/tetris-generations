@@ -9,7 +9,7 @@ use crate::app::{
 use super::{
     Renderer,
     color::Color,
-    draw_command::{Command, DrawCommand},
+    draw_command::{Command, DrawCommand, DrawVariant},
     texture::{Texture, TextureFlip},
 };
 
@@ -30,21 +30,23 @@ pub(super) fn queue_draw_sprite(
     sprite: &Sprite,
     color: Color,
 ) {
-    renderer.world_draw_cmds.push(DrawCommand {
-        program: renderer.default_program,
-        texture: sprite.texture,
-        layer: transform.layer,
-        color,
-        pos: transform.pos,
-        scale: transform.scale,
-        rot: transform.rot,
-        cmd: Command::DrawSprite {
-            texture_flip: sprite.texture_flip,
-            uvs: sprite.uvs,
-            pivot: sprite.pivot,
-            size: sprite.size,
-        },
-    });
+    renderer.world_cmds.push(
+        Command::Draw(DrawCommand {
+            program: renderer.default_program,
+            texture: sprite.texture,
+            layer: transform.layer,
+            color,
+            pos: transform.pos,
+            scale: transform.scale,
+            rot: transform.rot,
+            variant: DrawVariant::Sprite {
+                texture_flip: sprite.texture_flip,
+                uvs: sprite.uvs,
+                pivot: sprite.pivot,
+                size: sprite.size,
+            },
+        })
+    );
 }
 
 impl<S> App<'_, S> {

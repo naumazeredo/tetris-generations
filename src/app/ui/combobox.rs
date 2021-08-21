@@ -38,16 +38,10 @@ impl<S> App<'_, S> {
 
         let ui = &self.ui_system.uis.last().unwrap();
         let size = Vec2i {
-            x: ui.style.combobox_box_width as i32,
-            y: ui.style.font_size as i32 + 2 * ui.style.box_padding,
+            x: ui.style.box_width as i32,
+            y: ui.style.line_height as i32,
         };
-        let layout = Layout {
-            pos: Vec2i {
-                x: self.ui_system.cursor.x,
-                y: self.ui_system.cursor.y - ui.style.box_padding,
-            },
-            size
-        };
+        let layout = self.new_layout_right(size);
         self.add_element(id, layout);
 
         // Modal options
@@ -77,6 +71,7 @@ impl<S> App<'_, S> {
                                 }
                             })
                             .or_insert_with(|| new_combobox_option(*index == i, &option_text));
+
                         let state = self.update_modal_state_interaction(id, layout);
                         if state.pressed {
                             *index = i;

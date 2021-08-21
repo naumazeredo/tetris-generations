@@ -46,6 +46,7 @@
     - [ ] Input color
     - [ ] Input key
     - [x] Combobox
+    - [ ] Separator
   - [ ] Keyboard/Controller support
   - [ ] Styling options
   - [ ] Command buffer "immediate mode"

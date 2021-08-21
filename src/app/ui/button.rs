@@ -18,9 +18,11 @@ impl<S> App<'_, S> {
 
         // @TODO cleanup these ui.last_mut().unwrap() calls
         // Calculate element size
-        let button_padding = self.ui_system.uis.last().unwrap().style.button_padding;
-        let padding = Vec2i { x: button_padding, y: button_padding };
-        let size = self.calculate_text_size(text) + 2 * padding;
+        let ui = &self.ui_system.uis.last().unwrap();
+        let size = Vec2i {
+            x: ui.layout.size.x - 2 * ui.style.padding,
+            y: ui.style.line_height
+        };
         let layout = self.new_layout(size);
 
         self.add_element(id, layout);

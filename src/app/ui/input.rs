@@ -114,24 +114,20 @@ impl State {
 
 impl<S> App<'_, S> {
     fn input_str_internal(&mut self, label: &str, value: &mut String, max_length: usize) {
+        let id = Id::new(label);
+
         // Add label
-        self.text(label);
+        self.text_with_id(id.add("#text"), label);
         self.same_line();
 
-        let id = Id::new(label).add("#input");
+        let id = id.add("#input");
 
         let ui = &self.ui_system.uis.last().unwrap();
         let size = Vec2i {
-            x: ui.style.input_box_width as i32,
-            y: ui.style.font_size as i32 + 2 * ui.style.box_padding,
+            x: ui.style.box_width as i32,
+            y: ui.style.line_height as i32,
         };
-        let layout = Layout {
-            pos: Vec2i {
-                x: self.ui_system.cursor.x,
-                y: self.ui_system.cursor.y - ui.style.box_padding,
-            },
-            size
-        };
+        let layout = self.new_layout_right(size);
 
         // @TODO we should update the input state in case referenced value changed
         self.ui_system.states.entry(id)
@@ -147,6 +143,7 @@ impl<S> App<'_, S> {
         }
 
         self.add_element(id, layout);
+
     }
 
     pub fn input_str(&mut self, label: &str, value: &mut String) {
@@ -165,6 +162,7 @@ macro_rules! input_variant_integer_impl {
         $build_fn:ident,
         $pub_fn:ident,
         $pub_range_fn:ident,
+        $pub_stretch_fn:ident,
         $var:ident,
         $type:ident
     ) => {
@@ -189,26 +187,33 @@ macro_rules! input_variant_integer_impl {
                 label: &str,
                 value: &mut $type,
                 min: Option<$type>,
-                max: Option<$type>
+                max: Option<$type>,
+                stretch: bool,
             ) {
+                let id = Id::new(label);
+
                 // Add label
-                self.text(label);
+                self.text_with_id(id.add("#text"), label);
                 self.same_line();
 
-                let id = Id::new(label).add("#input");
+                let id = id.add("#input");
+
+                let layout;
 
                 let ui = &self.ui_system.uis.last().unwrap();
-                let size = Vec2i {
-                    x: ui.style.input_box_width as i32,
-                    y: ui.style.font_size as i32 + 2 * ui.style.box_padding,
-                };
-                let layout = Layout {
-                    pos: Vec2i {
-                        x: self.ui_system.cursor.x,
-                        y: self.ui_system.cursor.y - ui.style.box_padding,
-                    },
-                    size
-                };
+                if !stretch {
+                    let size = Vec2i {
+                        x: ui.style.box_width as i32,
+                        y: ui.style.line_height as i32,
+                    };
+                    layout = self.new_layout_right(size);
+                } else {
+                    let size = Vec2i {
+                        x: ui.layout.size.x - self.ui_system.cursor.x,
+                        y: ui.style.line_height as i32,
+                    };
+                    layout = self.new_layout(size);
+                }
 
                 self.ui_system.states.entry(id)
                     .and_modify(|state| {
@@ -226,7 +231,7 @@ macro_rules! input_variant_integer_impl {
                     })
                     .or_insert_with(|| $build_fn(*value, min, max));
 
-                let state = self.update_state_interaction(id, layout);
+                let state = self.update_input_state_interaction(id, layout);
                 if let ElementVariant::Input {
                     input_complete: true,
                     value_str,
@@ -242,22 +247,26 @@ macro_rules! input_variant_integer_impl {
             }
 
             pub fn $pub_fn(&mut self, label: &str, value: &mut $type) {
-                self.$internal_fn(label, value, None, None);
+                self.$internal_fn(label, value, None, None, false);
             }
 
             pub fn $pub_range_fn(&mut self, label: &str, value: &mut $type, min: $type, max: $type) {
-                self.$internal_fn(label, value, Some(min), Some(max));
+                self.$internal_fn(label, value, Some(min), Some(max), false);
+            }
+
+            pub fn $pub_stretch_fn(&mut self, label: &str, value: &mut $type) {
+                self.$internal_fn(label, value, None, None, true);
             }
         }
     }
 }
 
-input_variant_integer_impl!(input_i8_internal,  new_input_i8,  input_i8,  input_i8_range,  I8,  i8);
-input_variant_integer_impl!(input_i16_internal, new_input_i16, input_i16, input_i16_range, I16, i16);
-input_variant_integer_impl!(input_i32_internal, new_input_i32, input_i32, input_i32_range, I32, i32);
-input_variant_integer_impl!(input_i64_internal, new_input_i64, input_i64, input_i64_range, I64, i64);
+input_variant_integer_impl!(input_i8_internal,  new_input_i8,  input_i8,  input_i8_range,  input_i8_stretch,  I8,  i8);
+input_variant_integer_impl!(input_i16_internal, new_input_i16, input_i16, input_i16_range, input_i16_stretch, I16, i16);
+input_variant_integer_impl!(input_i32_internal, new_input_i32, input_i32, input_i32_range, input_i32_stretch, I32, i32);
+input_variant_integer_impl!(input_i64_internal, new_input_i64, input_i64, input_i64_range, input_i64_stretch, I64, i64);
 
-input_variant_integer_impl!(input_u8_internal,  new_input_u8,  input_u8,  input_u8_range,  U8,  u8);
-input_variant_integer_impl!(input_u16_internal, new_input_u16, input_u16, input_u16_range, U16, u16);
-input_variant_integer_impl!(input_u32_internal, new_input_u32, input_u32, input_u32_range, U32, u32);
-input_variant_integer_impl!(input_u64_internal, new_input_u64, input_u64, input_u64_range, U64, u64);
+input_variant_integer_impl!(input_u8_internal,  new_input_u8,  input_u8,  input_u8_range,  input_u8_stretch,  U8,  u8);
+input_variant_integer_impl!(input_u16_internal, new_input_u16, input_u16, input_u16_range, input_u16_stretch, U16, u16);
+input_variant_integer_impl!(input_u32_internal, new_input_u32, input_u32, input_u32_range, input_u32_stretch, U32, u32);
+input_variant_integer_impl!(input_u64_internal, new_input_u64, input_u64, input_u64_range, input_u64_stretch, U64, u64);
