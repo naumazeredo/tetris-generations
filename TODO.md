@@ -11,31 +11,47 @@
     - [x] pixel_scale to u8
     - [ ] BLOCK_SCALE to u8
     - [ ] All render functions to receive Vec2i or integers instead of floats
+- [ ] Scenes
+  - [ ] Main menu
+    - [ ] Options
+  - [ ] Classic game
+    - [ ] Local
+    - [ ] Multiplayer
+  - [ ] Modern game
+  - [ ] Custom game
+
 
 ### Engine
 
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface
-- [ ] Logger system
+- [ ] Networking
+- [ ] Logger system: just improve logging.
 - [ ] Asset system
+  - [ ] [asset] Asset System should not hold all data, each component can hold its own data.
+      It should handle what should be loaded and unloaded into/from memory (seems that this has is
+      somewhat what a Scene Manager is for, though, except for streaming data)
 - [ ] Audio system
+  - [x] Music loading
+  - [x] Sfx loading
+  - [ ] Volume mixer
+    - [ ] Split music channel from sfx
 - [ ] Timer data structure (and dt in update functions)
     - (always using game time makes it really hard to stack. Moving from one scene to another, game
     over action, etc)
     - (design: `app.update_timer(&mut timer); let elapsed_time = timer.elapsed_time();`)
 - [ ] Duration/Time struct (mainly to better integrate with SDL times)
-- [ ] [font render] fix background not being transparent
-- [ ] [imdraw] Remove imgui::im_str2
-- [ ] [imdraw derive] check for #[imdraw_ignore] to not show some fields
-- [ ] [render]
-  - [ ] Axis-aligned (+ scissor) rendering
-  - [ ] Stack of modifier commands (blend enabled, framebuffer target, proj matrix, etc)
+- [x] [render]
+  - [x] Axis-aligned (+ scissor) rendering
+  - [x] Stack of modifier commands
+    - [x] Scissor/Clip
 - [ ] UI system
   - [ ] Position/size should be calculated on rendering call. The calls should store the layout and
-      state
+      state (this will make the rendering delayed by 1 frame, which should might fine)
     - [ ] Layout: size (auto+min+max, fixed)
     - [ ] Extra commands: indent, unindent, same line, (group start/end? -> maybe this will require
         two passes: calculate position/size, render)
+    - [ ] Animations
   - [ ] Widgets
     - [x] Text
     - [x] Button
@@ -47,16 +63,24 @@
     - [ ] Input key
     - [x] Combobox
     - [ ] Separator
+  - [ ] Disabled widgets
   - [ ] Keyboard/Controller support
+    - [ ] Selected line
+    - [ ] Styling colors for text/widgets (or colored background of the line)
   - [ ] Styling options
-  - [ ] Command buffer "immediate mode"
-- [ ] [debug] rename to Editor and implement an Immediate Mode GUI from scratch (or use the, to be
-    implemented, UI system)
-- [ ] [asset] Asset System should not hold all data, each component can hold its own data.
-    It should handle what should be loaded and unloaded into/from memory.
+  - [ ] Custom shader
+- [ ] [editor]
+  - [ ] Remove Dear ImGUI
+    - [ ] [imdraw] Maybe this will just be entirely removed
+      - [ ] Remove imgui::im_str2
+      - [ ] derive: check for #[imdraw_ignore] to not show some fields
+  - [ ] Implement basic Editor functionality using UI System
+    - [ ] Save/load UI designs
 
 #### Issues
 
+- [ ] [font render] fix background not being transparent -> rendering issue: z orders not matching
+    rendering order (z order fight?)
 - [ ] cargo clippy warnings
 - [ ] [game animations] animations are skipped if the piece is locked in the middle of the animation
 - [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
@@ -241,7 +265,9 @@
 - [ ] Multithread
   - [ ] Maybe use persistent structures for rendering (or just have a double/triple buffer)
 - [ ] [render]
-  - [ ] Stack commands (change matrices, color alpha, etc)
+  - [ ] Stack commands
+    - [ ] Blending
+    - [ ] Matrix transformation
   - [ ] Batch rendering
   - [ ] Shader struct
   - [ ] Render to framebuffer + post render effects
