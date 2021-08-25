@@ -3,6 +3,7 @@ extern crate imgui_opengl_renderer;
 
 pub mod animation_system;
 pub mod asset_system;
+pub mod audio;
 pub mod debug;
 pub mod font_system;
 pub mod game_state;
@@ -20,6 +21,7 @@ pub mod video_system;
 
 pub use {
     animation_system::*,
+    audio::*,
     font_system::*,
     game_state::*,
     id_manager::*,
@@ -44,8 +46,9 @@ use time_system::*;
 
 #[derive(ImDraw)]
 pub struct App<'a, S> {
-    asset_system: AssetSystem,
     animation_system: AnimationSystem,
+    asset_system: AssetSystem,
+    audio_system: AudioSystem<'a>,
     font_system: FontSystem,
     input_system: InputSystem,
     renderer: Renderer,
@@ -68,6 +71,7 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
 
         let sdl_context = SdlContext::new();
         let video_system = VideoSystem::new(config, sdl_context.video_subsystem.clone());
+        let audio_system = AudioSystem::new();
 
         let font_system = FontSystem::new(&sdl_context.ttf_context);
         let input_system = InputSystem::new(sdl_context.controller_subsystem.clone());
@@ -79,9 +83,12 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
 
         let ui_system = UiSystem::new();
 
+        let asset_system = AssetSystem::new();
+
         Self {
-            asset_system: AssetSystem::new(),
             animation_system,
+            asset_system,
+            audio_system,
 
             sdl_context,
             video_system,

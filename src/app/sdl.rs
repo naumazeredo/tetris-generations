@@ -11,6 +11,7 @@ pub(in crate::app) struct SdlContext {
     pub(in crate::app) ttf_context: sdl2::ttf::Sdl2TtfContext,
 
     // Hidden since we don't need to use it directly but dropping it closes the subsystem
+    _sdl_mixer_context: sdl2::mixer::Sdl2MixerContext,
     _sdl_image_context: sdl2::image::Sdl2ImageContext,
 }
 
@@ -28,6 +29,7 @@ impl SdlContext {
         //let haptic_subsystem = sdl.haptic().unwrap();
         let ttf_context = sdl2::ttf::init().unwrap();
 
+        let _sdl_mixer_context = sdl2::mixer::init(sdl2::mixer::InitFlag::OGG).unwrap();
         let _sdl_image_context = sdl2::image::init(sdl2::image::InitFlag::PNG).unwrap();
 
         // @XXX Dear ImGUI is starting the text input for us. Is this a problem?
@@ -41,6 +43,7 @@ impl SdlContext {
             controller_subsystem,
             //haptic_subsystem,
             ttf_context,
+            _sdl_mixer_context,
             _sdl_image_context,
         }
     }
@@ -63,6 +66,7 @@ impl_imdraw_blank!(sdl2::GameControllerSubsystem);
 //impl_imdraw_blank!(sdl2::HapticSubsystem);
 impl_imdraw_blank!(sdl2::ttf::Sdl2TtfContext);
 impl_imdraw_blank!(sdl2::image::Sdl2ImageContext);
+impl_imdraw_blank!(sdl2::mixer::Sdl2MixerContext);
 
 impl_imdraw_blank!(sdl2::video::Window);
 impl_imdraw_blank!(sdl2::video::GLContext);

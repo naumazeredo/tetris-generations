@@ -18,4 +18,4 @@ enum_dispatch = "0.3"
 [dependencies.sdl2]
 version = "0.34.5"
 default-features = false
-features = ["image", "ttf"]
+features = ["image", "ttf", "mixer"]

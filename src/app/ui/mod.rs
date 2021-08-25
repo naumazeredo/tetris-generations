@@ -118,13 +118,13 @@ struct Id(u64);
 
 // @TODO macro this
 impl Id {
-    pub fn new(s: &str) -> Self {
+    fn new(s: &str) -> Self {
         let mut hasher = FNVHasher::new();
         s.hash(&mut hasher);
         Self(hasher.finish())
     }
 
-    pub fn add(self, s: &str) -> Self {
+    fn add(self, s: &str) -> Self {
         let mut hasher = FNVHasher::cont(self.0);
         s.hash(&mut hasher);
         Self(hasher.finish())

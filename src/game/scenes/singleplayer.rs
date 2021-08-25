@@ -24,6 +24,9 @@ pub struct SinglePlayerScene {
     input_u32_test: u32,
     input_str_test: String,
     combobox_index_test: usize,
+
+    music_id: MusicId,
+    music_playing: bool,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -202,6 +205,10 @@ impl SceneTrait for SinglePlayerScene {
                 //self.rules_instance.next_level();
             }
 
+            Event::KeyDown { scancode: Some(Scancode::F), .. } => {
+                app.play_music(self.music_id);
+            }
+
             _ => {}
         }
 
@@ -225,6 +232,8 @@ impl SinglePlayerScene {
         rules.start_level = 5;
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
 
+        let music_id = app.load_music("assets/sfx/MetalTheme.ogg");
+
         Self {
             debug_pieces_scene_opened: false,
             rules_instance,
@@ -236,6 +245,9 @@ impl SinglePlayerScene {
             input_u32_test: 0,
             input_str_test: String::new(),
             combobox_index_test: 0,
+
+            music_id,
+            music_playing: false,
         }
     }
 }
