@@ -232,7 +232,7 @@ impl SinglePlayerScene {
         rules.start_level = 5;
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
 
-        let music_id = app.load_music("assets/sfx/MetalTheme.ogg");
+        let music_id = app.load_music("assets/sfx/Original-Tetris-theme.opus");
 
         Self {
             debug_pieces_scene_opened: false,
