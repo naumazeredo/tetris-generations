@@ -1,6 +1,5 @@
 target/
 debug/
-msvc/
 tmp/
 examples/
 *.dll
