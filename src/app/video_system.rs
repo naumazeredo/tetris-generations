@@ -78,7 +78,7 @@ impl VideoSystem {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn window_size(&self) -> (u32, u32) {
         self.video_system.window.size()
     }

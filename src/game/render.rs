@@ -1,7 +1,6 @@
 use crate::BLOCK_SCALE;
 use crate::app::*;
 use crate::linalg::*;
-use crate::State;
 
 use crate::game::{
     pieces::{ get_piece_type_color, Piece },
@@ -19,7 +18,7 @@ pub fn draw_piece_in_playfield(
     delta_pos: Vec2,
     color: Color,
     playfield: &Playfield,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &PersistentData
 ) {
     for block_pos in piece.blocks() {
@@ -39,7 +38,7 @@ pub fn draw_block_in_playfield(
     delta_pos: Vec2,
     color: Color,
     playfield: &Playfield,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &PersistentData
 ) {
     // @TODO be able to draw outside when needed
@@ -84,7 +83,7 @@ pub fn draw_block_in_playfield(
 pub fn draw_block(
     pos: Vec2,
     color: Color,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &PersistentData
 ) {
     let scale = Vec2 { x: persistent.pixel_scale as f32, y: persistent.pixel_scale as f32 };
@@ -104,7 +103,7 @@ pub fn draw_piece(
     pos: Vec2,
     color: Color,
     has_grid: bool,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &PersistentData
 ) {
     for block_pos in piece.blocks() {
@@ -132,7 +131,7 @@ pub fn draw_piece_centered(
     pos: Vec2,
     color: Color,
     has_grid: bool,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &PersistentData
 ) {
     let min_max_x = piece.min_max_x();
@@ -185,7 +184,7 @@ pub fn draw_playfield(
     line_clear_animation_state: Option<&LineClearAnimationState>,
     lines_to_clear: &[u8],
     rotation_system: RotationSystem,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &PersistentData
 ) {
     let size = get_draw_playfield_size(playfield, persistent.pixel_scale);
@@ -271,7 +270,7 @@ pub fn draw_rect_window(
     pos: Vec2,
     size: Vec2,
     border_size: u8,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &PersistentData,
 ) {
     let border_size = Vec2 { x: border_size as f32, y: border_size as f32 };
@@ -330,7 +329,7 @@ pub fn draw_piece_window(
     piece: Piece,
     is_centered: bool,
     has_grid: bool,
-    app: &mut App<'_, State>,
+    app: &mut App,
     persistent: &mut PersistentData
 ) {
     let window_size;

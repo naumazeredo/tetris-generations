@@ -137,7 +137,7 @@ pub(in crate::app) fn calculate_draw_text_size(
     max_size
 }
 
-impl<S> App<'_, S>{
+impl App<'_>{
     // @TODO return Result
     pub fn bake_font<P: AsRef<Path>>(&mut self, path: P) -> Option<FontId> {
         if let Some((font_id, font)) = bake_font(path, &self.sdl_context.ttf_context) {

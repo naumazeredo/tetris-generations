@@ -10,7 +10,7 @@ fn new_checkbox(value: bool) -> State {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn checkbox(&mut self, label: &str, value: &mut bool) {
         // Add label
         self.text(label);

@@ -189,7 +189,7 @@ enum ElementVariant {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn new_ui(&mut self, layout: Layout) {
         let style = Style::default();
         self.ui_system.cursor = layout.pos + Vec2i { x: style.padding, y: style.padding };

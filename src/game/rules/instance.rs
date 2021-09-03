@@ -1,5 +1,4 @@
 use crate::BLOCK_SCALE;
-use crate::State;
 use crate::app::*;
 use crate::linalg::*;
 
@@ -88,7 +87,7 @@ impl RulesInstance {
     pub fn new(
         rules: Rules,
         seed: u64,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) -> Self {
         let pixel_scale = persistent.pixel_scale;
@@ -188,7 +187,7 @@ impl RulesInstance {
 
     pub fn update(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         if self.topped_out { return; }
@@ -586,7 +585,7 @@ impl RulesInstance {
     pub fn render_playfield(
         &mut self,
         //pos: Vec2i,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         let pixel_scale = persistent.pixel_scale;
@@ -720,7 +719,7 @@ impl RulesInstance {
 
     pub fn render_next_pieces_preview(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         // render preview
@@ -773,7 +772,7 @@ impl RulesInstance {
 
     pub fn render_hold_piece(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         // hold piece
@@ -814,7 +813,7 @@ impl RulesInstance {
 
     pub fn render(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         self.render_playfield(app, persistent);
@@ -884,7 +883,7 @@ impl RulesInstance {
         }
     }
 
-    fn lock_piece(&mut self, app: &App<'_, State>) {
+    fn lock_piece(&mut self, app: &App) {
         let piece = self.current_piece.as_ref().unwrap();
         lock_piece(
             piece,
@@ -911,7 +910,7 @@ impl RulesInstance {
         self.lock_piece_timestamp = app.game_timestamp();
     }
 
-    fn try_hard_drop_piece(&mut self, app: &App<'_, State>) {
+    fn try_hard_drop_piece(&mut self, app: &App) {
         if !self.rules.has_hard_drop { return; }
 
         let piece = self.current_piece.as_ref().unwrap();
@@ -921,7 +920,7 @@ impl RulesInstance {
         self.lock_piece(app);
     }
 
-    fn try_soft_drop_piece(&mut self, app: &App<'_, State>) {
+    fn try_soft_drop_piece(&mut self, app: &App) {
         if !self.rules.has_soft_drop { return; }
 
         let piece = self.current_piece.as_ref().unwrap();

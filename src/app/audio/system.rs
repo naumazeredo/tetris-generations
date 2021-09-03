@@ -60,7 +60,7 @@ impl Drop for AudioSystem<'_> {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn load_music(&mut self, filename: &str) -> MusicId {
         let music_id = MusicId::new(filename);
         self.audio_system.musics.entry(music_id)

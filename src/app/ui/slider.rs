@@ -53,7 +53,7 @@ macro_rules! slider_variant_integer_impl {
             }
         }
 
-        impl<S> App<'_, S> {
+        impl App<'_> {
             // @TODO accept a format string for the type
             pub fn $pub_fn(&mut self, label: &str, value: &mut $type, min: $type, max: $type) {
                 // Add label

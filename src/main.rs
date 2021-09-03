@@ -40,7 +40,7 @@ pub struct State {
 const BLOCK_SCALE : f32 = 8.0;
 
 impl GameState for State {
-    fn new(app: &mut App<'_, Self>) -> Self {
+    fn new(app: &mut App) -> Self {
         // persistent data
         let mut persistent = PersistentData::new(app);
 
@@ -59,17 +59,17 @@ impl GameState for State {
         }
     }
 
-    fn update(&mut self, app: &mut App<'_, Self>) {
+    fn update(&mut self, app: &mut App) {
         app.update_input_mapping(&mut self.persistent.input_mapping);
 
         self.scene_manager.update(app, &mut self.persistent);
     }
 
-    fn render(&mut self, app: &mut App<'_, Self>) {
+    fn render(&mut self, app: &mut App) {
         self.scene_manager.render(app, &mut self.persistent);
     }
 
-    fn handle_input(&mut self, app: &mut App<'_, Self>, event: &sdl2::event::Event) -> bool {
+    fn handle_input(&mut self, app: &mut App, event: &sdl2::event::Event) -> bool {
         use sdl2::event::Event;
         use sdl2::keyboard::Scancode;
 

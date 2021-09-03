@@ -1,7 +1,7 @@
 extern crate sdl2;
 extern crate imgui_opengl_renderer;
 
-pub mod animation_system;
+//pub mod animation_system;
 pub mod asset_system;
 pub mod audio;
 pub mod debug;
@@ -12,7 +12,6 @@ pub mod id_manager;
 pub mod input;
 pub mod renderer;
 pub mod sdl;
-pub mod task_system;
 pub mod transform;
 pub mod time_system;
 pub mod utils;
@@ -20,7 +19,7 @@ pub mod ui;
 pub mod video_system;
 
 pub use {
-    animation_system::*,
+    //animation_system::*,
     audio::*,
     font_system::*,
     game_state::*,
@@ -28,7 +27,6 @@ pub use {
     input::*,
     imgui_wrapper::*,
     renderer::*,
-    task_system::*,
     transform::*,
     ui::*,
     utils::*,
@@ -45,15 +43,14 @@ use sdl::*;
 use time_system::*;
 
 #[derive(ImDraw)]
-pub struct App<'a, S> {
-    animation_system: AnimationSystem,
+pub struct App<'a> {
+    //animation_system: AnimationSystem,
     asset_system: AssetSystem,
     audio_system: AudioSystem<'a>,
     font_system: FontSystem,
     input_system: InputSystem,
     renderer: Renderer,
     sdl_context: SdlContext,
-    task_system: TaskSystem<'a, S>,
     time_system: TimeSystem,
     ui_system: UiSystem,
 
@@ -65,7 +62,7 @@ pub struct App<'a, S> {
     pub video_system: VideoSystem,
 }
 
-impl<'a, S: GameState + ImDraw> App<'a, S> {
+impl App<'_> {
     fn new(config: AppConfig) -> Self {
         // @TODO check results
 
@@ -78,15 +75,14 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
         let time_system = TimeSystem::new(sdl_context.timer_subsystem.clone());
         let renderer = Renderer::new(video_system.window.size());
 
-        let animation_system = AnimationSystem::new();
-        let task_system = TaskSystem::new();
+        //let animation_system = AnimationSystem::new();
 
         let ui_system = UiSystem::new();
 
         let asset_system = AssetSystem::new();
 
         Self {
-            animation_system,
+            //animation_system,
             asset_system,
             audio_system,
 
@@ -100,19 +96,17 @@ impl<'a, S: GameState + ImDraw> App<'a, S> {
             ui_system,
             renderer,
 
-            task_system,
             running: true,
 
             show_debug_window: false,
         }
     }
 
-    fn run(&mut self, mut state: S, mut debug: Debug) {
+    fn run<S: GameState + ImDraw>(&mut self, mut state: S, mut debug: Debug) {
         self.new_frame();
 
         while self.running {
             self.new_frame();
-            self.run_tasks(&mut state);
 
             let events: Vec<Event> = self.sdl_context.event_pump.poll_iter().collect();
             for event in events.into_iter() {

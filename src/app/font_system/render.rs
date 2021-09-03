@@ -10,7 +10,7 @@ use crate::{
     transform::Transform,
 };
 
-impl<S> App<'_, S>{
+impl App<'_> {
     pub fn queue_draw_text(
         &mut self,
         //program: ShaderProgram,

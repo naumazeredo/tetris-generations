@@ -41,9 +41,9 @@ impl Debug {
         return self.imgui_sdl2.ignore_event(&event);
     }
 
-    pub fn render<S, F: FnMut(&Ui, &mut App<S>)>(
+    pub fn render<F: FnMut(&Ui, &mut App)>(
         &mut self,
-        app: &mut App<'_, S>,
+        app: &mut App,
         mut render_info: F
     ) {
         self.imgui_sdl2.prepare_frame(

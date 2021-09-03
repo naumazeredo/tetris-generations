@@ -162,7 +162,7 @@ impl InputSystem {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn update_input_mapping(&mut self, mapping: &mut InputMapping) {
         let timestamp = self.time_system.real_time;
         self.input_system.update_input_mapping(mapping, timestamp);

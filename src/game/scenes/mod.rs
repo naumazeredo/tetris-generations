@@ -1,6 +1,5 @@
 use crate::enum_dispatch::*;
 use crate::app::*;
-use crate::State;
 
 mod debug_pieces;
 mod persistent_data;
@@ -16,19 +15,19 @@ pub use singleplayer::*;
 pub trait SceneTrait {
     fn update(
         &mut self,
-        _app: &mut App<'_, State>,
+        _app: &mut App,
         _persistent: &mut PersistentData
     ) {}
 
     fn render(
         &mut self,
-        _app: &mut App<'_, State>,
+        _app: &mut App,
         _persistent: &mut PersistentData
     ) {}
 
     fn handle_input(
         &mut self,
-        _app: &mut App<'_, State>,
+        _app: &mut App,
         _persistent: &mut PersistentData,
         _event: &sdl2::event::Event
     ) -> bool {

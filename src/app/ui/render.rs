@@ -12,7 +12,7 @@ use crate::app::{
 use crate::linalg::{Vec2, Vec2i};
 
 impl Ui {
-    pub fn queue_draw<S>(&mut self, app: &mut App<'_, S>) {
+    pub fn queue_draw(&mut self, app: &mut App) {
         // Draw ui window background
         queue_draw_solid(
             &mut app.renderer,
@@ -427,7 +427,7 @@ impl Ui {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn queue_draw_uis(&mut self) {
         let uis = std::mem::take(&mut self.ui_system.uis);
 

@@ -1,4 +1,3 @@
-use crate::State;
 use crate::app::*;
 use crate::linalg::Vec2i;
 
@@ -32,7 +31,7 @@ pub struct SinglePlayerScene {
 impl SceneTrait for SinglePlayerScene {
     fn update(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         // pause
@@ -49,7 +48,7 @@ impl SceneTrait for SinglePlayerScene {
 
     fn render(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         if app.is_paused() {
@@ -176,7 +175,7 @@ impl SceneTrait for SinglePlayerScene {
 
     fn handle_input(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         _persistent: &mut PersistentData,
         event: &sdl2::event::Event
     ) -> bool {
@@ -226,13 +225,13 @@ impl SceneTrait for SinglePlayerScene {
 }
 
 impl SinglePlayerScene {
-    pub fn new(seed: u64, app: &mut App<'_, State>, persistent: &mut PersistentData) -> Self {
+    pub fn new(seed: u64, app: &mut App, persistent: &mut PersistentData) -> Self {
         // rules
         let mut rules: Rules = RotationSystem::NRSR.into();
         rules.start_level = 5;
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
 
-        let music_id = app.load_music("assets/sfx/Original-Tetris-theme.opus");
+        let music_id = app.load_music("assets/sfx/Original-Tetris-theme.ogg");
 
         Self {
             debug_pieces_scene_opened: false,

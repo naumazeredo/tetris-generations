@@ -38,7 +38,7 @@ impl TimeSystem {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn new_frame(&mut self) {
         let time_system = &mut self.time_system;
 

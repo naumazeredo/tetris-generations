@@ -1,6 +1,5 @@
 use crate::app::*;
 use crate::linalg::*;
-use crate::State;
 use crate::game::input::get_default_input_mapping;
 
 // Persistent Data
@@ -18,7 +17,7 @@ pub struct PersistentData {
 }
 
 impl PersistentData {
-    pub fn new(app: &mut App<'_, State>) -> Self {
+    pub fn new(app: &mut App) -> Self {
         // Sprites
         let build_sprite = |tex, x, y, w, h| {
             Sprite {

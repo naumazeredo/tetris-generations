@@ -27,7 +27,7 @@ fn new_combobox_option(selected: bool, text: &str) -> State {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn combobox(&mut self, label: &str, index: &mut usize, options: &[&str]) -> bool {
         // Add label
         self.text(label);

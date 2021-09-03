@@ -640,7 +640,7 @@ impl Drop for Renderer {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn render_queued(&mut self) {
         self.renderer.render_queued();
     }

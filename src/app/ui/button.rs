@@ -10,7 +10,7 @@ fn new_button(text: &str) -> State {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn button(&mut self, text: &str) -> bool {
         // @Maybe add text using the app.text method instead of calculating everything
 

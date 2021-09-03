@@ -49,7 +49,7 @@ pub(super) fn queue_draw_sprite(
     );
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn queue_draw_sprite(
         &mut self,
         transform: &Transform,

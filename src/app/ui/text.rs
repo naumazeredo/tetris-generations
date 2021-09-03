@@ -10,7 +10,7 @@ fn new_text(text: &str) -> State {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn text(&mut self, text: &str) {
         let id = Id::new(text);
         self.text_with_id(id, text);

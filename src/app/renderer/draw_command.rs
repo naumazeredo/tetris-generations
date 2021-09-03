@@ -113,7 +113,7 @@ pub(in crate::app) fn pop_clip(renderer: &mut Renderer) {
     renderer.world_cmds.push(Command::PopClip);
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     pub fn queue_draw_solid(
         &mut self,
         transform: &Transform,

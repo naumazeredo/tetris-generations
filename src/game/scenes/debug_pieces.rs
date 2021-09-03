@@ -1,5 +1,4 @@
 use crate::BLOCK_SCALE;
-use crate::State;
 use crate::app::*;
 use crate::linalg::*;
 
@@ -25,7 +24,7 @@ pub struct DebugPiecesScene {
 impl SceneTrait for DebugPiecesScene {
     fn update(
         &mut self,
-        _app: &mut App<'_, State>,
+        _app: &mut App,
         _persistent: &mut PersistentData
     ) {
         self.rot = ((self.rot % 4) + 4) % 4;
@@ -33,7 +32,7 @@ impl SceneTrait for DebugPiecesScene {
 
     fn render(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData
     ) {
         app.queue_draw_text(
@@ -158,7 +157,7 @@ impl SceneTrait for DebugPiecesScene {
 
     fn handle_input(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         _persistent: &mut PersistentData,
         event: &sdl2::event::Event
     ) -> bool {

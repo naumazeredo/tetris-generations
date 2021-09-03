@@ -112,7 +112,7 @@ impl State {
     }
 }
 
-impl<S> App<'_, S> {
+impl App<'_> {
     fn input_str_internal(&mut self, label: &str, value: &mut String, max_length: usize) {
         let id = Id::new(label);
 
@@ -181,7 +181,7 @@ macro_rules! input_variant_integer_impl {
             }
         }
 
-        impl<S> App<'_, S> {
+        impl App<'_> {
             fn $internal_fn(
                 &mut self,
                 label: &str,

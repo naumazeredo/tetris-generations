@@ -1,5 +1,4 @@
 use crate::app::*;
-use crate::State;
 
 use super::{
     Scene,
@@ -20,7 +19,7 @@ impl SceneManager {
         }
     }
 
-    pub fn update(&mut self, app: &mut App<'_, State>, persistent: &mut PersistentData) {
+    pub fn update(&mut self, app: &mut App, persistent: &mut PersistentData) {
         self.try_transition();
 
         if let Some(scene) = self.scenes.last_mut() {
@@ -30,7 +29,7 @@ impl SceneManager {
         }
     }
 
-    pub fn render(&mut self, app: &mut App<'_, State>, persistent: &mut PersistentData) {
+    pub fn render(&mut self, app: &mut App, persistent: &mut PersistentData) {
         if let Some(scene) = self.scenes.last_mut() {
             scene.render(app, persistent);
         } else {
@@ -40,7 +39,7 @@ impl SceneManager {
 
     pub fn handle_input(
         &mut self,
-        app: &mut App<'_, State>,
+        app: &mut App,
         persistent: &mut PersistentData,
         event: &sdl2::event::Event
     ) -> bool {

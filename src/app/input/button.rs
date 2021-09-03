@@ -263,15 +263,15 @@ impl Button {
         !self.down && timestamp - self.timestamp >= duration
     }
 
-    pub fn pressed_repeat<S>(&self, repeat_interval: u64, app: &App<'_, S>) -> bool {
+    pub fn pressed_repeat(&self, repeat_interval: u64, app: &App) -> bool {
         self.pressed_repeat_with_delay(repeat_interval, repeat_interval, app)
     }
 
-    pub fn pressed_repeat_with_delay<S>(
+    pub fn pressed_repeat_with_delay(
         &self,
         repeat_delay: u64,
         repeat_interval: u64,
-        app: &App<'_, S>
+        app: &App
     ) -> bool {
         if !self.down { return false; }
         if self.pressed { return true; }
