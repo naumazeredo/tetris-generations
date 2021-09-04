@@ -42,14 +42,14 @@ const BLOCK_SCALE : f32 = 8.0;
 impl GameState for State {
     fn new(app: &mut App) -> Self {
         // persistent data
-        let mut persistent = PersistentData::new(app);
+        let persistent = PersistentData::new(app);
 
         // seed
         let seed = app.system_time();
 
         // scene
         let scene_manager = SceneManager::new(
-            Scene::SinglePlayerScene(SinglePlayerScene::new(seed, app, &mut persistent))
+            MainMenuScene::new().into()
         );
 
         Self {

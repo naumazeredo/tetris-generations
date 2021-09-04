@@ -14,6 +14,8 @@ use crate::game::{
 #[derive(Clone, Debug, ImDraw)]
 pub struct SinglePlayerScene {
     debug_pieces_scene_opened: bool,
+    quit: bool,
+
     rules_instance: RulesInstance,
 
     seed: u64,
@@ -55,7 +57,7 @@ impl SceneTrait for SinglePlayerScene {
             // Ui
             let window_layout = Layout {
                 pos: Vec2i { x: 12, y: 12 },
-                size: Vec2i { x: 600, y: 628 }
+                size: Vec2i { x: 600, y: 668 }
             };
             app.new_ui(window_layout);
 
@@ -117,12 +119,16 @@ impl SceneTrait for SinglePlayerScene {
             //pub randomizer_type: RandomizerType,
             //app.input_u64_stretch("seed", &mut self.seed);
 
+            if app.button("Resume") {
+                app.resume();
+            }
+
             if app.button("Restart") {
                 println!("restart");
             }
 
-            if app.button("Resume") {
-                app.resume();
+            if app.button("Quit") {
+                self.quit = true;
             }
         }
 
@@ -214,13 +220,20 @@ impl SceneTrait for SinglePlayerScene {
         false
     }
 
-    fn transition(&mut self) -> Option<SceneTransition> {
+    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData,) -> Option<SceneTransition> {
         if self.debug_pieces_scene_opened {
             self.debug_pieces_scene_opened = false;
             Some(SceneTransition::Push(Scene::DebugPiecesScene(DebugPiecesScene::new())))
+        } else if self.quit {
+            Some(SceneTransition::Pop)
         } else {
             None
         }
+    }
+
+    fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData,) {
+        app.restart_time_system();
+        app.play_music(self.music_id);
     }
 }
 
@@ -235,6 +248,8 @@ impl SinglePlayerScene {
 
         Self {
             debug_pieces_scene_opened: false,
+            quit: false,
+
             rules_instance,
 
             seed,

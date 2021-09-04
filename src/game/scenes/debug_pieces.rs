@@ -201,12 +201,20 @@ impl SceneTrait for DebugPiecesScene {
         false
     }
 
-    fn transition(&mut self) -> Option<SceneTransition> {
+    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
         if self.go_back {
             Some(SceneTransition::Pop)
         } else {
             None
         }
+    }
+
+    fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData) {
+        app.pause();
+    }
+
+    fn on_exit(&mut self, app: &mut App, _persistent: &mut PersistentData) {
+        app.resume();
     }
 }
 

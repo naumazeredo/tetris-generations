@@ -20,7 +20,7 @@ impl SceneManager {
     }
 
     pub fn update(&mut self, app: &mut App, persistent: &mut PersistentData) {
-        self.try_transition();
+        self.try_transition(app, persistent);
 
         if let Some(scene) = self.scenes.last_mut() {
             scene.update(app, persistent);
@@ -58,11 +58,11 @@ impl SceneManager {
         }
     }
 
-    fn try_transition(&mut self) {
+    fn try_transition(&mut self, app: &mut App, persistent: &mut PersistentData) {
         let transition;
 
         if let Some(scene) = self.scenes.last_mut() {
-            if let Some(t) = scene.transition() {
+            if let Some(t) = scene.transition(app, persistent) {
                 transition = t;
             } else {
                 return;
@@ -75,17 +75,22 @@ impl SceneManager {
             SceneTransition::Pop => {
                 match self.scenes.pop() {
                     None => panic!("[scene_manager apply_transition pop] empty scene being popped!"),
-                    _ => {}
+                    Some(mut s) => s.on_exit(app, persistent),
                 }
             }
 
-            SceneTransition::Push(scene) => self.scenes.push(scene),
-            SceneTransition::Swap(scene) => {
+            SceneTransition::Push(mut scene) => {
+                scene.on_enter(app, persistent);
+                self.scenes.push(scene);
+            }
+
+            SceneTransition::Swap(mut scene) => {
                 match self.scenes.pop() {
                     None => panic!("[scene_manager apply_transition pop] empty scene being popped!"),
-                    _ => {}
+                    Some(mut s) => s.on_exit(app, persistent),
                 }
 
+                scene.on_enter(app, persistent);
                 self.scenes.push(scene);
             }
         }
