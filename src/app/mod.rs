@@ -153,7 +153,7 @@ impl App<'_> {
         }
     }
 
-    fn exit(&mut self) {
+    pub fn exit(&mut self) {
         self.running = false;
     }
 

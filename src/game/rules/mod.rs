@@ -16,7 +16,7 @@ use topout::TopOutRule;
 
 // Guideline: https://tetris.fandom.com/wiki/Tetris_Guideline
 
-#[derive(Copy, Clone, Debug, ImDraw)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct Rules {
     // @TODO use bitfields
     // gameplay rules
@@ -58,6 +58,9 @@ pub struct Rules {
     pub scoring_curve: ScoringRule,
     pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
     pub start_level: u8,
+
+    // THIS IS A CONSTANT (how can we do this better?)
+    pub minimum_level: u8, // Some games start at 0, some start at 1
 
     // @TODO depend on last lock height.
     //       Tetris NES: ARE is 10~18 frames depending on the height at which the piece locked;
@@ -114,6 +117,7 @@ impl From<RotationSystem> for Rules {
                     scoring_curve: ScoringRule::Classic,
                     level_curve: LevelCurve::Classic,
                     start_level: 0,
+                    minimum_level: 0,
 
                     entry_delay: 0,
                     lock_delay: LockDelayRule::NoDelay,
@@ -153,6 +157,7 @@ impl From<RotationSystem> for Rules {
                     scoring_curve: ScoringRule::Classic,
                     level_curve: LevelCurve::Classic,
                     start_level: 1,
+                    minimum_level: 1,
 
                     entry_delay: 0,
                     lock_delay: LockDelayRule::MoveReset {
@@ -267,6 +272,11 @@ impl Rules {
                     0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 90, 90, 90, 90, 90, 90,
                     100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 190, 190
                 ];
+
+                // @Remove
+                if self.start_level as usize >= lines_to_next_level_from_start_level.len() {
+                    return 200;
+                }
 
                 let line_diff_from_start =
                     total_lines_cleared.saturating_sub(

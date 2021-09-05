@@ -12,13 +12,17 @@
     - [ ] BLOCK_SCALE to u8
     - [ ] All render functions to receive Vec2i or integers instead of floats
 - [ ] Scenes
-  - [ ] Main menu
+  - [x] Main menu
     - [ ] Options
   - [ ] Classic game
     - [ ] Local
     - [ ] Multiplayer
   - [ ] Modern game
   - [ ] Custom game
+- [ ] UI improvements
+  - [ ] Multipage window
+  - [ ] Align to bottom
+  - [ ] Disabled line
 
 
 ### Engine

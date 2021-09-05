@@ -263,9 +263,7 @@ impl App<'_> {
     fn new_layout_right(&self, size: Vec2i) -> Layout {
         let ui = &self.ui_system.uis.last().unwrap();
         let pos = Vec2i {
-            // What is happening? Why adding the padding breaks it?
-            //x: ui.layout.size.x - ui.style.padding - size.x,
-            x: ui.layout.size.x - size.x,
+            x: ui.layout.pos.x + ui.layout.size.x - size.x - ui.style.padding,
             y: self.ui_system.cursor.y,
         };
 

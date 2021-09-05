@@ -6,12 +6,14 @@ mod main_menu;
 mod persistent_data;
 mod scene_manager;
 mod singleplayer;
+mod singleplayer_start_menu;
 
 pub use debug_pieces::*;
 pub use main_menu::*;
 pub use persistent_data::*;
 pub use scene_manager::*;
 pub use singleplayer::*;
+pub use singleplayer_start_menu::*;
 
 #[enum_dispatch]
 pub trait SceneTrait {
@@ -29,6 +31,7 @@ pub trait SceneTrait {
 #[derive(Clone, Debug, ImDraw)]
 pub enum Scene {
     MainMenuScene,
+    SinglePlayerStartMenuScene,
     SinglePlayerScene,
     DebugPiecesScene,
 }

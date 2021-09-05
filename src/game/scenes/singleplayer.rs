@@ -5,7 +5,6 @@ use super::*;
 
 use crate::game::{
     rules::{
-        RotationSystem,
         Rules,
         instance::RulesInstance,
     }
@@ -17,17 +16,9 @@ pub struct SinglePlayerScene {
     quit: bool,
 
     rules_instance: RulesInstance,
-
-    seed: u64,
-
-    checkbox_test: bool,
-    input_i32_test: i32,
-    input_u32_test: u32,
-    input_str_test: String,
-    combobox_index_test: usize,
+    seed: u64, // @TODO move this to RulesInstance
 
     music_id: MusicId,
-    music_playing: bool,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -54,80 +45,31 @@ impl SceneTrait for SinglePlayerScene {
         persistent: &mut PersistentData
     ) {
         if app.is_paused() {
+            let window_size = app.window_size();
+            let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
+            let menu_size = Vec2i { x: 600, y: 300 };
+
             // Ui
             let window_layout = Layout {
-                pos: Vec2i { x: 12, y: 12 },
-                size: Vec2i { x: 600, y: 668 }
+                pos: Vec2i {
+                    x: (window_size.x - menu_size.x) / 2,
+                    y: (window_size.y - menu_size.y) / 2,
+                },
+                size: menu_size
             };
             app.new_ui(window_layout);
 
-            app.text("RULES");
-            app.checkbox("hard drop", &mut self.rules_instance.rules.has_hard_drop);
-            if self.rules_instance.rules.has_hard_drop {
-                app.indent();
-                app.checkbox("hard drop lock", &mut self.rules_instance.rules.has_hard_drop_lock);
-                app.unindent();
-            }
-
-            app.checkbox("soft drop", &mut self.rules_instance.rules.has_soft_drop);
-            if self.rules_instance.rules.has_soft_drop {
-                app.indent();
-                app.checkbox("soft drop lock", &mut self.rules_instance.rules.has_soft_drop_lock);
-                app.unindent();
-            }
-
-            app.checkbox("hold piece", &mut self.rules_instance.rules.has_hold_piece);
-            if self.rules_instance.rules.has_hold_piece {
-                app.indent();
-                app.checkbox("reset rotation", &mut self.rules_instance.rules.hold_piece_reset_rotation);
-                app.unindent();
-            }
-
-            app.checkbox("ghost piece", &mut self.rules_instance.rules.has_ghost_piece);
-
-            app.checkbox("spawn drop", &mut self.rules_instance.rules.spawn_drop);
-
-            app.checkbox("IRS", &mut self.rules_instance.rules.has_initial_rotation_system);
-            app.checkbox("IHS", &mut self.rules_instance.rules.has_initial_hold_system);
-
-            app.slider_u8("spawn row", &mut self.rules_instance.rules.spawn_row, 0, 24);
-            app.slider_u8("next pieces", &mut self.rules_instance.rules.next_pieces_preview_count, 0, 6);
-
-            //pub line_clear_rule: LineClearRule,
-            //pub top_out_rule: TopOutRule,
-
-            //app.combobox("combobox", &mut self.combobox_index_test, combobox::COMBOBOX_TEST_OPTIONS);
-
-            // @TODO ui for time values
-            app.slider_u64("DAS", &mut self.rules_instance.rules.das_repeat_delay, 0, 500_000);
-            app.slider_u64("ARR", &mut self.rules_instance.rules.das_repeat_interval, 0, 500_000);
-
-            app.slider_u64("soft drop interval", &mut self.rules_instance.rules.soft_drop_interval, 0, 500_000);
-            app.slider_u64("line clear delay", &mut self.rules_instance.rules.line_clear_delay, 0, 500_000);
-
-            //pub gravity_curve: GravityCurve,
-            //pub scoring_curve: ScoringRule,
-            //pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
-            //pub start_level: u8,
-            app.slider_u8("start level", &mut self.rules_instance.rules.start_level, 1, 255);
-
-            app.slider_u64("entry delay", &mut self.rules_instance.rules.entry_delay, 0, 2_000_000);
-
-            //pub lock_delay: LockDelayRule,
-            //pub rotation_system: RotationSystem,
-
-            //pub randomizer_type: RandomizerType,
-            //app.input_u64_stretch("seed", &mut self.seed);
-
-            if app.button("Resume") {
+            // Ui
+            app.text("PAUSED");
+            if app.button("RESUME") {
                 app.resume();
             }
 
-            if app.button("Restart") {
+            if app.button("RESTART") {
                 println!("restart");
             }
 
-            if app.button("Quit") {
+            if app.button("QUIT") {
                 self.quit = true;
             }
         }
@@ -199,7 +141,6 @@ impl SceneTrait for SinglePlayerScene {
 
             Event::KeyDown { scancode: Some(Scancode::F10), .. } => {
                 self.debug_pieces_scene_opened = true;
-                app.pause();
             }
 
             Event::KeyDown { scancode: Some(Scancode::W), .. } => {
@@ -220,7 +161,7 @@ impl SceneTrait for SinglePlayerScene {
         false
     }
 
-    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData,) -> Option<SceneTransition> {
+    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
         if self.debug_pieces_scene_opened {
             self.debug_pieces_scene_opened = false;
             Some(SceneTransition::Push(Scene::DebugPiecesScene(DebugPiecesScene::new())))
@@ -233,15 +174,13 @@ impl SceneTrait for SinglePlayerScene {
 
     fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData,) {
         app.restart_time_system();
-        app.play_music(self.music_id);
+        //app.play_music(self.music_id);
     }
 }
 
 impl SinglePlayerScene {
-    pub fn new(seed: u64, app: &mut App, persistent: &mut PersistentData) -> Self {
+    pub fn new(seed: u64, rules: Rules, app: &mut App, persistent: &mut PersistentData) -> Self {
         // rules
-        let mut rules: Rules = RotationSystem::NRSR.into();
-        rules.start_level = 5;
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
 
         let music_id = app.load_music("assets/sfx/Original-Tetris-theme.ogg");
@@ -251,17 +190,9 @@ impl SinglePlayerScene {
             quit: false,
 
             rules_instance,
-
             seed,
 
-            checkbox_test: false,
-            input_i32_test: 0,
-            input_u32_test: 0,
-            input_str_test: String::new(),
-            combobox_index_test: 0,
-
             music_id,
-            music_playing: false,
         }
     }
 }

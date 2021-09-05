@@ -38,7 +38,7 @@ impl SliderVariant {
 macro_rules! slider_variant_integer_impl {
     ($build_fn:ident, $pub_fn:ident, $var:ident, $type:ident) => {
         fn $build_fn(value: $type, min: $type, max: $type) -> State {
-            let mut percent = (value - min) as f32 / (max - min) as f32;
+            let mut percent = (value.saturating_sub(min)) as f32 / (max - min) as f32;
             if percent < 0.0 { percent = 0.0; }
             if percent > 1.0 { percent = 1.0; }
 
@@ -78,7 +78,7 @@ macro_rules! slider_variant_integer_impl {
                         } = &mut state.variant {
                             if *v != *value {
                                 *v = *value;
-                                *percent = (*v - *min) as f32 / (*max - *min) as f32;
+                                *percent = ((*v).saturating_sub(*min)) as f32 / (*max - *min) as f32;
                                 *percent = percent.clamp(0.0, 1.0);
                             }
                         } else {

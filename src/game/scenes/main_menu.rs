@@ -5,7 +5,7 @@ use super::*;
 
 #[derive(Clone, Debug, ImDraw)]
 pub struct MainMenuScene {
-    start_singleplayer_game: bool,
+    start_singleplayer_menu: bool,
 }
 
 impl SceneTrait for MainMenuScene {
@@ -23,26 +23,28 @@ impl SceneTrait for MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 300, y: 300 };
+        let menu_size = Vec2i { x: 600, y: 300 };
 
         // Ui
         let window_layout = Layout {
             pos: Vec2i {
-                x: (window_size.x - menu_size.x) / 2,
+                x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
         app.new_ui(window_layout);
 
-        app.text("MENU");
-
         if app.button("NEW GAME") {
-            self.start_singleplayer_game = true;
+            self.start_singleplayer_menu = true;
+        }
+
+        if app.button("OPTIONS") {
+            println!("options");
         }
 
         if app.button("QUIT") {
-            println!("quit");
+            app.exit();
         }
     }
 
@@ -59,12 +61,10 @@ impl SceneTrait for MainMenuScene {
         false
     }
 
-    fn transition(&mut self, app: &mut App, persistent: &mut PersistentData) -> Option<SceneTransition> {
-        if self.start_singleplayer_game {
-            self.start_singleplayer_game = false;
-
-            let seed = app.system_time();
-            Some(SceneTransition::Push(SinglePlayerScene::new(seed, app, persistent).into()))
+    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
+        if self.start_singleplayer_menu {
+            self.start_singleplayer_menu = false;
+            Some(SceneTransition::Push(SinglePlayerStartMenuScene::new().into()))
         } else {
             None
         }
@@ -74,7 +74,7 @@ impl SceneTrait for MainMenuScene {
 impl MainMenuScene {
     pub fn new() -> Self {
         Self {
-            start_singleplayer_game: false,
+            start_singleplayer_menu: false,
         }
     }
 }

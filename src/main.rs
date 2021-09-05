@@ -92,24 +92,6 @@ impl GameState for State {
                 window.set_fullscreen(new_fullscreen_state).unwrap();
             }
 
-            // Restart all
-            Event::KeyDown { scancode: Some(Scancode::R), .. } => {
-                app.restart_time_system();
-
-                self.scene_manager = SceneManager::new(
-                    Scene::SinglePlayerScene(SinglePlayerScene::new(self.seed, app, &mut self.persistent))
-                );
-            }
-
-            // New game
-            Event::KeyDown { scancode: Some(Scancode::T), .. } => {
-                app.restart_time_system();
-
-                self.scene_manager = SceneManager::new(
-                    Scene::SinglePlayerScene(SinglePlayerScene::new(app.system_time(), app, &mut self.persistent))
-                );
-            }
-
             Event::KeyDown { scancode: Some(Scancode::Q), .. } => {
                 if self.persistent.pixel_scale > 1 {
                     self.persistent.pixel_scale -= 1;
