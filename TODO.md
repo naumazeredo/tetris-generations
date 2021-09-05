@@ -23,6 +23,8 @@
   - [ ] Multipage window
   - [ ] Align to bottom
   - [ ] Disabled line
+- [ ] Networking
+  - [ ] Twitch
 
 
 ### Engine
@@ -80,6 +82,7 @@
       - [ ] derive: check for #[imdraw_ignore] to not show some fields
   - [ ] Implement basic Editor functionality using UI System
     - [ ] Save/load UI designs
+- [ ] [scene system]: Refactor into App
 
 #### Issues
 
