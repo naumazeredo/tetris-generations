@@ -32,6 +32,20 @@
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface
 - [ ] Networking
+  - [ ] Server-client
+    - [ ] Connection
+      - [ ] Naive
+      - [ ] Reliable UDP
+    - [ ] Heartbeat
+  - [ ] Serialization
+    - [ ] Bit packing
+      - [ ] Integer
+        - [x] i8, i16, i32, i64, u8, u16, u32, u64
+        - [ ] i128, u128
+      - [ ] Floating point
+      - [ ] Strings (?)
+    - [ ] Reserve bits
+    - [ ] Derive macro
 - [ ] Logger system: just improve logging.
 - [ ] Asset system
   - [ ] [asset] Asset System should not hold all data, each component can hold its own data.
