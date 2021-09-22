@@ -419,7 +419,9 @@ impl Ui {
                     pop_clip(&mut app.renderer);
                 }
 
-                //_ => { unimplemented!(); }
+                ElementVariant::Separator => {
+                    todo!();
+                }
             }
         }
 

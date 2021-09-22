@@ -113,6 +113,100 @@ impl State {
 }
 
 impl App<'_> {
+    // @TODO somehow refactor this function to be able to have a state tied to a deeper level
+    //       of the app, instead of self
+    fn update_input_state_interaction(&mut self, id: Id, layout: Layout) -> &mut State {
+        // @TODO only update if mouse is inside the element container (we will need to propagate
+        //       the container size)
+
+        // Get mouse state
+        let mouse_pos: Vec2i = self.get_mouse_position().into();
+        let mouse_left_pressed = self.mouse_left_pressed();
+        let mouse_left_released = self.mouse_left_released();
+        let mouse_hovering = mouse_pos.is_inside(layout.pos, layout.size);
+        let timestamp = self.real_timestamp();
+
+        let mut state = self.ui_system.states.get_mut(&id).unwrap();
+
+        // Update mouse interaction
+
+        state.pressed = false;
+        state.hovering = false;
+
+        // Check modal opened
+        if self.ui_system.modal_open.is_some() {
+            state.down = false;
+            return state;
+        }
+
+        // Handle input focus lost and input completion before mouse interactions
+        if let ElementVariant::Input { input_focus, input_complete, value_str, ..  } = &mut state.variant {
+            *input_complete = false;
+            if *input_focus == Some(true) {
+                if (mouse_left_released && !mouse_hovering) || self.ui_system.input_complete {
+                    // Input completion
+
+                    *input_complete = true;
+                    *input_focus = Some(false);
+
+                    // Update the input value to the input_state.
+                    // The input_state is saved into input_state_buffer since ui elements are in immediate
+                    // mode and the logic to handle having a focused input and clicking on a different
+                    // input element would be tricky. Thus, we have a App.update_ui_system function that
+                    // stores the input_state into input_state_buffer when we have to update the element
+                    // input
+                    *value_str = std::mem::take(&mut self.ui_system.input_state_buffer);
+                } else if self.ui_system.input_focus.is_none() {
+                    // Input focus lost
+
+                    *input_focus = Some(false);
+                }
+            }
+        }
+
+        // Handle mouse interactions
+        if mouse_hovering {
+            state.hovering = true;
+            if mouse_left_pressed {
+                state.down = true;
+            } else if mouse_left_released {
+                state.pressed = true;
+
+                if let ElementVariant::Input {
+                    input_focus,
+                    variant,
+                    value_str,
+                    ..
+                } = &mut state.variant {
+                    if *input_focus == Some(false) {
+                        *input_focus = Some(true);
+
+                        self.ui_system.input_focus = Some(id);
+                        self.ui_system.input_variant = *variant;
+
+                        println!("focus change: {}", id);
+                        println!("input variant: {:?}", self.ui_system.input_variant);
+
+                        // Update input_state to the current input value.
+                        self.ui_system.input_state = value_str.clone();
+
+                        self.ui_system.input_cursor_timestamp = timestamp;
+                    }
+                }
+            }
+        }
+
+        if mouse_left_released {
+            state.down = false;
+        }
+
+        state
+    }
+}
+
+// String Input
+
+impl App<'_> {
     fn input_str_internal(&mut self, label: &str, value: &mut String, max_length: usize) {
         let id = Id::new(label);
 
@@ -131,9 +225,19 @@ impl App<'_> {
 
         // @TODO we should update the input state in case referenced value changed
         self.ui_system.states.entry(id)
+            .and_modify(|state| {
+                if let ElementVariant::Input {
+                    value_str,
+                    ..
+                } = &mut state.variant {
+                    std::mem::swap(value_str, value);
+                } else {
+                    unreachable!();
+                }
+            })
             .or_insert_with(|| State::new_input_str(&value, max_length));
 
-        let state = self.update_state_interaction(id, layout);
+        let state = self.update_input_state_interaction(id, layout);
         if let ElementVariant::Input {
             input_complete: true,
             value_str,
@@ -143,7 +247,6 @@ impl App<'_> {
         }
 
         self.add_element(id, layout);
-
     }
 
     pub fn input_str(&mut self, label: &str, value: &mut String) {
@@ -154,6 +257,63 @@ impl App<'_> {
         self.input_str_internal(label, value, max_length);
     }
 }
+
+pub struct Input<'a> {
+    label: &'a str,
+    max_length: usize,
+}
+
+pub struct InputState {
+    pressed: bool,
+    down: bool,
+    hovering: bool,
+    input_focus: bool,
+    input_complete: bool,
+}
+
+impl<'a> Input<'a> {
+    pub fn new<'b: 'a>(label: &'b str) -> Self {
+        Self {
+            label,
+            max_length: 64,
+        }
+    }
+
+    pub fn max_length(self, max_length: usize) -> Self {
+        Self {
+            max_length,
+            ..self
+        }
+    }
+
+    pub fn build(self, value: &mut String, app: &mut App<'_>) -> InputState {
+        // Paste input_str_internal here
+        app.input_str_internal(self.label, value, self.max_length);
+
+        let id = Id::new(self.label);
+        let id = id.add("#input");
+
+        let state = app.ui_system.states.get_mut(&id).unwrap();
+
+        if let ElementVariant::Input {
+            input_focus,
+            input_complete,
+            ..
+        } = state.variant {
+            InputState {
+                pressed: state.pressed,
+                down: state.down,
+                hovering: state.hovering,
+                input_focus: input_focus.unwrap(),
+                input_complete,
+            }
+        } else {
+            unreachable!();
+        }
+    }
+}
+
+// Integer inputs
 
 // @TODO proc_macro this to remove all these function names
 macro_rules! input_variant_integer_impl {

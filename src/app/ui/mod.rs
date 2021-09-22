@@ -186,7 +186,8 @@ enum ElementVariant {
     ComboboxOption {
         selected: bool,
         text: String,
-    }
+    },
+    Separator,
 }
 
 impl App<'_> {
@@ -405,96 +406,6 @@ impl App<'_> {
         if mouse_left_released {
             state.down = false;
             self.ui_system.modal_change = None;
-        }
-
-        state
-    }
-
-    // @TODO somehow refactor this function to be able to have a state tied to a deeper level
-    //       of the app, instead of self
-    fn update_input_state_interaction(&mut self, id: Id, layout: Layout) -> &mut State {
-        // @TODO only update if mouse is inside the element container (we will need to propagate
-        //       the container size)
-
-        // Get mouse state
-        let mouse_pos: Vec2i = self.get_mouse_position().into();
-        let mouse_left_pressed = self.mouse_left_pressed();
-        let mouse_left_released = self.mouse_left_released();
-        let mouse_hovering = mouse_pos.is_inside(layout.pos, layout.size);
-        let timestamp = self.real_timestamp();
-
-        let mut state = self.ui_system.states.get_mut(&id).unwrap();
-
-        // Update mouse interaction
-
-        state.pressed = false;
-        state.hovering = false;
-
-        // Check modal opened
-        if self.ui_system.modal_open.is_some() {
-            state.down = false;
-            return state;
-        }
-
-        // Handle input focus lost and input completion before mouse interactions
-        if let ElementVariant::Input { input_focus, input_complete, value_str, ..  } = &mut state.variant {
-            *input_complete = false;
-            if *input_focus == Some(true) {
-                if (mouse_left_released && !mouse_hovering) || self.ui_system.input_complete {
-                    // Input completion
-
-                    *input_complete = true;
-                    *input_focus = Some(false);
-
-                    // Update the input value to the input_state.
-                    // The input_state is saved into input_state_buffer since ui elements are in immediate
-                    // mode and the logic to handle having a focused input and clicking on a different
-                    // input element would be tricky. Thus, we have a App.update_ui_system function that
-                    // stores the input_state into input_state_buffer when we have to update the element
-                    // input
-                    *value_str = std::mem::take(&mut self.ui_system.input_state_buffer);
-                } else if self.ui_system.input_focus.is_none() {
-                    // Input focus lost
-
-                    *input_focus = Some(false);
-                }
-            }
-        }
-
-        // Handle mouse interactions
-        if mouse_hovering {
-            state.hovering = true;
-            if mouse_left_pressed {
-                state.down = true;
-            } else if mouse_left_released {
-                state.pressed = true;
-
-                if let ElementVariant::Input {
-                    input_focus,
-                    variant,
-                    value_str,
-                    ..
-                } = &mut state.variant {
-                    if *input_focus == Some(false) {
-                        *input_focus = Some(true);
-
-                        self.ui_system.input_focus = Some(id);
-                        self.ui_system.input_variant = *variant;
-
-                        println!("focus change: {}", id);
-                        println!("input variant: {:?}", self.ui_system.input_variant);
-
-                        // Update input_state to the current input value.
-                        self.ui_system.input_state = value_str.clone();
-
-                        self.ui_system.input_cursor_timestamp = timestamp;
-                    }
-                }
-            }
-        }
-
-        if mouse_left_released {
-            state.down = false;
         }
 
         state
