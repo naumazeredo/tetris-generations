@@ -1,4 +1,5 @@
 pub mod input;
+pub mod network;
 pub mod randomizer;
 pub mod rules;
 pub mod scenes;

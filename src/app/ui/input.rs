@@ -279,7 +279,7 @@ impl<'a> Input<'a> {
         }
     }
 
-    pub fn max_length(self, max_length: usize) -> Self {
+    pub fn with_max_length(self, max_length: usize) -> Self {
         Self {
             max_length,
             ..self

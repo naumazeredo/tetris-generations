@@ -1,11 +1,11 @@
-pub mod button;
-pub mod checkbox;
-pub mod combobox;
-pub mod input;
-pub mod render;
-pub mod slider;
-pub mod style;
-pub mod text;
+mod button;
+mod checkbox;
+mod combobox;
+mod input;
+mod render;
+mod slider;
+mod style;
+mod text;
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -18,7 +18,7 @@ use crate::app::{
     utils::fnv_hasher::FNVHasher,
 };
 
-use input::*;
+pub use input::*;
 use slider::*;
 use style::*;
 

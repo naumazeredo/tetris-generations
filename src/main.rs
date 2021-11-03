@@ -1,8 +1,13 @@
 // Remove console on Windows if not in debug build
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(not(debug_assertions), deny(dead_code))]
 #![cfg_attr(debug_assertions, allow(dead_code))]
+#![cfg_attr(debug_assertions, allow(incomplete_features))]
 
-//#![feature(option_expect_none)]
+#![feature(int_log)]
+#![feature(generic_const_exprs)]
+#![feature(maybe_uninit_uninit_array)]
+#![feature(maybe_uninit_array_assume_init)]
 
 #[macro_use] extern crate bitflags;
 extern crate imgui;

@@ -6,16 +6,14 @@ pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
 
 #[derive(Clone, Debug)]
 pub struct Playfield {
+    pub grid_size: Vec2i, // @Refactor use Vec2<u8>
+    pub blocks: Vec<bool>, // @Refactor don't use Vec (and Vec<bool> is worse)
+    pub block_types: Vec<PieceType>, // @Refactor don't use Vec
+
+    // Render variables
     // @Refactor rendering information struct
     pub pos: Vec2i,
-    pub grid_size: Vec2i, // @Refactor use Vec2<u8>
-
-    // @XXX this is probably better be where pixel_scale is. This is a rendering/style parameter
-    pub has_grid: bool,
-
-    // @Refactor vec of bools are bad!
-    pub blocks: Vec<bool>,
-    pub block_types: Vec<PieceType>,
+    pub has_grid: bool, // @XXX this is probably better be where pixel_scale is
 }
 
 impl Playfield {
@@ -172,5 +170,45 @@ impl ImDraw for Playfield {
 
             id.pop(ui);
         });
+    }
+}
+
+// Network
+use crate::game::network;
+
+impl Playfield {
+    pub fn from_network(
+        net_instance: network::NetworkedPlayfield,
+        pos: Vec2i,
+        has_grid: bool
+    ) -> Self {
+        let network::NetworkedPlayfield { grid_size, blocks, block_types } = net_instance;
+
+        Self {
+            pos,
+            grid_size,
+            has_grid,
+
+            blocks,
+            block_types,
+        }
+    }
+
+    pub fn to_network(&self) -> network::NetworkedPlayfield {
+        network::NetworkedPlayfield {
+            grid_size: self.grid_size,
+            blocks: self.blocks.clone(),
+            block_types: self.block_types.clone(),
+        }
+    }
+
+    pub fn update_from_network(
+        &mut self,
+        net_instance: network::NetworkedPlayfield
+    ) {
+        let network::NetworkedPlayfield { grid_size, blocks, block_types } = net_instance;
+        self.grid_size = grid_size;
+        self.blocks = blocks;
+        self.block_types = block_types;
     }
 }

@@ -23,6 +23,10 @@
   - [ ] Multipage window
   - [ ] Align to bottom
   - [ ] Disabled line
+  - [ ] Better interaction: create a struct for each component
+    - [ ] Button: pressed(), released(), down()
+    - [ ] Slider: changed(), changing()
+    - [ ] Input: changed()
 - [ ] Networking
   - [ ] Twitch
 
@@ -32,11 +36,22 @@
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface
 - [ ] Networking
+  - [ ] Rename app/net to app/network
+  - [ ] Packet fragmentation
+  - [x] public interface instead of whole struct being public
   - [ ] Server-client
     - [ ] Connection
       - [ ] Naive
       - [ ] Reliable UDP
+      - [ ] Encryption
+      - [ ] Challenge (remove connection IP spoofing)
     - [ ] Heartbeat
+      - [x] Request/reply
+      - [ ] Timeout state
+    - [ ] Server slots (max number of players)
+    - [ ] Server configuration
+      - [ ] Retry duration
+      - [ ] Timeout duration
   - [ ] Serialization
     - [ ] Bit packing
       - [ ] Integer
@@ -100,9 +115,11 @@
 
 #### Issues
 
+- [ ] [game] multiplayer scene -> game over = crash?
+- [ ] [game] multiplayer spectate scene -> connecting is not dropping?
 - [ ] [font render] fix background not being transparent -> rendering issue: z orders not matching
     rendering order (z order fight?)
-- [ ] cargo clippy warnings
+- [ ] fix cargo clippy warnings
 - [ ] [game animations] animations are skipped if the piece is locked in the middle of the animation
 - [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
     were made, so this bug is still there)

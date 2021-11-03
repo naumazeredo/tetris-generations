@@ -20,7 +20,7 @@ use crate::game::{
     scenes::PersistentData,
 };
 
-const NEXT_PIECES_COUNT: usize = 8;
+pub const NEXT_PIECES_COUNT: usize = 8;
 
 #[derive(Clone, Debug, ImDraw)]
 // @Rename
@@ -28,22 +28,19 @@ pub struct RulesInstance {
     // @Maybe add which topout rule was the cause
     topped_out: bool, // per game
 
-    pub rules: Rules,           // per game
+    rules: Rules,           // per game
     playfield: Playfield,   // per game
     randomizer: Randomizer, // per game
 
     current_score: u32,       // per game
     total_lines_cleared: u32, // per game
 
-    current_piece: Option<Piece>,
-    // @Cleanup this seems bad. We use too often this paired with the current_piece, so maybe just
-    //          readd it to Piece and make the hold piece the 2 variables (or be a tuple)
-    current_piece_pos: Vec2i, // per piece
+    current_piece: Option<(Piece, Vec2i)>,
     next_piece_types: [PieceType; NEXT_PIECES_COUNT], // per game
 
     lock_piece_timestamp: u64,
     last_locked_piece: Option<LockedPiece>, // per piece
-    soft_drop_steps: u8,    // per piece
+    soft_drop_steps: u8, // per piece
     hard_drop_steps: u8, // per piece
 
     hold_piece: Option<Piece>, // per game
@@ -57,6 +54,7 @@ pub struct RulesInstance {
     has_stepped: bool, // per frame
     last_piece_action: LastPieceAction, // per frame
 
+    // Timestamps used for animations
     movement_last_timestamp_x: u64,
     movement_last_timestamp_y: u64,
 
@@ -81,6 +79,12 @@ pub struct RulesInstance {
 
     locking_animation_timestamp: u64,
     locking_animation_duration: u64,
+}
+
+impl RulesInstance {
+    pub fn rules(&self) -> &Rules         { &self.rules }
+    pub fn playfield(&self) -> &Playfield { &self.playfield }
+    pub fn randomizer(&self) -> &Randomizer { &self.randomizer }
 }
 
 impl RulesInstance {
@@ -127,7 +131,7 @@ impl RulesInstance {
         // @Refactor render positions should be in the scene
         let hold_window_delta_pos = Vec2 { x: -20.0, y: 0.0 };
 
-        // locking
+        // lock delay
         let remaining_lock_delay = rules.lock_delay;
 
         Self {
@@ -141,7 +145,6 @@ impl RulesInstance {
             total_lines_cleared: 0,
 
             current_piece: None,
-            current_piece_pos: Vec2i::new(),
             next_piece_types,
 
             lock_piece_timestamp: 0,
@@ -188,7 +191,7 @@ impl RulesInstance {
     pub fn update(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        input_mapping: &InputMapping,
     ) {
         if self.topped_out { return; }
 
@@ -199,8 +202,8 @@ impl RulesInstance {
         if self.current_piece.is_some() && self.rules.lock_delay != LockDelayRule::NoDelay {
             let was_locking = self.is_locking;
             self.is_locking = is_piece_locking(
-                self.current_piece.as_ref().unwrap(),
-                self.current_piece_pos,
+                &self.current_piece.as_ref().unwrap().0,
+                self.current_piece.as_ref().unwrap().1,
                 &self.playfield,
             );
 
@@ -287,10 +290,10 @@ impl RulesInstance {
 
         // movement input
         if self.current_piece.is_some() {
-            // horizontal movement logic
+            // Horizontal movement logic
             let mut horizontal_movement = 0;
 
-            let left_button = persistent.input_mapping.button("left".to_string());
+            let left_button = input_mapping.button("left".to_string());
             if left_button.pressed_repeat_with_delay(
                 self.rules.das_repeat_delay,
                 self.rules.das_repeat_interval,
@@ -299,7 +302,7 @@ impl RulesInstance {
                 horizontal_movement -= 1;
             }
 
-            let right_button = persistent.input_mapping.button("right".to_string());
+            let right_button = input_mapping.button("right".to_string());
             if right_button.pressed_repeat_with_delay(
                 self.rules.das_repeat_delay,
                 self.rules.das_repeat_interval,
@@ -308,9 +311,10 @@ impl RulesInstance {
                 horizontal_movement += 1;
             }
 
+            let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
             if horizontal_movement != 0 && try_move_piece(
-                self.current_piece.as_ref().unwrap(),
-                &mut self.current_piece_pos,
+                piece,
+                piece_pos,
                 &self.playfield,
                 horizontal_movement,
                 0,
@@ -323,8 +327,8 @@ impl RulesInstance {
                 self.last_piece_action = LastPieceAction::Movement;
             }
 
-            // soft drop
-            let down_button = persistent.input_mapping.button("down".to_string());
+            // Soft drop
+            let down_button = input_mapping.button("down".to_string());
             if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
                 self.try_soft_drop_piece(app);
             }
@@ -332,17 +336,17 @@ impl RulesInstance {
             // Rotate
             let mut rotation = 0;
 
-            let ccw_button = persistent.input_mapping.button("rotate_ccw".to_string());
+            let ccw_button = input_mapping.button("rotate_ccw".to_string());
             if ccw_button.pressed() { rotation -= 1; }
 
-            let cw_button = persistent.input_mapping.button("rotate_cw".to_string());
+            let cw_button = input_mapping.button("rotate_cw".to_string());
             if cw_button.pressed() { rotation += 1; }
 
             if rotation != 0 {
                 if let Some(ref mut piece) = self.current_piece {
                     if try_rotate_piece(
-                        piece,
-                        &mut self.current_piece_pos,
+                        &mut piece.0,
+                        &mut piece.1,
                         rotation > 0,
                         &self.playfield,
                         &self.rules
@@ -361,7 +365,7 @@ impl RulesInstance {
 
         if self.current_piece.is_some() {
             // hard drop
-            let up_button = persistent.input_mapping.button("hard_drop".to_string());
+            let up_button = input_mapping.button("hard_drop".to_string());
             if up_button.pressed() {
                 self.try_hard_drop_piece(app);
             }
@@ -369,12 +373,13 @@ impl RulesInstance {
 
         if self.rules.has_hold_piece && self.current_piece.is_some() {
             // hold piece
-            let hold_button = persistent.input_mapping.button("hold".to_string());
+            let hold_button = input_mapping.button("hold".to_string());
             if hold_button.pressed() {
                 if !self.has_used_hold {
                     match self.hold_piece.take() {
                         Some(hold_piece) => {
-                            let piece = self.current_piece.as_mut().unwrap();
+                            let (piece, piece_pos) = &mut self.current_piece.as_mut().unwrap();
+
                             if self.rules.hold_piece_reset_rotation {
                                 piece.rot = 0;
                             }
@@ -382,7 +387,7 @@ impl RulesInstance {
                             self.hold_piece = Some(*piece);
 
                             *piece = hold_piece;
-                            self.current_piece_pos = Vec2i {
+                            *piece_pos = Vec2i {
                                 x: self.playfield.grid_size.x / 2 - 2,
                                 y: self.rules.spawn_row as i32 - 3,
                             };
@@ -395,11 +400,11 @@ impl RulesInstance {
                         }
 
                         None => {
-                            let piece = self.current_piece.as_mut().unwrap();
+                            let mut piece = self.current_piece.as_mut().unwrap().0;
                             if self.rules.hold_piece_reset_rotation {
                                 piece.rot = 0;
                             }
-                            self.hold_piece = Some(*piece);
+                            self.hold_piece = Some(piece);
 
                             // since this is not locking a piece (won't trigger animation or ARE),
                             // so we don't update the lock timestamp.
@@ -415,9 +420,10 @@ impl RulesInstance {
             // @TODO move this to Rules (or something)
             let gravity_interval = self.rules.get_gravity_interval(self.level());
             if app.game_timestamp() >= self.movement_last_timestamp_y + gravity_interval {
+                let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
                 if try_apply_gravity(
-                    self.current_piece.as_ref().unwrap(),
-                    &mut self.current_piece_pos,
+                    piece,
+                    piece_pos,
                     &self.playfield,
                 ) {
                     // Gravity move successful
@@ -550,9 +556,10 @@ impl RulesInstance {
             self.movement_last_timestamp_y = app.game_timestamp();
 
             // check for block out
+            let (piece, piece_pos) = &self.current_piece.as_ref().unwrap();
             let block_out = blocked_out(
-                self.current_piece.as_ref().unwrap(),
-                self.current_piece_pos,
+                piece,
+                *piece_pos,
                 &self.playfield,
                 &self.rules
             );
@@ -566,12 +573,13 @@ impl RulesInstance {
             // spawn drop
             if self.rules.spawn_drop {
                 while blocks_out_of_playfield(
-                    self.current_piece.as_ref().unwrap(),
-                    self.current_piece_pos,
+                    &self.current_piece.as_ref().unwrap().0,
+                    self.current_piece.as_ref().unwrap().1,
                 ) > 0 {
-                    if !try_apply_gravity(
-                        self.current_piece.as_ref().unwrap(),
-                        &mut self.current_piece_pos,
+                    let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
+                    if try_apply_gravity(
+                        piece,
+                        piece_pos,
                         &self.playfield,
                     ) {
                         break;
@@ -646,10 +654,11 @@ impl RulesInstance {
 
         // ghost piece
         if let Some(piece) = self.current_piece {
+            let (piece, piece_pos) = piece;
             if self.movement_animation_show_ghost {
                 draw_piece_in_playfield(
                     piece,
-                    self.current_piece_pos,
+                    piece_pos,
                     Vec2::new(),
                     Color { r: 1., g: 1., b: 1., a: 0.1 },
                     &self.playfield,
@@ -662,7 +671,7 @@ impl RulesInstance {
             if self.rules.has_ghost_piece {
                 // @TODO cache the ghost piece and only recalculate the position when piece moves
                 let mut ghost_piece = piece.clone();
-                let mut ghost_piece_pos = self.current_piece_pos;
+                let mut ghost_piece_pos = piece_pos;
 
                 // Only render if ghost is not on top of the current piece
                 // @Maybe improve this and just draw the different pixels. Since there's piece
@@ -707,7 +716,7 @@ impl RulesInstance {
 
             draw_piece_in_playfield(
                 piece,
-                self.current_piece_pos,
+                piece_pos,
                 movement_animation_delta_grid,
                 color,
                 &self.playfield,
@@ -823,16 +832,19 @@ impl RulesInstance {
 
     fn new_piece(&mut self) {
         // update piece position and type
-        self.current_piece_pos = Vec2i {
+
+        let new_piece = Piece {
+            type_: self.next_piece_types[0],
+            rot: 0,
+            rotation_system: self.rules.rotation_system,
+        };
+
+        let new_piece_pos = Vec2i {
             x: self.playfield.grid_size.x / 2 - 2,
             y: self.rules.spawn_row as i32 - 3,
         };
 
-        self.current_piece = Some(Piece {
-            type_: self.next_piece_types[0],
-            rot: 0,
-            rotation_system: self.rules.rotation_system,
-        });
+        self.current_piece = Some((new_piece, new_piece_pos));
 
         // cycle next pieces
         for i in 0..NEXT_PIECES_COUNT-1 { self.next_piece_types[i] = self.next_piece_types[i+1]; }
@@ -884,23 +896,24 @@ impl RulesInstance {
     }
 
     fn lock_piece(&mut self, app: &App) {
-        let piece = self.current_piece.as_ref().unwrap();
+        let (piece, piece_pos) = self.current_piece.as_ref().unwrap();
         lock_piece(
             piece,
-            self.current_piece_pos,
+            *piece_pos,
             &mut self.playfield,
         );
 
         // @Refactor this is repeated and any lock piece should check for this.
-        if locked_out(piece, self.current_piece_pos, &self.rules) {
+        if locked_out(piece, *piece_pos, &self.rules) {
             self.topped_out = true;
             println!("game over: locked out");
             return;
         }
 
+        let (piece, piece_pos) = self.current_piece.take().unwrap();
         self.last_locked_piece = Some(LockedPiece {
-            piece: self.current_piece.take().unwrap(),
-            pos: self.current_piece_pos,
+            piece,
+            pos: piece_pos,
             soft_drop_steps: self.soft_drop_steps,
             hard_drop_steps: self.hard_drop_steps,
             last_piece_action: self.last_piece_action,
@@ -913,8 +926,8 @@ impl RulesInstance {
     fn try_hard_drop_piece(&mut self, app: &App) {
         if !self.rules.has_hard_drop { return; }
 
-        let piece = self.current_piece.as_ref().unwrap();
-        self.hard_drop_steps = full_drop_piece(piece, &mut self.current_piece_pos, &mut self.playfield);
+        let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
+        self.hard_drop_steps = full_drop_piece(piece, piece_pos, &mut self.playfield);
         self.last_piece_action = LastPieceAction::Movement;
 
         self.lock_piece(app);
@@ -923,8 +936,8 @@ impl RulesInstance {
     fn try_soft_drop_piece(&mut self, app: &App) {
         if !self.rules.has_soft_drop { return; }
 
-        let piece = self.current_piece.as_ref().unwrap();
-        if try_move_piece(piece, &mut self.current_piece_pos, &self.playfield, 0, -1) {
+        let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
+        if try_move_piece(piece, piece_pos, &self.playfield, 0, -1) {
             self.movement_last_timestamp_y = app.game_timestamp();
             self.movement_animation_delta_grid_y =
                 self.movement_animation_current_delta_grid.y + 1.0;
@@ -963,3 +976,151 @@ enum TetrisState {
 }
 */
 
+// Network
+use crate::game::network;
+
+impl RulesInstance {
+    pub fn from_network(
+        net_instance: network::NetworkedRulesInstance,
+        rules: Rules,
+        randomizer: Randomizer,
+        net_timestamp: u64,
+        app: &mut App,
+        persistent: &mut PersistentData
+    ) -> Self {
+        let pixel_scale = persistent.pixel_scale;
+
+        let window_size = app.video_system.window.size();
+
+        // playfield positioning
+        let playfield_grid_size = net_instance.playfield.grid_size;
+
+        // @Refactor render positions should be in the scene
+        let playfield_pixel_size = Vec2i {
+            x: (pixel_scale as f32 * BLOCK_SCALE * playfield_grid_size.x as f32) as i32,
+            y: (pixel_scale as f32 * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32) as i32,
+        };
+
+        // @Refactor render positions should be in the scene
+        let playfield_pos = Vec2i {
+            x: (window_size.0 as i32 - playfield_pixel_size.x) / 2,
+            y: (window_size.1 as i32 - playfield_pixel_size.y) / 2,
+        };
+
+        let playfield = Playfield::from_network(net_instance.playfield, playfield_pos, true);
+
+        // @Refactor render positions should be in the scene
+        let preview_window_delta_pos = Vec2 { x: 20.0, y: 0.0 };
+
+        // hold window
+        // @Refactor render positions should be in the scene
+        let hold_window_delta_pos = Vec2 { x: -20.0, y: 0.0 };
+
+        // lock delay
+        let remaining_lock_delay = rules.lock_delay;
+
+        // Fix timestamps
+        app.set_game_timestamp(net_timestamp);
+
+        Self {
+            topped_out: net_instance.topped_out,
+
+            playfield,
+            rules,
+            randomizer,
+
+            current_score: net_instance.current_score,
+            total_lines_cleared: net_instance.total_lines_cleared,
+
+            current_piece: net_instance.current_piece,
+            next_piece_types: net_instance.next_piece_types,
+
+            lock_piece_timestamp: net_instance.lock_piece_timestamp,
+            last_locked_piece: net_instance.last_locked_piece,
+            soft_drop_steps: 0,
+            hard_drop_steps: 0,
+
+            hold_piece: net_instance.hold_piece,
+            has_used_hold: false,
+
+            is_locking: false,
+            remaining_lock_delay,
+
+            has_moved: false,
+            has_rotated: false,
+            has_stepped: false,
+            last_piece_action: LastPieceAction::Movement,
+
+            preview_window_delta_pos,
+            hold_window_delta_pos,
+
+            movement_last_timestamp_x: net_instance.movement_last_timestamp_x,
+            movement_last_timestamp_y: net_instance.movement_last_timestamp_y,
+
+            has_movement_animation: true,
+            movement_animation_show_ghost: false,
+            movement_animation_duration: 50_000,
+            movement_animation_delta_grid_x: 0.0,
+            movement_animation_delta_grid_y: 0.0,
+            movement_animation_current_delta_grid: Vec2::new(),
+
+            has_line_clear_animation: true,
+            is_line_clear_animation_playing: false,
+            line_clear_animation_state: LineClearAnimationState {
+                type_: LineClearAnimationType::Classic,
+                step: 0,
+            },
+
+            locking_animation_timestamp: 0,
+            locking_animation_duration: 250_000,
+        }
+    }
+
+    pub fn to_network(&self) -> network::NetworkedRulesInstance {
+        network::NetworkedRulesInstance {
+            topped_out: self.topped_out,
+            playfield: Playfield::to_network(&self.playfield),
+
+            current_score: self.current_score,
+            total_lines_cleared: self.total_lines_cleared,
+
+            current_piece: self.current_piece,
+            next_piece_types: self.next_piece_types.clone(),
+
+            lock_piece_timestamp: self.lock_piece_timestamp,
+            last_locked_piece: self.last_locked_piece,
+
+            hold_piece: self.hold_piece,
+
+            movement_last_timestamp_x: self.movement_last_timestamp_x,
+            movement_last_timestamp_y: self.movement_last_timestamp_y,
+        }
+    }
+
+    pub fn update_from_network(
+        &mut self,
+        net_instance: network::NetworkedRulesInstance,
+        net_timestamp: u64,
+        app: &mut App,
+    ) {
+        // Fix timestamps
+        app.set_game_timestamp(net_timestamp);
+
+        self.topped_out = net_instance.topped_out;
+        self.playfield.update_from_network(net_instance.playfield);
+
+        self.current_score = net_instance.current_score;
+        self.total_lines_cleared = net_instance.total_lines_cleared;
+
+        self.current_piece = net_instance.current_piece;
+        self.next_piece_types = net_instance.next_piece_types;
+
+        self.lock_piece_timestamp = net_instance.lock_piece_timestamp;
+        self.last_locked_piece = net_instance.last_locked_piece;
+
+        self.hold_piece = net_instance.hold_piece;
+
+        self.movement_last_timestamp_x = net_instance.movement_last_timestamp_x;
+        self.movement_last_timestamp_y = net_instance.movement_last_timestamp_y;
+    }
+}

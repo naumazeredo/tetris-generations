@@ -3,9 +3,11 @@ use crate::linalg::Vec2i;
 
 use super::*;
 
-#[derive(Clone, Debug, ImDraw)]
+#[derive(Debug, ImDraw)]
 pub struct MainMenuScene {
     start_singleplayer_menu: bool,
+    start_multiplayer: bool,
+    start_multiplayer_spectate: bool,
 }
 
 impl SceneTrait for MainMenuScene {
@@ -43,6 +45,14 @@ impl SceneTrait for MainMenuScene {
             println!("options");
         }
 
+        if app.button("HOST") {
+            self.start_multiplayer = true;
+        }
+
+        if app.button("SPECTATE") {
+            self.start_multiplayer_spectate = true;
+        }
+
         if app.button("QUIT") {
             app.exit();
         }
@@ -61,10 +71,16 @@ impl SceneTrait for MainMenuScene {
         false
     }
 
-    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
+    fn transition(&mut self, app: &mut App, persistent: &mut PersistentData) -> Option<SceneTransition> {
         if self.start_singleplayer_menu {
             self.start_singleplayer_menu = false;
             Some(SceneTransition::Push(SinglePlayerStartMenuScene::new().into()))
+        } else if self.start_multiplayer {
+            self.start_multiplayer = false;
+            Some(SceneTransition::Push(MultiPlayerScene::new(app, persistent).into()))
+        } else if self.start_multiplayer_spectate {
+            self.start_multiplayer_spectate = false;
+            Some(SceneTransition::Push(MultiPlayerSpectateScene::new(app, persistent).into()))
         } else {
             None
         }
@@ -75,6 +91,8 @@ impl MainMenuScene {
     pub fn new() -> Self {
         Self {
             start_singleplayer_menu: false,
+            start_multiplayer: false,
+            start_multiplayer_spectate: false,
         }
     }
 }

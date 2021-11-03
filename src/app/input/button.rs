@@ -98,6 +98,7 @@ impl Button {
     }
 
     pub fn rem_mouse_button(&mut self, button: MouseButton) {
+        // @Fix swap_remove instead of retain
         self.mouse_buttons.retain(|elem| elem.0 != button);
     }
 
@@ -114,6 +115,7 @@ impl Button {
     }
 
     pub fn rem_controller_button(&mut self, controller_index: usize, button: sdl2::controller::Button) {
+        // @Fix swap_remove instead of retain
         self.controller_buttons.retain(|elem| {
             elem.controller_index != controller_index || elem.button != button
         });
@@ -147,6 +149,7 @@ impl Button {
     }
 
     pub fn rem_controller_axis(&mut self, controller_index: usize, axis: sdl2::controller::Axis) {
+        // @Fix swap_remove instead of retain
         self.controller_axes.retain(|elem| {
             elem.controller_index != controller_index || elem.axis != axis
         });

@@ -30,6 +30,7 @@ pub struct Piece {
 impl Piece {
     pub fn blocks(&self) -> &'static [Vec2i] {
         //assert!(rot >= 0 && rot < 4);
+        // @TODO: should this be fixed?
         let rot = (((self.rot % 4) + 4) % 4) as usize;
         &get_piece_data(self.type_, self.rotation_system).blocks[rot]
     }

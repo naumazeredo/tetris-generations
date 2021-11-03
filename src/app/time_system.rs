@@ -94,6 +94,10 @@ impl App<'_> {
         self.time_system.game_time
     }
 
+    pub fn set_game_timestamp(&mut self, new_timestamp: u64) {
+        self.time_system.game_time = new_timestamp;
+    }
+
     pub fn real_timestamp(&self) -> u64 {
         self.time_system.real_time
     }

@@ -7,7 +7,7 @@ use super::{
     SceneTransition,
 };
 
-#[derive(Clone, Debug, ImDraw)]
+#[derive(Debug, ImDraw)]
 pub struct SceneManager {
     scenes: Vec<Scene>,
 }

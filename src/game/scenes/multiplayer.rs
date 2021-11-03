@@ -5,28 +5,71 @@ use super::*;
 
 use crate::game::{
     rules::{
+        RotationSystem,
         Rules,
         instance::RulesInstance,
-    }
+    },
+    network::{MultiplayerMessages, Connect, Update},
 };
 
-#[derive(Clone, Debug, ImDraw)]
-pub struct SinglePlayerScene {
-    debug_pieces_scene_opened: bool,
+#[derive(Debug, ImDraw)]
+pub struct MultiPlayerScene {
     quit: bool,
 
     rules_instance: RulesInstance,
     seed: u64, // @TODO move this to RulesInstance
 
     music_id: MusicId,
+
+    server: Server,
 }
 
-impl SceneTrait for SinglePlayerScene {
+impl SceneTrait for MultiPlayerScene {
     fn update(
         &mut self,
         app: &mut App,
         persistent: &mut PersistentData
     ) {
+        // Networking
+        loop {
+            match self.server.next_event() {
+                Ok(None) => {},
+                Ok(Some(e)) => {
+                    //println!("server event: {:?}", e);
+
+                    match e {
+                        ServerEvent::ClientConnect(client_id) => {
+                            let connect = Connect {
+                                timestamp: app.game_timestamp(),
+                                instance: self.rules_instance.to_network(),
+                                rotation_system: self.rules_instance.rules().rotation_system,
+                                randomizer: self.rules_instance.randomizer().clone(),
+                            };
+
+                            let message = MultiplayerMessages::Connect(connect);
+                            self.server.send(client_id, message).unwrap();
+                        }
+
+                        _ => {}
+                    }
+
+                    if let ServerEvent::ClientHeartbeat(client_id) = e {
+                        let update = Update {
+                            timestamp: app.game_timestamp(),
+                            instance: self.rules_instance.to_network(),
+                        };
+
+                        let message = MultiplayerMessages::Update(update);
+                        self.server.send(client_id, message).unwrap();
+                    }
+
+                    continue;
+                },
+                Err(err) => println!("server event error: {:?}", err),
+            }
+            break;
+        }
+
         // pause
         let options_button = persistent.input_mapping.button("options".to_string());
         if options_button.pressed() {
@@ -34,9 +77,9 @@ impl SceneTrait for SinglePlayerScene {
             else { app.pause(); }
         }
 
-        if app.is_paused() { return; }
-
-        self.rules_instance.update(app, &persistent.input_mapping);
+        if !app.is_paused() {
+            self.rules_instance.update(app, &persistent.input_mapping);
+        }
     }
 
     fn render(
@@ -61,6 +104,8 @@ impl SceneTrait for SinglePlayerScene {
 
             // Ui
             app.text("PAUSED");
+            app.text(&format!("IP: {}", self.server.addr()));
+
             if app.button("RESUME") {
                 app.resume();
             }
@@ -131,26 +176,6 @@ impl SceneTrait for SinglePlayerScene {
         use sdl2::keyboard::Scancode;
 
         match event {
-            Event::KeyDown { scancode: Some(Scancode::F3), .. } => {
-                app.set_time_scale(0.1);
-            }
-
-            Event::KeyDown { scancode: Some(Scancode::F4), .. } => {
-                app.set_time_scale(1.0);
-            }
-
-            Event::KeyDown { scancode: Some(Scancode::F10), .. } => {
-                self.debug_pieces_scene_opened = true;
-            }
-
-            Event::KeyDown { scancode: Some(Scancode::W), .. } => {
-                //self.playfield.has_grid = !self.playfield.has_grid;
-            }
-
-            Event::KeyDown { scancode: Some(Scancode::D), .. } => {
-                //self.rules_instance.next_level();
-            }
-
             Event::KeyDown { scancode: Some(Scancode::F), .. } => {
                 app.play_music(self.music_id);
             }
@@ -162,14 +187,7 @@ impl SceneTrait for SinglePlayerScene {
     }
 
     fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
-        if self.debug_pieces_scene_opened {
-            self.debug_pieces_scene_opened = false;
-            Some(SceneTransition::Push(Scene::DebugPiecesScene(DebugPiecesScene::new())))
-        } else if self.quit {
-            Some(SceneTransition::Pop)
-        } else {
-            None
-        }
+        if self.quit { Some(SceneTransition::Pop) } else { None }
     }
 
     fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData,) {
@@ -178,21 +196,26 @@ impl SceneTrait for SinglePlayerScene {
     }
 }
 
-impl SinglePlayerScene {
-    pub fn new(seed: u64, rules: Rules, app: &mut App, persistent: &mut PersistentData) -> Self {
+impl MultiPlayerScene {
+    pub fn new(app: &mut App, persistent: &mut PersistentData) -> Self {
         // rules
+        let seed = app.system_time();
+        let rules: Rules = RotationSystem::SRS.into();
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
 
         let music_id = app.load_music("assets/sfx/Original-Tetris-theme.ogg");
 
+        let server = Server::new("127.0.0.1:42042").unwrap();
+
         Self {
-            debug_pieces_scene_opened: false,
             quit: false,
 
             rules_instance,
             seed,
 
             music_id,
+
+            server,
         }
     }
 }
