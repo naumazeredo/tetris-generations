@@ -8,6 +8,7 @@ use crate::game::{
         lock::{LastPieceAction, LockedPiece, LockedPieceResult},
     },
     pieces::{Piece, PieceType},
+    playfield::BlockType,
 };
 
 pub enum MultiplayerMessages {
@@ -39,13 +40,12 @@ pub struct Update {
 #[derive(Debug)]
 pub struct NetworkedPlayfield {
     pub grid_size: Vec2i, // @Fix This doesn't need to be synced!
-    pub blocks: Vec<bool>,
-    pub block_types: Vec<PieceType>,
+    pub blocks: Vec<BlockType>,
 }
 
 #[derive(Debug)]
 pub struct NetworkedRulesInstance {
-    pub topped_out: bool, // per game
+    pub has_topped_out: bool, // per game
     pub playfield: NetworkedPlayfield,   // per game
 
     pub current_score: u32,       // per game
@@ -63,7 +63,7 @@ pub struct NetworkedRulesInstance {
     pub movement_last_timestamp_y: u64,
 
     /*
-    // @XXX Synch animations later
+    // @XXX Sync animations later
     // Animations
     has_movement_animation: bool,
     movement_animation_show_ghost: bool,
@@ -142,7 +142,6 @@ impl Serialize for NetworkedPlayfield {
     fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
         self.grid_size.serialize(serializer)?;
         self.blocks.serialize(serializer)?;
-        self.block_types.serialize(serializer)?;
         Ok(())
     }
 }
@@ -150,15 +149,14 @@ impl Serialize for NetworkedPlayfield {
 impl Deserialize for NetworkedPlayfield {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
         let grid_size = Vec2i::deserialize(deserializer)?;
-        let blocks = Vec::<bool>::deserialize(deserializer)?;
-        let block_types = Vec::<PieceType>::deserialize(deserializer)?;
-        Ok(Self { grid_size, blocks, block_types })
+        let blocks = Vec::<BlockType>::deserialize(deserializer)?;
+        Ok(Self { grid_size, blocks })
     }
 }
 
 impl Serialize for NetworkedRulesInstance {
     fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
-        self.topped_out.serialize(serializer)?;
+        self.has_topped_out.serialize(serializer)?;
         self.playfield.serialize(serializer)?;
 
         self.current_score.serialize(serializer)?;
@@ -181,7 +179,7 @@ impl Serialize for NetworkedRulesInstance {
 
 impl Deserialize for NetworkedRulesInstance {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
-        let topped_out = bool::deserialize(deserializer)?;
+        let has_topped_out = bool::deserialize(deserializer)?;
         let playfield = NetworkedPlayfield::deserialize(deserializer)?;
 
         let current_score = u32::deserialize(deserializer)?;
@@ -199,7 +197,7 @@ impl Deserialize for NetworkedRulesInstance {
         let movement_last_timestamp_y = u64::deserialize(deserializer)?;
 
         Ok(Self {
-            topped_out,
+            has_topped_out,
             playfield,
 
             current_score,
@@ -302,6 +300,35 @@ impl Deserialize for PieceType {
             4 => PieceType::O,
             5 => PieceType::I,
             _ => PieceType::T,
+        };
+        Ok(t)
+    }
+}
+
+impl Serialize for BlockType {
+    fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
+        match *self {
+            BlockType::Piece(piece_type) => piece_type.serialize(serializer)?,
+            BlockType::Empty => serializer.serialize_packed_u8::<0, 7>(7)?,
+        }
+        Ok(())
+    }
+}
+
+impl Deserialize for BlockType {
+    fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
+        let t = match deserializer.deserialize_packed_u8::<0, 7>()? {
+            // @XXX: this is repeating the PieceType deserialization,
+            //       any way to avoid this repetition?
+            0 => BlockType::Piece(PieceType::S),
+            1 => BlockType::Piece(PieceType::Z),
+            2 => BlockType::Piece(PieceType::J),
+            3 => BlockType::Piece(PieceType::L),
+            4 => BlockType::Piece(PieceType::O),
+            5 => BlockType::Piece(PieceType::I),
+            6 => BlockType::Piece(PieceType::T),
+
+            _ => BlockType::Empty,
         };
         Ok(t)
     }

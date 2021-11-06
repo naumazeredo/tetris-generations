@@ -181,8 +181,7 @@ pub fn get_draw_playfield_size(
 
 pub fn draw_playfield(
     playfield: &Playfield,
-    line_clear_animation_state: Option<&LineClearAnimationState>,
-    lines_to_clear: &[u8],
+    line_clear_animation: Option<(u64, u64, LineClearAnimationType, &[u8])>,
     rotation_system: RotationSystem,
     app: &mut App,
     persistent: &PersistentData
@@ -199,7 +198,7 @@ pub fn draw_playfield(
 
     // blocks
 
-    match line_clear_animation_state {
+    match line_clear_animation {
         None => {
             // @Refactor cache playfield/draw to framebuffer
             for row in 0..PLAYFIELD_VISIBLE_HEIGHT {
@@ -219,7 +218,7 @@ pub fn draw_playfield(
             }
         },
 
-        Some(anim_state) => {
+        Some((lock_timestamp, line_clear_delay, animation_type, lines_to_clear)) => {
             let mut line_clear_iter = lines_to_clear.iter();
             let mut current_line_to_clear = line_clear_iter.next();
 
@@ -231,7 +230,15 @@ pub fn draw_playfield(
                     for col in 0..playfield.grid_size.x {
                         let piece_type = playfield.block(col, row).unwrap();
 
-                        if line_clear_animation_should_draw_block(col as u8, anim_state) {
+                        if line_clear_animation_should_draw_block(
+                            col as u8,
+                            //anim_state
+                            animation_type,
+                            lock_timestamp,
+                            line_clear_delay,
+                            playfield,
+                            app
+                        ) {
                             draw_block_in_playfield(
                                 Vec2i { x: col, y: row },
                                 Vec2::new(),
@@ -370,23 +377,33 @@ pub fn draw_piece_window(
     }
 }
 
-// @TODO create a struct for styling 
-#[derive(Clone, Debug, ImDraw)]
-pub struct LineClearAnimationState {
-    pub type_: LineClearAnimationType,
-    pub step: u8,
-}
-
-#[derive(Clone, Debug, ImDraw)]
+#[derive(Copy, Clone, Debug, ImDraw)]
 pub enum LineClearAnimationType {
     Classic,
 }
 
-fn line_clear_animation_should_draw_block(col: u8, anim_state: &LineClearAnimationState) -> bool {
-    match anim_state.type_ {
+fn line_clear_animation_should_draw_block(
+    block_col: u8,
+    animation_type: LineClearAnimationType,
+    lock_timestamp: u64,
+    line_clear_delay: u64,
+    playfield: &Playfield,
+    app: &mut App
+) -> bool {
+    if app.game_timestamp() >= lock_timestamp + line_clear_delay {
+        return false;
+    }
+
+    match animation_type {
         LineClearAnimationType::Classic => {
-            if anim_state.step > 5 { return false; }
-            col < 4 - anim_state.step || col > 5 + anim_state.step
+            // @Fix this logic won't be valid for odd sized playfields
+
+            let half_size = (playfield.grid_size.x / 2) as u64;
+            let animation_duration = app.game_timestamp() - lock_timestamp;
+            let step = half_size as u64 * animation_duration / line_clear_delay;
+            assert!(step < half_size);
+
+            block_col < (half_size - 1 - step) as u8 || block_col > (half_size + step) as u8
         }
     }
 }

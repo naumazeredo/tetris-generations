@@ -154,7 +154,7 @@ impl Client {
 
                 if conn.heartbeat.should_retry_send(NET_RETRY_INTERVAL) {
                     // @TODO logging
-                    println!("[net][client] sending heartbeat!");
+                    //println!("[net][client] sending heartbeat!");
 
                     let message = Heartbeat::build_message();
                     Self::send_message(message, &self.socket, conn)?;

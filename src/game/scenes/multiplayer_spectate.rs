@@ -49,6 +49,16 @@ impl SceneTrait for MultiPlayerSpectateScene {
                             self.state = State::Normal;
                         },
 
+                        ClientEvent::ServerTimedOut => {
+                            println!("server timed out!");
+                            self.state = State::ConnectMenu;
+                        },
+
+                        ClientEvent::DisconnectedByServer => {
+                            println!("disconnected by server!");
+                            self.state = State::ConnectMenu;
+                        },
+
                         ClientEvent::Data(data_payload) => {
                             match MultiplayerMessages::parse(data_payload.data()).unwrap() {
                                 MultiplayerMessages::Connect(c) => {
@@ -77,7 +87,8 @@ impl SceneTrait for MultiPlayerSpectateScene {
 
                     continue;
                 },
-                Err(_err) => {} //println!("client event error: {:?}", err),
+
+                Err(_err) => {}, //println!("client event error: {:?}", err),
             }
             break;
         }
@@ -227,11 +238,9 @@ impl SceneTrait for MultiPlayerSpectateScene {
         }
     }
 
-    /*
     fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData,) {
         app.restart_time_system();
     }
-    */
 }
 
 impl MultiPlayerSpectateScene {

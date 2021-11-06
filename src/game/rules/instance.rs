@@ -26,7 +26,7 @@ pub const NEXT_PIECES_COUNT: usize = 8;
 // @Rename
 pub struct RulesInstance {
     // @Maybe add which topout rule was the cause
-    topped_out: bool, // per game
+    has_topped_out: bool, // per game
 
     rules: Rules,           // per game
     playfield: Playfield,   // per game
@@ -74,8 +74,7 @@ pub struct RulesInstance {
     movement_animation_current_delta_grid: Vec2,
 
     has_line_clear_animation: bool,
-    is_line_clear_animation_playing: bool,
-    line_clear_animation_state: LineClearAnimationState,
+    line_clear_animation_type: LineClearAnimationType,
 
     locking_animation_timestamp: u64,
     locking_animation_duration: u64,
@@ -135,7 +134,7 @@ impl RulesInstance {
         let remaining_lock_delay = rules.lock_delay;
 
         Self {
-            topped_out: false,
+            has_topped_out: false,
 
             playfield,
             rules,
@@ -177,11 +176,7 @@ impl RulesInstance {
             movement_animation_current_delta_grid: Vec2::new(),
 
             has_line_clear_animation: true,
-            is_line_clear_animation_playing: false,
-            line_clear_animation_state: LineClearAnimationState {
-                type_: LineClearAnimationType::Classic,
-                step: 0,
-            },
+            line_clear_animation_type: LineClearAnimationType::Classic,
 
             locking_animation_timestamp: 0,
             locking_animation_duration: 250_000,
@@ -192,8 +187,10 @@ impl RulesInstance {
         &mut self,
         app: &mut App,
         input_mapping: &InputMapping,
-    ) {
-        if self.topped_out { return; }
+    ) -> bool {
+        if self.has_topped_out { return false; }
+
+        let mut has_updated = false;
 
         // locking
         // This is done in the start of the frame to be just and consider the time the piece is
@@ -273,11 +270,13 @@ impl RulesInstance {
 
             if has_locked {
                 self.lock_piece(app);
+                has_updated = true;
             }
 
             // animation
             if !was_locking && self.is_locking {
                 self.locking_animation_timestamp = app.game_timestamp();
+                has_updated = true;
             }
         } else {
             self.is_locking = false;
@@ -325,12 +324,16 @@ impl RulesInstance {
 
                 self.has_moved = true;
                 self.last_piece_action = LastPieceAction::Movement;
+
+                has_updated = true;
             }
 
             // Soft drop
             let down_button = input_mapping.button("down".to_string());
             if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
-                self.try_soft_drop_piece(app);
+                if self.try_soft_drop_piece(app) {
+                    has_updated = true;
+                }
             }
 
             // Rotate
@@ -354,6 +357,8 @@ impl RulesInstance {
                         self.has_rotated = true;
                         self.last_piece_action = LastPieceAction::Rotation;
                         // @TODO soft drop scoring
+
+                        has_updated = true;
                     }
                 }
             }
@@ -362,17 +367,20 @@ impl RulesInstance {
         //
         // The next three mechanics can remove the current piece, so we have to isolate them and
         // verify again if the current piece is available or not
+        //
 
+        // Hard drop
         if self.current_piece.is_some() {
-            // hard drop
             let up_button = input_mapping.button("hard_drop".to_string());
             if up_button.pressed() {
-                self.try_hard_drop_piece(app);
+                if self.try_hard_drop_piece(app) {
+                    has_updated = true;
+                }
             }
         }
 
+        // Hold piece
         if self.rules.has_hold_piece && self.current_piece.is_some() {
-            // hold piece
             let hold_button = input_mapping.button("hold".to_string());
             if hold_button.pressed() {
                 if !self.has_used_hold {
@@ -411,12 +419,14 @@ impl RulesInstance {
                             self.current_piece = None;
                         }
                     }
+
+                    has_updated = true;
                 }
             }
         }
 
+        // Gravity
         if self.current_piece.is_some() {
-            // Gravity
             // @TODO move this to Rules (or something)
             let gravity_interval = self.rules.get_gravity_interval(self.level());
             if app.game_timestamp() >= self.movement_last_timestamp_y + gravity_interval {
@@ -432,19 +442,85 @@ impl RulesInstance {
 
                     self.movement_last_timestamp_y = app.game_timestamp();
                     self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
+
+                    has_updated = true;
                 } else {
                     // Piece blocked: lock piece
 
                     // Only lock on gravity movement if there's no lock delay
                     if self.rules.lock_delay == LockDelayRule::NoDelay {
                         self.lock_piece(app);
+                        has_updated = true;
                     }
                 }
             }
         }
 
-        // @Maybe move this to render?
-        // piece movement animation
+        // Line clear
+        let can_spawn_new_piece;
+        if app.game_timestamp() >= self.lock_piece_timestamp + self.rules.line_clear_delay {
+            if self.rules.try_clear_lines(&mut self.playfield) {
+                self.update_score_and_line_cleared();
+                has_updated = true;
+            }
+            can_spawn_new_piece = true;
+        } else {
+            can_spawn_new_piece = false;
+        }
+
+        // New piece
+        if self.current_piece.is_none() &&
+            can_spawn_new_piece &&
+            app.game_timestamp() >= self.lock_piece_timestamp + self.rules.entry_delay
+        {
+            self.new_piece();
+
+            self.movement_last_timestamp_x = app.game_timestamp();
+            self.movement_last_timestamp_y = app.game_timestamp();
+
+            has_updated = true;
+
+            // check for block out
+            let (piece, piece_pos) = &self.current_piece.as_ref().unwrap();
+            let has_block_out = blocked_out(
+                piece,
+                *piece_pos,
+                &self.playfield,
+                &self.rules
+            );
+
+            if has_block_out {
+                self.has_topped_out = true;
+                println!("game over: block out");
+                return true;
+            }
+
+            // spawn drop
+            if self.rules.spawn_drop {
+                while blocks_out_of_playfield(
+                    &self.current_piece.as_ref().unwrap().0,
+                    self.current_piece.as_ref().unwrap().1,
+                ) > 0 {
+                    let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
+                    if try_apply_gravity(
+                        piece,
+                        piece_pos,
+                        &self.playfield,
+                    ) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        has_updated
+    }
+
+    fn update_animations(
+        &mut self,
+        app: &mut App
+    ) {
+        // Movement animation
         if self.has_movement_animation {
             if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
                 let t = norm_u64(
@@ -490,103 +566,6 @@ impl RulesInstance {
             self.movement_animation_current_delta_grid.y = 0.0;
             */
         }
-
-        // line clear
-        let can_spawn_new_piece;
-
-        if self.has_line_clear_animation {
-            if !self.is_line_clear_animation_playing {
-                if self.last_locked_piece.is_some() {
-                    self.is_line_clear_animation_playing = true;
-
-                    /*
-                    // @TODO feedback
-                    app.set_controller_rumble(
-                        0,
-                        0x2000u16.saturating_mul(1u16 << total_lines_to_clear),
-                        0x2000u16.saturating_mul(1u16 << total_lines_to_clear),
-                        (self.rules.line_clear_delay / 1000) as u32);
-                    */
-                }
-            }
-
-            if self.is_line_clear_animation_playing {
-                let is_animation_over;
-
-                match self.line_clear_animation_state.type_ {
-                    LineClearAnimationType::Classic => {
-                        // Tetris Classic clear line animation has 5 steps
-                        // 1st step: bbbb__bbbb
-                        // 2st step: bbb____bbb
-                        // 3nd step: bb______bb
-                        // 4rd step: b________b
-                        // 5th step: __________
-                        let animation_duration = app.game_timestamp() - self.lock_piece_timestamp;
-                        let animation_step = 5 * animation_duration / self.rules.line_clear_delay;
-                        is_animation_over = animation_step >= 5;
-
-                        self.line_clear_animation_state.step = animation_step as u8;
-                    },
-                }
-
-                if is_animation_over {
-                    self.is_line_clear_animation_playing = false;
-
-                    self.rules.try_clear_lines(&mut self.playfield);
-                    self.update_score_and_line_cleared();
-                } else {
-                    self.is_line_clear_animation_playing = true;
-                }
-            }
-
-            can_spawn_new_piece = !self.is_line_clear_animation_playing;
-        } else {
-            self.rules.try_clear_lines(&mut self.playfield);
-            self.update_score_and_line_cleared();
-            can_spawn_new_piece = true;
-        }
-
-        // new piece
-        if self.current_piece.is_none() && can_spawn_new_piece &&
-            app.game_timestamp() >= self.lock_piece_timestamp + self.rules.entry_delay
-        {
-            self.new_piece();
-
-            self.movement_last_timestamp_x = app.game_timestamp();
-            self.movement_last_timestamp_y = app.game_timestamp();
-
-            // check for block out
-            let (piece, piece_pos) = &self.current_piece.as_ref().unwrap();
-            let block_out = blocked_out(
-                piece,
-                *piece_pos,
-                &self.playfield,
-                &self.rules
-            );
-
-            if block_out {
-                self.topped_out = true;
-                println!("game over: block out");
-                return;
-            }
-
-            // spawn drop
-            if self.rules.spawn_drop {
-                while blocks_out_of_playfield(
-                    &self.current_piece.as_ref().unwrap().0,
-                    self.current_piece.as_ref().unwrap().1,
-                ) > 0 {
-                    let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
-                    if try_apply_gravity(
-                        piece,
-                        piece_pos,
-                        &self.playfield,
-                    ) {
-                        break;
-                    }
-                }
-            }
-        }
     }
 
     // @TODO split rendering parts
@@ -619,24 +598,25 @@ impl RulesInstance {
             y: (window_size.1 as f32 - playfield_size.y) as i32 / 2,
         };
 
-        let lines_to_clear = match self.last_locked_piece {
-            None => &[],
-            Some(LockedPiece { ref lock_piece_result, .. })
-                => lock_piece_result.get_lines_to_clear_slice(),
-        };
+        // Update animations
+        self.update_animations(app);
 
         if self.has_line_clear_animation {
-            let line_clear_animation_state;
-            if self.is_line_clear_animation_playing {
-                line_clear_animation_state = Some(&self.line_clear_animation_state);
-            } else {
-                line_clear_animation_state = None;
-            }
+            // Get line clear info
+            let lines_to_clear = match self.last_locked_piece {
+                None => &[],
+                Some(LockedPiece { ref lock_piece_result, .. })
+                    => lock_piece_result.get_lines_to_clear_slice(),
+            };
 
             draw_playfield(
                 &self.playfield,
-                line_clear_animation_state,
-                lines_to_clear,
+                Some((
+                    self.lock_piece_timestamp,
+                    self.rules.line_clear_delay,
+                    self.line_clear_animation_type,
+                    lines_to_clear,
+                )),
                 self.rules.rotation_system,
                 app,
                 persistent
@@ -645,7 +625,6 @@ impl RulesInstance {
             draw_playfield(
                 &self.playfield,
                 None,
-                lines_to_clear,
                 self.rules.rotation_system,
                 app,
                 persistent
@@ -864,9 +843,7 @@ impl RulesInstance {
         self.movement_animation_current_delta_grid = Vec2::new();
     }
 
-    // We split this since after the lock, line clear animation can happen, and we only update the
-    // score and lines cleared count after the animation (and before ARE), and if lock animation
-    // there's no line clears when still may need to update it
+    // This is used as a deferred score update if there's a line clear animation
     fn update_score_and_line_cleared(&mut self) {
         if let Some(locked_piece) = self.last_locked_piece {
             self.current_score += lock_piece_score(
@@ -905,7 +882,7 @@ impl RulesInstance {
 
         // @Refactor this is repeated and any lock piece should check for this.
         if locked_out(piece, *piece_pos, &self.rules) {
-            self.topped_out = true;
+            self.has_topped_out = true;
             println!("game over: locked out");
             return;
         }
@@ -923,18 +900,19 @@ impl RulesInstance {
         self.lock_piece_timestamp = app.game_timestamp();
     }
 
-    fn try_hard_drop_piece(&mut self, app: &App) {
-        if !self.rules.has_hard_drop { return; }
+    fn try_hard_drop_piece(&mut self, app: &App) -> bool {
+        if !self.rules.has_hard_drop { return false; }
 
         let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
         self.hard_drop_steps = full_drop_piece(piece, piece_pos, &mut self.playfield);
         self.last_piece_action = LastPieceAction::Movement;
 
         self.lock_piece(app);
+        true
     }
 
-    fn try_soft_drop_piece(&mut self, app: &App) {
-        if !self.rules.has_soft_drop { return; }
+    fn try_soft_drop_piece(&mut self, app: &App) -> bool {
+        if !self.rules.has_soft_drop { return false; }
 
         let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
         if try_move_piece(piece, piece_pos, &self.playfield, 0, -1) {
@@ -947,6 +925,10 @@ impl RulesInstance {
             self.last_piece_action = LastPieceAction::Movement;
 
             self.soft_drop_steps += 1;
+
+            true
+        } else {
+            false
         }
     }
 
@@ -1023,7 +1005,7 @@ impl RulesInstance {
         app.set_game_timestamp(net_timestamp);
 
         Self {
-            topped_out: net_instance.topped_out,
+            has_topped_out: net_instance.has_topped_out,
 
             playfield,
             rules,
@@ -1065,11 +1047,7 @@ impl RulesInstance {
             movement_animation_current_delta_grid: Vec2::new(),
 
             has_line_clear_animation: true,
-            is_line_clear_animation_playing: false,
-            line_clear_animation_state: LineClearAnimationState {
-                type_: LineClearAnimationType::Classic,
-                step: 0,
-            },
+            line_clear_animation_type: LineClearAnimationType::Classic,
 
             locking_animation_timestamp: 0,
             locking_animation_duration: 250_000,
@@ -1078,7 +1056,7 @@ impl RulesInstance {
 
     pub fn to_network(&self) -> network::NetworkedRulesInstance {
         network::NetworkedRulesInstance {
-            topped_out: self.topped_out,
+            has_topped_out: self.has_topped_out,
             playfield: Playfield::to_network(&self.playfield),
 
             current_score: self.current_score,
@@ -1106,7 +1084,7 @@ impl RulesInstance {
         // Fix timestamps
         app.set_game_timestamp(net_timestamp);
 
-        self.topped_out = net_instance.topped_out;
+        self.has_topped_out = net_instance.has_topped_out;
         self.playfield.update_from_network(net_instance.playfield);
 
         self.current_score = net_instance.current_score;

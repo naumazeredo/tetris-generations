@@ -14,9 +14,9 @@ pub enum LineClearRule {
 impl Rules {
     // @TODO is this really a try? I think it's always called correctly
     //pub fn try_clear_lines(&self, playfield: &mut Playfield) -> Option<LineClear> {
-    pub fn try_clear_lines(&self, playfield: &mut Playfield) -> u8 {
+    pub fn try_clear_lines(&self, playfield: &mut Playfield) -> bool {
         match self.line_clear_rule {
-            LineClearRule::Naive => playfield.clear_lines_naive(),
+            LineClearRule::Naive => playfield.try_clear_lines_naive(),
             _ => unimplemented!("line clear rule not implemented!"),
         }
     }

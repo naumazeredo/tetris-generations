@@ -10,7 +10,7 @@ pub mod game_state;
 pub mod id_manager;
 #[macro_use] pub mod imgui_wrapper;
 pub mod input;
-pub mod net;
+pub mod network;
 pub mod renderer;
 pub mod sdl;
 pub mod transform;
@@ -27,7 +27,7 @@ pub use {
     id_manager::*,
     input::*,
     imgui_wrapper::*,
-    net::*,
+    network::*,
     renderer::*,
     transform::*,
     ui::*,

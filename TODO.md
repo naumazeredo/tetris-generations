@@ -41,7 +41,7 @@
   - [x] public interface instead of whole struct being public
   - [ ] Server-client
     - [ ] Connection
-      - [ ] Naive
+      - [x] Naive
       - [ ] Reliable UDP
       - [ ] Encryption
       - [ ] Challenge (remove connection IP spoofing)
@@ -61,6 +61,7 @@
       - [ ] Strings (?)
     - [ ] Reserve bits
     - [ ] Derive macro
+  - [ ] Packet fragmentation
 - [ ] Logger system: just improve logging.
 - [ ] Asset system
   - [ ] [asset] Asset System should not hold all data, each component can hold its own data.

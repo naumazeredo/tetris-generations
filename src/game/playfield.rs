@@ -4,11 +4,16 @@ use super::pieces::PieceType;
 
 pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
 
+#[derive(Copy, Clone, Debug)]
+pub enum BlockType {
+    Empty,
+    Piece(PieceType),
+}
+
 #[derive(Clone, Debug)]
 pub struct Playfield {
     pub grid_size: Vec2i, // @Refactor use Vec2<u8>
-    pub blocks: Vec<bool>, // @Refactor don't use Vec (and Vec<bool> is worse)
-    pub block_types: Vec<PieceType>, // @Refactor don't use Vec
+    pub blocks: Vec<BlockType>, // @Refactor don't use Vec
 
     // Render variables
     // @Refactor rendering information struct
@@ -20,18 +25,14 @@ impl Playfield {
     // @TODO remove pos
     pub fn new(pos: Vec2i, grid_size: Vec2i, has_grid: bool) -> Self {
         let mut blocks = Vec::new();
-        blocks.resize((grid_size.x * grid_size.y) as usize, false);
-
-        let mut block_types = Vec::new();
-        block_types.resize((grid_size.x * grid_size.y) as usize, PieceType::S);
+        blocks.resize((grid_size.x * grid_size.y) as usize, BlockType::Empty);
 
         Self {
-            pos,
             grid_size,
-            has_grid,
-
             blocks,
-            block_types,
+
+            pos,
+            has_grid,
         }
     }
 
@@ -43,8 +44,8 @@ impl Playfield {
         let pos = y * self.grid_size.x + x;
         let pos = pos as usize;
 
-        if self.blocks[pos] {
-            Some(self.block_types[pos])
+        if let BlockType::Piece(piece_type) = self.blocks[pos] {
+            Some(piece_type)
         } else {
             None
         }
@@ -57,8 +58,7 @@ impl Playfield {
         let pos = y * self.grid_size.x + x;
         let pos = pos as usize;
 
-        self.blocks[pos] = true;
-        self.block_types[pos] = piece_type;
+        self.blocks[pos] = BlockType::Piece(piece_type);
     }
 
     pub fn reset_block(&mut self, x: i32, y: i32) {
@@ -68,7 +68,7 @@ impl Playfield {
         let pos = y * self.grid_size.x + x;
         let pos = pos as usize;
 
-        self.blocks[pos] = false;
+        self.blocks[pos] = BlockType::Empty;
     }
 
     pub fn get_lines_to_clear(&self) -> (u8, [u8; 4]) {
@@ -84,7 +84,7 @@ impl Playfield {
                 let line_end   = ((i+1) * self.grid_size.x) as usize;
                 let cnt = self.blocks[line_start..line_end]
                     .iter()
-                    .fold(0, |acc, &x| if x { acc + 1 } else { acc });
+                    .fold(0, |acc, &x| if let BlockType::Piece(_) = x { acc + 1 } else { acc });
 
                 if cnt == self.grid_size.x {
                     lines_to_clear[total_lines_to_clear as usize] = i as u8;
@@ -95,14 +95,14 @@ impl Playfield {
         (total_lines_to_clear, lines_to_clear)
     }
 
-    pub fn clear_lines_naive(&mut self) -> u8 {
+    pub fn try_clear_lines_naive(&mut self) -> bool {
         let mut last_free_line = 0;
         (0..self.grid_size.y).for_each(|current_line| {
             let line_start = (current_line * self.grid_size.x) as usize;
             let line_end   = ((current_line + 1) * self.grid_size.x) as usize;
             let cnt = self.blocks[line_start..line_end]
                 .iter()
-                .fold(0, |acc, &x| if x { acc + 1 } else { acc });
+                .fold(0, |acc, &x| if let BlockType::Piece(_) = x { acc + 1 } else { acc });
 
             if cnt != self.grid_size.x {
                 if last_free_line != current_line {
@@ -118,16 +118,6 @@ impl Playfield {
                     split_left[last_free_line_start..last_free_line_end].swap_with_slice(
                         &mut split_right[right_current_line_start..right_current_line_end]
                     );
-
-                    // 
-                    let (split_left, split_right) = self.block_types.split_at_mut(last_free_line_end);
-
-                    let right_current_line_start = line_start - last_free_line_end;
-                    let right_current_line_end   = line_end - last_free_line_end;
-
-                    split_left[last_free_line_start..last_free_line_end].swap_with_slice(
-                        &mut split_right[right_current_line_start..right_current_line_end]
-                    );
                 }
                 last_free_line += 1;
             }
@@ -136,10 +126,10 @@ impl Playfield {
         if last_free_line != self.grid_size.y {
             let empty_block_start = (last_free_line * self.grid_size.x) as usize;
             let empty_block_end   = (self.grid_size.y * self.grid_size.x) as usize;
-            self.blocks[empty_block_start..empty_block_end].fill(false);
+            self.blocks[empty_block_start..empty_block_end].fill(BlockType::Empty);
         }
 
-        (self.grid_size.y - last_free_line) as u8
+        last_free_line != self.grid_size.y
     }
 }
 
@@ -152,6 +142,7 @@ impl ImDraw for Playfield {
             self.grid_size.imdraw("grid_size", ui);
             self.has_grid.imdraw("has_grid", ui);
 
+            /*
             imgui::TreeNode::new(im_str2!("blocks")).build(ui, || {
                 for i in (0..self.grid_size.y).rev() {
                     ui.text(format!("{:>2}", i));
@@ -167,6 +158,7 @@ impl ImDraw for Playfield {
                     ui.checkbox(im_str2!(""), &mut self.blocks[index]);
                 }
             });
+            */
 
             id.pop(ui);
         });
@@ -182,15 +174,14 @@ impl Playfield {
         pos: Vec2i,
         has_grid: bool
     ) -> Self {
-        let network::NetworkedPlayfield { grid_size, blocks, block_types } = net_instance;
+        let network::NetworkedPlayfield { grid_size, blocks } = net_instance;
 
         Self {
-            pos,
             grid_size,
-            has_grid,
-
             blocks,
-            block_types,
+
+            pos,
+            has_grid,
         }
     }
 
@@ -198,7 +189,6 @@ impl Playfield {
         network::NetworkedPlayfield {
             grid_size: self.grid_size,
             blocks: self.blocks.clone(),
-            block_types: self.block_types.clone(),
         }
     }
 
@@ -206,9 +196,8 @@ impl Playfield {
         &mut self,
         net_instance: network::NetworkedPlayfield
     ) {
-        let network::NetworkedPlayfield { grid_size, blocks, block_types } = net_instance;
+        let network::NetworkedPlayfield { grid_size, blocks } = net_instance;
         self.grid_size = grid_size;
         self.blocks = blocks;
-        self.block_types = block_types;
     }
 }

@@ -53,16 +53,6 @@ impl SceneTrait for MultiPlayerScene {
                         _ => {}
                     }
 
-                    if let ServerEvent::ClientHeartbeat(client_id) = e {
-                        let update = Update {
-                            timestamp: app.game_timestamp(),
-                            instance: self.rules_instance.to_network(),
-                        };
-
-                        let message = MultiplayerMessages::Update(update);
-                        self.server.send(client_id, message).unwrap();
-                    }
-
                     continue;
                 },
                 Err(err) => println!("server event error: {:?}", err),
@@ -78,7 +68,16 @@ impl SceneTrait for MultiPlayerScene {
         }
 
         if !app.is_paused() {
-            self.rules_instance.update(app, &persistent.input_mapping);
+            let has_updated = self.rules_instance.update(app, &persistent.input_mapping);
+            if has_updated {
+                let update = Update {
+                    timestamp: app.game_timestamp(),
+                    instance: self.rules_instance.to_network(),
+                };
+
+                let message = MultiplayerMessages::Update(update);
+                self.server.broadcast(message).unwrap();
+            }
         }
     }
 
