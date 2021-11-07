@@ -4,6 +4,7 @@
 
 ### Game
 
+- [ ] Main menu background
 - [ ] General refactor/cleanup
   - [x] Refactor SinglePlayerScene into RulesInstance (maybe a better name)
   - [ ] Refactor orientation rule usage and rules functions
@@ -18,17 +19,9 @@
     - [ ] Local
     - [ ] Multiplayer
   - [ ] Modern game
+    - [ ] Local
+    - [ ] Multiplayer
   - [ ] Custom game
-- [ ] UI improvements
-  - [ ] Multipage window
-  - [ ] Align to bottom
-  - [ ] Disabled line
-  - [ ] Better interaction: create a struct for each component
-    - [ ] Button: pressed(), released(), down()
-    - [ ] Slider: changed(), changing()
-    - [ ] Input: changed()
-- [ ] Networking
-  - [ ] Twitch
 
 
 ### Engine
@@ -36,9 +29,9 @@
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface
 - [ ] Networking
-  - [ ] Rename app/net to app/network
-  - [ ] Packet fragmentation
+  - [x] Rename app/net to app/network
   - [x] public interface instead of whole struct being public
+  - [ ] Packet fragmentation
   - [ ] Server-client
     - [ ] Connection
       - [x] Naive
@@ -61,12 +54,16 @@
       - [ ] Strings (?)
     - [ ] Reserve bits
     - [ ] Derive macro
-  - [ ] Packet fragmentation
+  - [ ] Twitch integration
+  - [ ] Steam integration
+  - [ ] Matchmaking
 - [ ] Logger system: just improve logging.
 - [ ] Asset system
   - [ ] [asset] Asset System should not hold all data, each component can hold its own data.
       It should handle what should be loaded and unloaded into/from memory (seems that this has is
       somewhat what a Scene Manager is for, though, except for streaming data)
+- [ ] Video system
+  - [ ] Get display modes
 - [ ] Audio system
   - [x] Music loading
   - [x] Sfx loading
@@ -97,7 +94,9 @@
     - [ ] Input float range
     - [ ] Input color
     - [ ] Input key
-    - [x] Combobox
+    - [ ] Combobox
+      - [x] Basic
+      - [ ] Enum macro
     - [ ] Separator
   - [ ] Disabled widgets
   - [ ] Keyboard/Controller support
@@ -105,6 +104,14 @@
     - [ ] Styling colors for text/widgets (or colored background of the line)
   - [ ] Styling options
   - [ ] Custom shader
+  - [ ] UI improvements
+    - [ ] Multipage window
+    - [ ] Align to bottom
+    - [ ] Disabled line
+    - [ ] Better interaction: create a struct for each component
+      - [ ] Button: pressed(), released(), down()
+      - [ ] Slider: changed(), changing()
+      - [ ] Input: changed()
 - [ ] [editor]
   - [ ] Remove Dear ImGUI
     - [ ] [imdraw] Maybe this will just be entirely removed
@@ -126,6 +133,12 @@
     were made, so this bug is still there)
 - [ ] [bug] Piece movement animation makes the rendering be outside of the playfield. This should be
     fixed with rendering on a framebuffer instead of directly on the screen
+
+## Future
+
+### Game/Engine
+- [ ] Make it run in frames instead of continuous time
+
 
 ## v0.0.1
 

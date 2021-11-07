@@ -60,7 +60,7 @@ macro_rules! slider_variant_integer_impl {
                 self.text(label);
                 self.same_line();
 
-                let id = Id::new(label).add("#slider");
+                let id = Id::new(label).add("#__slider");
 
                 let ui = &self.ui_system.uis.last().unwrap();
                 let size = Vec2i {

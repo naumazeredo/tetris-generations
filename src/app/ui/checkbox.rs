@@ -17,7 +17,7 @@ impl App<'_> {
         self.same_line();
 
         // Update/create box state
-        let id = Id::new(label).add("#checkbox");
+        let id = Id::new(label).add("#__checkbox");
 
         let ui = &self.ui_system.uis.last().unwrap();
         let checkbox_box_size = ui.style.line_height;

@@ -34,7 +34,7 @@ impl App<'_> {
         self.same_line();
 
         // Combobox
-        let id = Id::new(label).add("#combobox");
+        let id = Id::new(label).add("#__combobox");
 
         let ui = &self.ui_system.uis.last().unwrap();
         let size = Vec2i {

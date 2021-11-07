@@ -14,7 +14,7 @@ impl App<'_> {
     pub fn button(&mut self, text: &str) -> bool {
         // @Maybe add text using the app.text method instead of calculating everything
 
-        let id = Id::new(text);
+        let id = Id::new(text).add("#__button");
 
         // @TODO cleanup these ui.last_mut().unwrap() calls
         // Calculate element size

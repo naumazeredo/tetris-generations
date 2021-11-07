@@ -211,7 +211,7 @@ impl App<'_> {
         let id = Id::new(label);
 
         // Add label
-        self.text_with_id(id.add("#text"), label);
+        self.text_with_id(id.add("#__input_text"), label);
         self.same_line();
 
         let id = id.add("#input");
