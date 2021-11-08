@@ -105,15 +105,15 @@ impl SceneTrait for MultiPlayerScene {
             app.text("PAUSED");
             app.text(&format!("IP: {}", self.server.addr()));
 
-            if app.button("RESUME") {
+            if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }
 
-            if app.button("RESTART") {
+            if ui::Button::new("RESTART", app).pressed {
                 println!("restart");
             }
 
-            if app.button("QUIT") {
+            if ui::Button::new("QUIT", app).pressed {
                 self.quit = true;
             }
         }
@@ -185,11 +185,19 @@ impl SceneTrait for MultiPlayerScene {
         false
     }
 
-    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
+    fn transition(
+        &mut self,
+        _app: &mut App,
+        _persistent: &mut PersistentData
+    ) -> Option<SceneTransition> {
         if self.quit { Some(SceneTransition::Pop) } else { None }
     }
 
-    fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData,) {
+    fn on_enter(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
         app.restart_time_system();
         //app.play_music(self.music_id);
     }

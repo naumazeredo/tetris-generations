@@ -61,15 +61,15 @@ impl SceneTrait for SinglePlayerScene {
 
             // Ui
             app.text("PAUSED");
-            if app.button("RESUME") {
+            if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }
 
-            if app.button("RESTART") {
+            if ui::Button::new("RESTART", app).pressed {
                 println!("restart");
             }
 
-            if app.button("QUIT") {
+            if ui::Button::new("QUIT", app).pressed {
                 self.quit = true;
             }
         }

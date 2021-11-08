@@ -48,6 +48,9 @@ pub struct Style {
     pub slider_cursor_focused_color:   Color,
 
     pub combobox_selected_option_color: Color,
+
+    pub scrollbar_width: u32,
+    pub scrollbar_color: Color,
 }
 
 impl Default for Style {
@@ -67,27 +70,30 @@ impl Default for Style {
             text_color: color::WHITE,
             font_size: 20,
 
-            box_color:       Color { r: 0.3, g: 0.3, b: 0.3, a: 0.5 },
-            box_hover_color: Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 },
-            box_down_color:  Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
+            box_color:       Color { r: 0.1, g: 0.1, b: 0.1, a: 1.0 },
+            box_hover_color: Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
+            box_down_color:  Color { r: 0.6, g: 0.6, b: 0.6, a: 1.0 },
             box_padding: 4,
             box_width: 168,
 
-            checkbox_unselected_color:       Color { r: 0.3, g: 0.3, b: 0.3, a: 0.5 },
-            checkbox_unselected_hover_color: Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 },
-            checkbox_selected_color:         Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
-            checkbox_selected_hover_color:   Color { r: 0.8, g: 0.8, b: 0.8, a: 0.5 },
+            checkbox_unselected_color:       Color { r: 0.1, g: 0.1, b: 0.1, a: 1.0 },
+            checkbox_unselected_hover_color: Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
+            checkbox_selected_color:         Color { r: 0.6, g: 0.6, b: 0.6, a: 1.0 },
+            checkbox_selected_hover_color:   Color { r: 0.4, g: 0.4, b: 0.4, a: 1.0 },
 
-            input_focused_color: Color { r: 0.8, g: 0.8, b: 1.0, a: 0.5 },
+            input_focused_color: Color { r: 0.8, g: 0.8, b: 1.0, a: 1.0 },
 
             slider_box_padding:  4,
-            slider_box_color:    Color { r: 0.2, g: 0.2, b: 0.2, a: 0.5 },
+            slider_box_color:    Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
             slider_cursor_width: 20,
-            slider_cursor_hover_color:     Color { r: 0.8, g: 0.8, b: 0.8, a: 0.5 },
-            slider_cursor_unfocused_color: Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 },
-            slider_cursor_focused_color:   Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
+            slider_cursor_hover_color:     Color { r: 0.4, g: 0.4, b: 0.4, a: 1.0 },
+            slider_cursor_unfocused_color: Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
+            slider_cursor_focused_color:   Color { r: 0.6, g: 0.6, b: 0.6, a: 1.0 },
 
-            combobox_selected_option_color: Color { r: 1.0, g: 1.0, b: 1.0, a: 0.5 },
+            combobox_selected_option_color: Color { r: 0.3, g: 0.3, b: 0.3, a: 1.0 },
+
+            scrollbar_width: 4,
+            scrollbar_color: Color { r: 0.8, g: 0.8, b: 0.8, a: 0.8 },
         }
     }
 }

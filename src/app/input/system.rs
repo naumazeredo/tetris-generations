@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::app::{ App, ImDraw };
+use crate::app::{App, ImDraw};
 use crate::app::sdl2::{
     event::Event,
     keyboard::Scancode,
@@ -71,6 +71,15 @@ impl InputSystem {
 
             Event::MouseMotion { x, y, .. } => {
                 self.mouse.set_pos(*x, *y);
+            },
+
+            Event::MouseWheel { y, direction, .. } => {
+                let y = match direction {
+                    sdl2::mouse::MouseWheelDirection::Normal => *y,
+                    _ => - (*y),
+                };
+
+                self.mouse.set_wheel(y, timestamp);
             },
 
             // Joystick
@@ -207,7 +216,13 @@ impl App<'_> {
         let button = sdl2::mouse::MouseButton::Left as usize;
         self.input_system.mouse.buttons[button].up_timestamp() == timestamp
     }
+
+    pub fn mouse_scroll(&self) -> i32 {
+        let timestamp = self.time_system.real_time;
+        self.input_system.mouse.wheel.scroll(timestamp)
+    }
 }
+
 
 // -------
 // General
@@ -301,6 +316,19 @@ impl KeyboardState {
 
 // @Maybe MouseButtonState (for double_clicked if needed)
 
+#[derive(Copy, Clone, Default, ImDraw)]
+pub(super) struct MouseWheelState {
+    // @TODO use timestamp type (not created yet) instead of u64
+    pub(super) timestamp: u64,
+    pub(super) scroll: i32, // There are x and y scrolls, should we support both?
+}
+
+impl MouseWheelState {
+    pub fn scroll(&self, timestamp: u64) -> i32 {
+        (timestamp == self.timestamp) as i32 * self.scroll
+    }
+}
+
 #[derive(Default, ImDraw)]
 pub(super) struct MouseState {
     // @TODO relative position + moved (do we need it?)
@@ -308,6 +336,7 @@ pub(super) struct MouseState {
     // window_id
     pos: (i32, i32),
     buttons: [ButtonState; MAX_MOUSE_BUTTONS],
+    wheel: MouseWheelState,
 
     //rel_pos: (i32, i32),
     //moved: bool,
@@ -328,6 +357,11 @@ impl MouseState {
         //self.moved = true;
 
         self.pos = (x, y);
+    }
+
+    fn set_wheel(&mut self, scroll: i32, timestamp: u64) {
+        self.wheel.scroll = scroll;
+        self.wheel.timestamp = timestamp;
     }
 
     pub(super) fn button_state(&self, button: sdl2::mouse::MouseButton) -> &ButtonState {

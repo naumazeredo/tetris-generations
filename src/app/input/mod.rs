@@ -79,8 +79,9 @@ pub use button::*;
 pub use mapping::*;
 pub(in crate::app) use system::*; // @XXX how to avoid this???
 
-use crate::app::imdraw::ImDraw;
+use super::ImDraw;
 
+// ------
 
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub struct ControllerAxisThreshold {

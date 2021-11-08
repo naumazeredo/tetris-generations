@@ -84,8 +84,7 @@ impl GameState for State {
             Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
                 use sdl2::video::FullscreenType;
 
-                let window = &mut app.video_system.window;
-                let new_fullscreen_state = match window.fullscreen_state() {
+                let new_fullscreen_state = match app.fullscreen_state() {
                     //FullscreenType::Off => FullscreenType::True,
                     //FullscreenType::True => FullscreenType::Desktop,
                     //FullscreenType::Desktop => FullscreenType::Off,
@@ -94,7 +93,7 @@ impl GameState for State {
                     _ => FullscreenType::Off,
                 };
 
-                window.set_fullscreen(new_fullscreen_state).unwrap();
+                app.set_fullscreen(new_fullscreen_state);
             }
 
             Event::KeyDown { scancode: Some(Scancode::Q), .. } => {

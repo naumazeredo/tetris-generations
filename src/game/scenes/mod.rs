@@ -23,6 +23,8 @@ pub use multiplayer_spectate::*;
 pub trait SceneTrait {
     fn update(&mut self, _app: &mut App, _persistent: &mut PersistentData) {}
     fn render(&mut self, _app: &mut App, _persistent: &mut PersistentData) {}
+
+    // @TODO change parameter order (event before app+persistent)
     fn handle_input(&mut self, _app: &mut App, _persistent: &mut PersistentData, _event: &sdl2::event::Event) -> bool { false }
 
     fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> { None }

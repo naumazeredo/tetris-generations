@@ -1,6 +1,31 @@
 use crate::app::App;
 use super::*;
 
+pub struct Text<'a> {
+    text: &'a str,
+    //max_width: Option<u32>,
+}
+
+impl<'a> Text<'a> {
+    pub fn new(text: &str, app: &mut App) {
+        Text::builder(text).build(app)
+    }
+
+    pub fn builder<'b: 'a>(text: &'b str) -> Self {
+        Self {
+            text,
+            //max_width: None,
+        }
+    }
+
+    pub fn build(self, app: &mut App) {
+        let id = Id::new(self.text);
+        app.text_with_id(id, self.text);
+    }
+}
+
+// ----
+
 fn new_text(text: &str) -> State {
     State {
         pressed: false,

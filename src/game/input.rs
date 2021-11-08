@@ -1,6 +1,6 @@
 use crate::app::{
     InputMapping,
-    Button,
+    input::Button,
     ControllerAxisThreshold,
 };
 

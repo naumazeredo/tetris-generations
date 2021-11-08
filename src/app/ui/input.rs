@@ -7,6 +7,63 @@ use super::*;
 use core::str::FromStr;
 use std::fmt::Display;
 
+// String input
+
+pub struct Input<'a> {
+    label: &'a str,
+    max_length: usize,
+}
+
+pub struct InputState {
+    pub pressed:  bool,
+    pub down:     bool,
+    pub hovering: bool,
+    pub changed:  bool,
+    pub is_input_focus: bool,
+}
+
+impl<'a> Input<'a> {
+    pub fn new(label: &str, value: &mut String, app: &mut App) -> InputState {
+        Input::builder(label).build(value, app)
+    }
+
+    pub fn builder<'b: 'a>(label: &'b str) -> Self {
+        Self {
+            label,
+            max_length: 64,
+        }
+    }
+
+    pub fn max_length(self, max_length: usize) -> Self {
+        Self {
+            max_length,
+            ..self
+        }
+    }
+
+    pub fn build(self, value: &mut String, app: &mut App) -> InputState {
+        let state = app.input_str_internal(self.label, value, self.max_length);
+
+        if let ElementVariant::Input {
+            is_input_focus,
+            changed,
+            ..
+        } = state.variant {
+            InputState {
+                pressed: state.pressed,
+                down: state.down,
+                hovering: state.hovering,
+                changed,
+                is_input_focus,
+            }
+        } else {
+            unreachable!();
+        }
+    }
+}
+
+// ------
+
 fn add_input_integer_unsigned<T>(
     input_state: &mut String,
     new_input: &String,
@@ -102,8 +159,8 @@ impl State {
             down: false,
             hovering: false,
             variant: ElementVariant::Input {
-                input_focus: Some(false),
-                input_complete: false,
+                is_input_focus: false,
+                changed: false,
 
                 value_str: value.to_owned(),
                 variant: InputVariant::Str { max_length },
@@ -140,26 +197,34 @@ impl App<'_> {
         }
 
         // Handle input focus lost and input completion before mouse interactions
-        if let ElementVariant::Input { input_focus, input_complete, value_str, ..  } = &mut state.variant {
-            *input_complete = false;
-            if *input_focus == Some(true) {
+        if let ElementVariant::Input {
+            is_input_focus,
+            changed,
+            value_str,
+            ..
+        } = &mut state.variant {
+            *changed = false;
+            if *is_input_focus {
                 if (mouse_left_released && !mouse_hovering) || self.ui_system.input_complete {
                     // Input completion
 
-                    *input_complete = true;
-                    *input_focus = Some(false);
+                    *is_input_focus = false;
 
-                    // Update the input value to the input_state.
-                    // The input_state is saved into input_state_buffer since ui elements are in immediate
-                    // mode and the logic to handle having a focused input and clicking on a different
-                    // input element would be tricky. Thus, we have a App.update_ui_system function that
-                    // stores the input_state into input_state_buffer when we have to update the element
-                    // input
-                    *value_str = std::mem::take(&mut self.ui_system.input_state_buffer);
+                    if *value_str != self.ui_system.input_state_buffer {
+                        *changed = true;
+
+                        // Update the input value to the input_state.
+                        // The input_state is saved into input_state_buffer since ui elements are in immediate
+                        // mode and the logic to handle having a focused input and clicking on a different
+                        // input element would be tricky. Thus, we have a App.update_ui_system function that
+                        // stores the input_state into input_state_buffer when we have to update the element
+                        // input
+                        *value_str = std::mem::take(&mut self.ui_system.input_state_buffer);
+                    }
                 } else if self.ui_system.input_focus.is_none() {
                     // Input focus lost
 
-                    *input_focus = Some(false);
+                    *is_input_focus = false;
                 }
             }
         }
@@ -173,13 +238,13 @@ impl App<'_> {
                 state.pressed = true;
 
                 if let ElementVariant::Input {
-                    input_focus,
+                    is_input_focus,
                     variant,
                     value_str,
                     ..
                 } = &mut state.variant {
-                    if *input_focus == Some(false) {
-                        *input_focus = Some(true);
+                    if !*is_input_focus {
+                        *is_input_focus = true;
 
                         self.ui_system.input_focus = Some(id);
                         self.ui_system.input_variant = *variant;
@@ -207,21 +272,27 @@ impl App<'_> {
 // String Input
 
 impl App<'_> {
-    fn input_str_internal(&mut self, label: &str, value: &mut String, max_length: usize) {
+    fn input_str_internal(
+        &mut self,
+        label: &str,
+        value: &mut String,
+        max_length: usize
+    ) -> &mut State {
         let id = Id::new(label);
 
         // Add label
         self.text_with_id(id.add("#__input_text"), label);
         self.same_line();
 
-        let id = id.add("#input");
+        let id = id.add("#__input");
 
         let ui = &self.ui_system.uis.last().unwrap();
         let size = Vec2i {
-            x: ui.style.box_width as i32,
+            x: ui.draw_width() / 2,
             y: ui.style.line_height as i32,
         };
         let layout = self.new_layout_right(size);
+        self.add_element(id, layout);
 
         // @TODO we should update the input state in case referenced value changed
         self.ui_system.states.entry(id)
@@ -239,14 +310,14 @@ impl App<'_> {
 
         let state = self.update_input_state_interaction(id, layout);
         if let ElementVariant::Input {
-            input_complete: true,
+            changed: true,
             value_str,
             ..
         } = &mut state.variant {
             *value = value_str.clone();
         }
 
-        self.add_element(id, layout);
+        state
     }
 
     pub fn input_str(&mut self, label: &str, value: &mut String) {
@@ -255,61 +326,6 @@ impl App<'_> {
 
     pub fn input_str_with_max_length(&mut self, label: &str, value: &mut String, max_length: usize) {
         self.input_str_internal(label, value, max_length);
-    }
-}
-
-pub struct Input<'a> {
-    label: &'a str,
-    max_length: usize,
-}
-
-pub struct InputState {
-    pressed: bool,
-    down: bool,
-    hovering: bool,
-    input_focus: bool,
-    input_complete: bool,
-}
-
-impl<'a> Input<'a> {
-    pub fn new<'b: 'a>(label: &'b str) -> Self {
-        Self {
-            label,
-            max_length: 64,
-        }
-    }
-
-    pub fn with_max_length(self, max_length: usize) -> Self {
-        Self {
-            max_length,
-            ..self
-        }
-    }
-
-    pub fn build(self, value: &mut String, app: &mut App<'_>) -> InputState {
-        // Paste input_str_internal here
-        app.input_str_internal(self.label, value, self.max_length);
-
-        let id = Id::new(self.label);
-        let id = id.add("#input");
-
-        let state = app.ui_system.states.get_mut(&id).unwrap();
-
-        if let ElementVariant::Input {
-            input_focus,
-            input_complete,
-            ..
-        } = state.variant {
-            InputState {
-                pressed: state.pressed,
-                down: state.down,
-                hovering: state.hovering,
-                input_focus: input_focus.unwrap(),
-                input_complete,
-            }
-        } else {
-            unreachable!();
-        }
     }
 }
 
@@ -332,8 +348,8 @@ macro_rules! input_variant_integer_impl {
                 down: false,
                 hovering: false,
                 variant: ElementVariant::Input {
-                    input_focus: Some(false),
-                    input_complete: false,
+                    is_input_focus: false,
+                    changed: false,
 
                     value_str: format!("{}", value),
                     variant: InputVariant::$var { value, min, max },
@@ -363,7 +379,7 @@ macro_rules! input_variant_integer_impl {
                 let ui = &self.ui_system.uis.last().unwrap();
                 if !stretch {
                     let size = Vec2i {
-                        x: ui.style.box_width as i32,
+                        x: ui.draw_width() / 2,
                         y: ui.style.line_height as i32,
                     };
                     layout = self.new_layout_right(size);
@@ -393,7 +409,7 @@ macro_rules! input_variant_integer_impl {
 
                 let state = self.update_input_state_interaction(id, layout);
                 if let ElementVariant::Input {
-                    input_complete: true,
+                    changed: true,
                     value_str,
                     variant: InputVariant::$var { value: v, .. },
                     ..

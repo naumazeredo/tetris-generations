@@ -124,11 +124,11 @@ impl SceneTrait for MultiPlayerSpectateScene {
             app.new_ui(window_layout);
 
             app.text("PAUSED");
-            if app.button("RESUME") {
+            if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }
 
-            if app.button("QUIT") {
+            if ui::Button::new("QUIT", app).pressed {
                 self.state = State::Quitting;
             }
         } else {
@@ -137,15 +137,15 @@ impl SceneTrait for MultiPlayerSpectateScene {
                     app.new_ui(window_layout);
 
                     app.text("WATCH GAME");
-                    ui::Input::new("Server").build(&mut self.start_menu_server_ip, app);
-                    if app.button("CONNECT") {
+                    ui::Input::new("Server", &mut self.start_menu_server_ip, app);
+                    if ui::Button::new("CONNECT", app).pressed {
                         match self.client.connect(self.start_menu_server_ip.clone()) {
                             Ok(_) => self.state = State::Connecting,
                             Err(err) => println!("[game][scenes][multiplayer_spectate] connect problem: {:?}", err),
                         }
                     }
 
-                    if app.button("QUIT") {
+                    if ui::Button::new("QUIT", app).pressed {
                         self.state = State::Quitting;
                     }
                 },
@@ -154,11 +154,11 @@ impl SceneTrait for MultiPlayerSpectateScene {
                     app.new_ui(window_layout);
                     app.text("CONNECTING...");
 
-                    if app.button("CANCEL") {
+                    if ui::Button::new("CANCEL", app).pressed {
                         self.state = State::ConnectMenu;
                     }
 
-                    if app.button("QUIT") {
+                    if ui::Button::new("QUIT", app).pressed {
                         self.state = State::Quitting;
                     }
                 },

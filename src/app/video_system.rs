@@ -82,4 +82,31 @@ impl App<'_> {
     pub fn window_size(&self) -> (u32, u32) {
         self.video_system.window.size()
     }
+
+    pub fn display_index(&self) -> i32 {
+        self.video_system.window.display_index().unwrap()
+    }
+
+    pub fn num_displays(&self) -> usize {
+        self.sdl_context.video_subsystem.num_video_displays().unwrap() as usize
+    }
+
+    pub fn display_modes(&self) -> Vec<sdl2::video::DisplayMode> {
+        let display_index = self.display_index();
+        let num_display_modes = self.sdl_context.video_subsystem.num_display_modes(display_index).unwrap();
+
+        (0..num_display_modes)
+            .map(|mode_index| {
+                self.sdl_context.video_subsystem.display_mode(display_index, mode_index).unwrap()
+            })
+            .collect()
+    }
+
+    pub fn fullscreen_state(&self) -> sdl2::video::FullscreenType {
+        self.video_system.window.fullscreen_state()
+    }
+
+    pub fn set_fullscreen(&mut self, fullscreen_type: sdl2::video::FullscreenType) {
+        self.video_system.window.set_fullscreen(fullscreen_type).unwrap();
+    }
 }

@@ -94,11 +94,11 @@ impl SceneTrait for SinglePlayerStartMenuScene {
         //pub randomizer_type: RandomizerType,
         //app.input_u64_stretch("seed", &mut self.seed);
 
-        if app.button("START") {
+        if ui::Button::new("START", app).pressed {
             self.start_singleplayer_game = true;
         }
 
-        if app.button("BACK") {
+        if ui::Button::new("BACK", app).pressed {
             self.go_back = true;
         }
     }

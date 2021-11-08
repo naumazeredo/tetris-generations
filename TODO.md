@@ -87,16 +87,29 @@
     - [ ] Animations
   - [ ] Widgets
     - [x] Text
+      - [x] Basic functionality
+      - [x] State+Build pattern
+      - [ ] Allow more sizes?
     - [x] Button
+      - [x] Basic functionality
+      - [x] State+Build pattern
     - [x] Checkbox
-    - [x] Input integer range
+      - [x] Basic functionality
+      - [x] State+Build pattern
+    - [ ] Input integer range
+      - [x] Basic functionality
+      - [ ] State+Build pattern
     - [x] Input text
+      - [x] Basic functionality
+      - [x] State+Build pattern
+    - [ ] Combobox
+      - [x] Basic functionality
+      - [x] State+Build pattern
+      - [ ] Combowheel
+      - [ ] Enum macro
     - [ ] Input float range
     - [ ] Input color
     - [ ] Input key
-    - [ ] Combobox
-      - [x] Basic
-      - [ ] Enum macro
     - [ ] Separator
   - [ ] Disabled widgets
   - [ ] Keyboard/Controller support
@@ -104,10 +117,9 @@
     - [ ] Styling colors for text/widgets (or colored background of the line)
   - [ ] Styling options
   - [ ] Custom shader
-  - [ ] UI improvements
+  - [ ] Improvements
     - [ ] Multipage window
     - [ ] Align to bottom
-    - [ ] Disabled line
     - [ ] Better interaction: create a struct for each component
       - [ ] Button: pressed(), released(), down()
       - [ ] Slider: changed(), changing()

@@ -18,7 +18,10 @@ use crate::app::{
     utils::fnv_hasher::FNVHasher,
 };
 
+pub use button::*;
+pub use combobox::*;
 pub use input::*;
+pub use text::*;
 use slider::*;
 use style::*;
 
@@ -111,6 +114,13 @@ pub struct Ui {
     style: Style,
     layout: Layout,
     elements: Vec<Element>,
+    modal_elements: Vec<Element>,
+}
+
+impl Ui {
+    fn draw_width(&self) -> i32 {
+        self.layout.size.x - 2 * self.style.padding
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, ImDraw)]
@@ -169,8 +179,8 @@ enum ElementVariant {
     Button   { text: String, },
     Checkbox { value: bool },
     Input    {
-        input_focus: Option<bool>,
-        input_complete: bool,
+        is_input_focus: bool,
+        changed: bool,
 
         value_str: String,
         variant: InputVariant,
@@ -182,12 +192,16 @@ enum ElementVariant {
     Combobox {
         index: usize,
         text: String,
+        changed: bool,
+
+        scroll_top_index: usize,
     },
     ComboboxOption {
         selected: bool,
         text: String,
     },
     Separator,
+    Scrollbar,
 }
 
 impl App<'_> {
@@ -200,6 +214,7 @@ impl App<'_> {
             style,
             layout,
             elements: Vec::new(),
+            modal_elements: Vec::new(),
         };
 
         self.ui_system.uis.push(ui);
@@ -213,6 +228,7 @@ impl App<'_> {
             style,
             layout,
             elements: Vec::new(),
+            modal_elements: Vec::new(),
         };
 
         self.ui_system.uis.push(ui);
@@ -281,6 +297,7 @@ impl App<'_> {
         ).into()
     }
 
+
     // @TODO no need for this same line/next line logic. We won't use it and it's making the whole
     //       design worse (this is too general)
     fn add_element(&mut self, id: Id, layout: Layout) {
@@ -306,7 +323,7 @@ impl App<'_> {
 
     fn add_modal_element(&mut self, id: Id, layout: Layout) {
         let ui = &mut self.ui_system.uis.last_mut().unwrap();
-        ui.elements.push(Element { id, layout });
+        ui.modal_elements.push(Element { id, layout });
     }
 
     /*
@@ -320,7 +337,7 @@ impl App<'_> {
     }
     */
 
-    fn is_mouse_hovering(&self, layout: Layout) -> bool {
+    fn is_mouse_hovering_clipped_layout(&self, layout: Layout) -> bool {
         let mouse_pos: Vec2i = self.get_mouse_position().into();
 
         let ui = &self.ui_system.uis.last().unwrap();
@@ -333,6 +350,11 @@ impl App<'_> {
         ;
     }
 
+    fn is_mouse_hovering_layout(&self, layout: Layout) -> bool {
+        let mouse_pos: Vec2i = self.get_mouse_position().into();
+        mouse_pos.is_inside(layout.pos, layout.size)
+    }
+
     // @TODO somehow refactor this function to be able to have a state tied to a deeper level
     //       of the app, instead of self
     fn update_state_interaction(&mut self, id: Id, layout: Layout) -> &mut State {
@@ -342,7 +364,7 @@ impl App<'_> {
         // Get mouse state
         let mouse_left_pressed = self.mouse_left_pressed();
         let mouse_left_released = self.mouse_left_released();
-        let mouse_hovering = self.is_mouse_hovering(layout);
+        let mouse_hovering = self.is_mouse_hovering_clipped_layout(layout);
 
         let mut state = self.ui_system.states.get_mut(&id).unwrap();
 
@@ -412,7 +434,7 @@ impl App<'_> {
     }
 
     // @Refactor this function doesn't seem completely necessary. Maybe a new_frame would fit better
-    pub(in crate::app) fn update_ui_system(&mut self) {
+    pub(in crate::app) fn update_ui_system_input_state(&mut self) {
         if self.mouse_left_released() && self.ui_system.input_focus.is_some() {
             self.ui_system.input_complete = true;
         }

@@ -131,7 +131,7 @@ impl App<'_> {
                 self.handle_input(&event);
             }
 
-            self.update_ui_system();
+            self.update_ui_system_input_state();
             state.update(self);
 
             // Render
