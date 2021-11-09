@@ -167,9 +167,8 @@ impl App<'_> {
                 self.show_debug_window = !self.show_debug_window;
             }
 
-            Event::Window { win_event: WindowEvent::SizeChanged(w, h), .. }
-            | Event::Window { win_event: WindowEvent::Resized(w, h), .. }
-            => {
+            Event::Window { win_event: WindowEvent::SizeChanged(w, h), .. } |
+            Event::Window { win_event: WindowEvent::Resized(w, h), .. } => {
                 self.renderer.window_resize_callback((*w as u32, *h as u32));
             }
 

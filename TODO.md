@@ -63,7 +63,8 @@
       It should handle what should be loaded and unloaded into/from memory (seems that this has is
       somewhat what a Scene Manager is for, though, except for streaming data)
 - [ ] Video system
-  - [ ] Get display modes
+  - [x] Get display modes
+  - [ ] use sdl2::video::* in video_system since we use the structs
 - [ ] Audio system
   - [x] Music loading
   - [x] Sfx loading
@@ -104,9 +105,13 @@
       - [x] State+Build pattern
     - [ ] Combobox
       - [x] Basic functionality
-      - [x] State+Build pattern
+      - [x] State+Build pattern (changed, changing?)
       - [ ] Combowheel
       - [ ] Enum macro
+    - [ ] Slides
+      - [x] Basic functionality
+      - [ ] State+Build pattern
+      - [ ] Disabled colors
     - [ ] Input float range
     - [ ] Input color
     - [ ] Input key
@@ -120,10 +125,9 @@
   - [ ] Improvements
     - [ ] Multipage window
     - [ ] Align to bottom
-    - [ ] Better interaction: create a struct for each component
-      - [ ] Button: pressed(), released(), down()
-      - [ ] Slider: changed(), changing()
-      - [ ] Input: changed()
+    - [ ] Allow strings to change? (we are not comparing string changes for most widgets, and we
+        only update state in case we see the difference. This should be done with a string hashing
+        system to avoid copying the strings over and over)
 - [ ] [editor]
   - [ ] Remove Dear ImGUI
     - [ ] [imdraw] Maybe this will just be entirely removed

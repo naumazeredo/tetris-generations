@@ -39,34 +39,34 @@ impl SceneTrait for SinglePlayerStartMenuScene {
         };
         app.new_ui(window_layout);
 
-        app.text("RULES");
-        app.checkbox("hard drop", &mut self.rules.has_hard_drop);
+        Text::new("RULES", app);
+        Checkbox::new("hard drop", &mut self.rules.has_hard_drop, app);
         if self.rules.has_hard_drop {
             app.indent();
-            app.checkbox("hard drop lock", &mut self.rules.has_hard_drop_lock);
+            Checkbox::new("hard drop lock", &mut self.rules.has_hard_drop_lock, app);
             app.unindent();
         }
 
-        app.checkbox("soft drop", &mut self.rules.has_soft_drop);
+        Checkbox::new("soft drop", &mut self.rules.has_soft_drop, app);
         if self.rules.has_soft_drop {
             app.indent();
-            app.checkbox("soft drop lock", &mut self.rules.has_soft_drop_lock);
+            Checkbox::new("soft drop lock", &mut self.rules.has_soft_drop_lock, app);
             app.unindent();
         }
 
-        app.checkbox("hold piece", &mut self.rules.has_hold_piece);
+        Checkbox::new("hold piece", &mut self.rules.has_hold_piece, app);
         if self.rules.has_hold_piece {
             app.indent();
-            app.checkbox("reset rotation", &mut self.rules.hold_piece_reset_rotation);
+            Checkbox::new("reset rotation", &mut self.rules.hold_piece_reset_rotation, app);
             app.unindent();
         }
 
-        app.checkbox("ghost piece", &mut self.rules.has_ghost_piece);
+        Checkbox::new("ghost piece", &mut self.rules.has_ghost_piece, app);
 
-        app.checkbox("spawn drop", &mut self.rules.spawn_drop);
+        Checkbox::new("spawn drop", &mut self.rules.spawn_drop, app);
 
-        app.checkbox("IRS", &mut self.rules.has_initial_rotation_system);
-        app.checkbox("IHS", &mut self.rules.has_initial_hold_system);
+        Checkbox::new("IRS", &mut self.rules.has_initial_rotation_system, app);
+        Checkbox::new("IHS", &mut self.rules.has_initial_hold_system, app);
 
         app.slider_u8("spawn row", &mut self.rules.spawn_row, 0, 24);
         app.slider_u8("next pieces", &mut self.rules.next_pieces_preview_count, 0, 6);

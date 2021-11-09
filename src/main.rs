@@ -28,7 +28,7 @@ use game::scenes::*;
 fn main() {
     let config = AppConfig {
         window_name: "Tetris for all".to_string(),
-        window_size: (1280, 960),
+        window_size: (1280, 961),
     };
 
     app::run::<State>(config);
@@ -54,7 +54,7 @@ impl GameState for State {
 
         // scene
         let scene_manager = SceneManager::new(
-            MainMenuScene::new().into()
+            MainMenuScene::new(app).into()
         );
 
         Self {
@@ -82,9 +82,7 @@ impl GameState for State {
 
         match event {
             Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
-                use sdl2::video::FullscreenType;
-
-                let new_fullscreen_state = match app.fullscreen_state() {
+                let new_fullscreen_state = match app.window_fullscreen_state() {
                     //FullscreenType::Off => FullscreenType::True,
                     //FullscreenType::True => FullscreenType::Desktop,
                     //FullscreenType::Desktop => FullscreenType::Off,
@@ -93,7 +91,7 @@ impl GameState for State {
                     _ => FullscreenType::Off,
                 };
 
-                app.set_fullscreen(new_fullscreen_state);
+                app.set_window_fullscreen_state(new_fullscreen_state);
             }
 
             Event::KeyDown { scancode: Some(Scancode::Q), .. } => {

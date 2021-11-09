@@ -4,7 +4,7 @@ use crate::{
         font_system::FontId,
         renderer::{
             color::Color,
-            font::queue_draw_text,
+            text::queue_draw_text,
         },
     },
     transform::Transform,

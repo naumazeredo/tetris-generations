@@ -19,6 +19,7 @@ use crate::app::{
 };
 
 pub use button::*;
+pub use checkbox::*;
 pub use combobox::*;
 pub use input::*;
 pub use text::*;
@@ -164,6 +165,7 @@ struct State {
     pressed: bool, // = true only if down and mouse released on top of the button
     down: bool,
     hovering: bool,
+    disabled: bool,
 
     // Some if element is focusable, Some(true) if it's currently the focus, Some(false) otherwise
     //focus: Option<bool>,
@@ -177,7 +179,7 @@ struct State {
 enum ElementVariant {
     Text     { text: String, },
     Button   { text: String, },
-    Checkbox { value: bool },
+    Checkbox { value: bool, },
     Input    {
         is_input_focus: bool,
         changed: bool,

@@ -123,7 +123,7 @@ impl SceneTrait for MultiPlayerSpectateScene {
         if app.is_paused() {
             app.new_ui(window_layout);
 
-            app.text("PAUSED");
+            Text::new("PAUSED", app);
             if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }
@@ -136,7 +136,7 @@ impl SceneTrait for MultiPlayerSpectateScene {
                 State::ConnectMenu => {
                     app.new_ui(window_layout);
 
-                    app.text("WATCH GAME");
+                    Text::new("WATCH GAME", app);
                     ui::Input::new("Server", &mut self.start_menu_server_ip, app);
                     if ui::Button::new("CONNECT", app).pressed {
                         match self.client.connect(self.start_menu_server_ip.clone()) {
@@ -152,7 +152,7 @@ impl SceneTrait for MultiPlayerSpectateScene {
 
                 State::Connecting => {
                     app.new_ui(window_layout);
-                    app.text("CONNECTING...");
+                    Text::new("CONNECTING...", app);
 
                     if ui::Button::new("CANCEL", app).pressed {
                         self.state = State::ConnectMenu;

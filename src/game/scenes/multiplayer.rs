@@ -102,8 +102,8 @@ impl SceneTrait for MultiPlayerScene {
             app.new_ui(window_layout);
 
             // Ui
-            app.text("PAUSED");
-            app.text(&format!("IP: {}", self.server.addr()));
+            Text::new("PAUSED", app);
+            Text::new(&format!("IP: {}", self.server.addr()), app);
 
             if ui::Button::new("RESUME", app).pressed {
                 app.resume();

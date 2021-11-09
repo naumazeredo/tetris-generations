@@ -12,6 +12,7 @@ use std::fmt::Display;
 pub struct Input<'a> {
     label: &'a str,
     max_length: usize,
+    disabled: bool,
 }
 
 pub struct InputState {
@@ -31,6 +32,7 @@ impl<'a> Input<'a> {
         Self {
             label,
             max_length: 64,
+            disabled: false,
         }
     }
 
@@ -41,8 +43,15 @@ impl<'a> Input<'a> {
         }
     }
 
+    pub fn disabled(self, disabled: bool) -> Self {
+        Self {
+            disabled,
+            ..self
+        }
+    }
+
     pub fn build(self, value: &mut String, app: &mut App) -> InputState {
-        let state = app.input_str_internal(self.label, value, self.max_length);
+        let state = app.input_str_internal(value, self);
 
         if let ElementVariant::Input {
             is_input_focus,
@@ -153,18 +162,19 @@ pub(super) enum InputVariant {
 }
 
 impl State {
-    fn new_input_str(value: &str, max_length: usize) -> Self {
-        Self {
+    fn new_input_str(value: &str, max_length: usize, disabled: bool) -> Self {
+        State {
             pressed: false,
             down: false,
             hovering: false,
+            disabled,
             variant: ElementVariant::Input {
                 is_input_focus: false,
                 changed: false,
 
                 value_str: value.to_owned(),
                 variant: InputVariant::Str { max_length },
-            },
+            }
         }
     }
 }
@@ -274,14 +284,13 @@ impl App<'_> {
 impl App<'_> {
     fn input_str_internal(
         &mut self,
-        label: &str,
         value: &mut String,
-        max_length: usize
-    ) -> &mut State {
-        let id = Id::new(label);
+        input: Input,
+    ) -> &State {
+        let id = Id::new(input.label);
 
         // Add label
-        self.text_with_id(id.add("#__input_text"), label);
+        self.text_internal(Text::builder(input.label).disabled(input.disabled));
         self.same_line();
 
         let id = id.add("#__input");
@@ -297,6 +306,8 @@ impl App<'_> {
         // @TODO we should update the input state in case referenced value changed
         self.ui_system.states.entry(id)
             .and_modify(|state| {
+                state.disabled = input.disabled;
+
                 if let ElementVariant::Input {
                     value_str,
                     ..
@@ -306,26 +317,22 @@ impl App<'_> {
                     unreachable!();
                 }
             })
-            .or_insert_with(|| State::new_input_str(&value, max_length));
+            .or_insert_with(|| State::new_input_str(&value, input.max_length, input.disabled));
 
-        let state = self.update_input_state_interaction(id, layout);
-        if let ElementVariant::Input {
-            changed: true,
-            value_str,
-            ..
-        } = &mut state.variant {
-            *value = value_str.clone();
+        if !input.disabled {
+            let state = self.update_input_state_interaction(id, layout);
+            if let ElementVariant::Input {
+                changed: true,
+                value_str,
+                ..
+            } = &mut state.variant {
+                *value = value_str.clone();
+            }
+
+            state
+        } else {
+            self.ui_system.states.get(&id).unwrap()
         }
-
-        state
-    }
-
-    pub fn input_str(&mut self, label: &str, value: &mut String) {
-        self.input_str_internal(label, value, 64);
-    }
-
-    pub fn input_str_with_max_length(&mut self, label: &str, value: &mut String, max_length: usize) {
-        self.input_str_internal(label, value, max_length);
     }
 }
 
@@ -347,6 +354,7 @@ macro_rules! input_variant_integer_impl {
                 pressed: false,
                 down: false,
                 hovering: false,
+                disabled: false, // @TODO disabled
                 variant: ElementVariant::Input {
                     is_input_focus: false,
                     changed: false,
@@ -369,7 +377,7 @@ macro_rules! input_variant_integer_impl {
                 let id = Id::new(label);
 
                 // Add label
-                self.text_with_id(id.add("#text"), label);
+                self.text_internal(Text::builder(label));
                 self.same_line();
 
                 let id = id.add("#input");

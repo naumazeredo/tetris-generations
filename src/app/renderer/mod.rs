@@ -11,9 +11,9 @@
 
 pub mod color;
 pub mod draw_command;
-pub mod font;
 mod shader;
 pub mod sprite;
+pub mod text;
 pub mod texture;
 
 use std::str;

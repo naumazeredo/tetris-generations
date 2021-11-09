@@ -16,6 +16,6 @@ rand_core = "0.6"
 enum_dispatch = "0.3"
 
 [dependencies.sdl2]
-version = "0.34.5"
+version = "0.35"
 default-features = false
 features = ["image", "ttf", "mixer"]

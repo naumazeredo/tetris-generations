@@ -2,7 +2,7 @@ use super::*;
 use crate::app::{
     App,
     Transform,
-    renderer::font::queue_draw_text,
+    renderer::text::queue_draw_text,
     renderer::draw_command::{
         queue_draw_solid,
         push_clip,
@@ -89,9 +89,13 @@ impl Ui {
                 // 
                 let pos = layout.pos + Vec2i { x: 0, y: self.style.font_size as i32 };
 
-                // @XXX to avoid cloning the text all the time, we have to refactor
-                //      create and internal function that does the same as below but
-                //      using the renderer instead of the app
+                let text_color;
+                if state.disabled {
+                    text_color = self.style.text_disabled_color;
+                } else {
+                    text_color = self.style.text_color;
+                }
+
                 queue_draw_text(
                     &mut app.renderer,
                     &app.font_system,
@@ -105,19 +109,21 @@ impl Ui {
                         layer: 910,
                     },
                     self.style.font_size as f32,
-                    self.style.text_color,
+                    text_color,
                 );
             }
 
             ElementVariant::Button { text } => {
                 // Draw button background
-                let color;
-                if state.down {
-                    color = self.style.box_down_color;
+                let box_color;
+                if state.disabled {
+                    box_color = self.style.box_disabled_color;
+                } else if state.down {
+                    box_color = self.style.box_down_color;
                 } else if state.hovering {
-                    color = self.style.box_hover_color;
+                    box_color = self.style.box_hover_color;
                 } else {
-                    color = self.style.box_color;
+                    box_color = self.style.box_color;
                 }
 
                 queue_draw_solid(
@@ -129,16 +135,23 @@ impl Ui {
                         layer: 910,
                     },
                     layout.size.into(),
-                    color,
+                    box_color,
                 );
 
+                // Draw text
                 // Fix text position since it's rendered from the bottom
                 let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
                 let pos = layout.pos + Vec2i { x: 0, y: self.style.font_size as i32 } + padding;
 
+                let text_color;
+                if state.disabled {
+                    text_color = self.style.text_disabled_color;
+                } else {
+                    text_color = self.style.text_color;
+                }
+
                 push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
-                // Draw text
                 queue_draw_text(
                     &mut app.renderer,
                     &app.font_system,
@@ -152,7 +165,7 @@ impl Ui {
                         layer: 910,
                     },
                     self.style.font_size as f32,
-                    self.style.text_color,
+                    text_color,
                 );
 
                 pop_clip(&mut app.renderer);
@@ -160,17 +173,25 @@ impl Ui {
 
             ElementVariant::Checkbox { value } => {
                 let color;
-                if *value {
-                    if state.hovering {
-                        color = self.style.checkbox_selected_hover_color;
+                if state.disabled {
+                    if *value {
+                        color = self.style.checkbox_selected_disabled_color;
                     } else {
-                        color = self.style.checkbox_selected_color;
+                        color = self.style.checkbox_unselected_disabled_color;
                     }
                 } else {
-                    if state.hovering {
-                        color = self.style.checkbox_unselected_hover_color;
+                    if *value {
+                        if state.hovering {
+                            color = self.style.checkbox_selected_hover_color;
+                        } else {
+                            color = self.style.checkbox_selected_color;
+                        }
                     } else {
-                        color = self.style.checkbox_unselected_color;
+                        if state.hovering {
+                            color = self.style.checkbox_unselected_hover_color;
+                        } else {
+                            color = self.style.checkbox_unselected_color;
+                        }
                     }
                 }
 
@@ -190,7 +211,9 @@ impl Ui {
             ElementVariant::Input { value_str, is_input_focus, .. } => {
                 // Calculate input box color
                 let color;
-                if state.down {
+                if state.disabled {
+                    color = self.style.box_disabled_color;
+                } else if state.down {
                     color = self.style.box_down_color;
                 } else if state.hovering {
                     color = self.style.box_hover_color;
@@ -217,10 +240,17 @@ impl Ui {
                 let pos = layout.pos + padding + Vec2i { x: 0, y: self.style.font_size as i32 };
 
                 let text;
-                if *is_input_focus {
-                    text = &app.ui_system.input_state;
+                let text_color;
+                if state.disabled {
+                    text_color = self.style.text_disabled_color;
+                    text = value_str;
                 } else {
-                    text = &value_str;
+                    text_color = self.style.text_color;
+                    if *is_input_focus {
+                        text = &app.ui_system.input_state;
+                    } else {
+                        text = value_str;
+                    }
                 }
 
                 push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
@@ -238,46 +268,48 @@ impl Ui {
                         layer: 910,
                     },
                     self.style.font_size as f32,
-                    self.style.text_color,
+                    text_color,
                 );
 
-                // draw cursor
-                let cursor_duration = self.style.input_cursor_duration;
-                let cursor_timestamp = app.ui_system.input_cursor_timestamp;
-                let current_timestamp = app.real_timestamp();
+                // Draw cursor
+                if !state.disabled {
+                    let cursor_duration = self.style.input_cursor_duration;
+                    let cursor_timestamp = app.ui_system.input_cursor_timestamp;
+                    let current_timestamp = app.real_timestamp();
 
-                if *is_input_focus &&
-                    ((current_timestamp - cursor_timestamp) / cursor_duration) % 2 == 0 {
+                    if *is_input_focus &&
+                        ((current_timestamp - cursor_timestamp) / cursor_duration) % 2 == 0 {
 
-                        let text_draw_size: Vec2i = calculate_draw_text_size(
-                            &app.font_system,
-                            text,
-                            app.font_system.default_font_id,
-                            self.style.font_size as f32,
-                        ).into();
+                            let text_draw_size: Vec2i = calculate_draw_text_size(
+                                &app.font_system,
+                                text,
+                                app.font_system.default_font_id,
+                                self.style.font_size as f32,
+                            ).into();
 
-                        let pos = layout.pos + padding;
-                        let pos = pos + Vec2i {
-                            x: text_draw_size.x + self.style.input_cursor_padding,
-                            y: -self.style.input_cursor_padding,
-                        };
+                            let pos = layout.pos + padding;
+                            let pos = pos + Vec2i {
+                                x: text_draw_size.x + self.style.input_cursor_padding,
+                                y: -self.style.input_cursor_padding,
+                            };
 
-                        let size = Vec2i {
-                            x: self.style.input_cursor_size as i32,
-                            y: self.style.font_size as i32 + 2 * self.style.input_cursor_padding,
-                        };
+                            let size = Vec2i {
+                                x: self.style.input_cursor_size as i32,
+                                y: self.style.font_size as i32 + 2 * self.style.input_cursor_padding,
+                            };
 
-                        queue_draw_solid(
-                            &mut app.renderer,
-                            &Transform {
-                                pos: pos.into(),
-                                scale: Vec2 { x: 1.0, y: 1.0 },
-                                rot: 0.0,
-                                layer: 910,
-                            },
-                            size.into(),
-                            self.style.text_color,
-                        );
+                            queue_draw_solid(
+                                &mut app.renderer,
+                                &Transform {
+                                    pos: pos.into(),
+                                    scale: Vec2 { x: 1.0, y: 1.0 },
+                                    rot: 0.0,
+                                    layer: 910,
+                                },
+                                size.into(),
+                                self.style.text_color,
+                            );
+                    }
                 }
 
                 pop_clip(&mut app.renderer);
@@ -367,7 +399,9 @@ impl Ui {
             ElementVariant::Combobox { text, .. } => {
                 // Draw button background
                 let color;
-                if state.down {
+                if state.disabled {
+                    color = self.style.box_disabled_color;
+                } else if state.down {
                     color = self.style.box_down_color;
                 } else if state.hovering {
                     color = self.style.box_hover_color;
@@ -392,6 +426,13 @@ impl Ui {
                 let pos = layout.pos + padding +
                     Vec2i { x: 0, y: self.style.font_size as i32 };
 
+                let text_color;
+                if state.disabled {
+                    text_color = self.style.text_disabled_color;
+                } else {
+                    text_color = self.style.text_color;
+                }
+
                 push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
@@ -408,7 +449,7 @@ impl Ui {
                         layer: 910,
                     },
                     self.style.font_size as f32,
-                    self.style.text_color,
+                    text_color,
                 );
 
                 pop_clip(&mut app.renderer);
@@ -417,14 +458,16 @@ impl Ui {
             ElementVariant::ComboboxOption { selected, text } => {
                 // Draw button background
                 let color;
-                if state.down {
+                if state.disabled {
+                    color = self.style.box_disabled_color;
+                } else if state.down {
                     color = self.style.box_down_color;
                 } else if state.hovering {
                     color = self.style.box_hover_color;
                 } else if *selected {
                     color = self.style.combobox_selected_option_color;
                 } else {
-                    color = self.style.box_color;
+                    color = self.style.combobox_option_background_color;
                 }
 
                 queue_draw_solid(
@@ -444,6 +487,13 @@ impl Ui {
                 let pos = layout.pos + padding +
                     Vec2i { x: 0, y: self.style.font_size as i32 };
 
+                let text_color;
+                if state.disabled {
+                    text_color = self.style.text_disabled_color;
+                } else {
+                    text_color = self.style.text_color;
+                }
+
                 push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
@@ -460,7 +510,7 @@ impl Ui {
                         layer: 920,
                     },
                     self.style.font_size as f32,
-                    self.style.text_color,
+                    text_color,
                 );
 
                 pop_clip(&mut app.renderer);

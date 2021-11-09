@@ -46,6 +46,7 @@ macro_rules! slider_variant_integer_impl {
                 pressed: false,
                 down: false,
                 hovering: false,
+                disabled: false, // @TODO disabled
                 variant: ElementVariant::Slider {
                     percent,
                     variant: SliderVariant::$var { value, min, max },
@@ -57,7 +58,7 @@ macro_rules! slider_variant_integer_impl {
             // @TODO accept a format string for the type
             pub fn $pub_fn(&mut self, label: &str, value: &mut $type, min: $type, max: $type) {
                 // Add label
-                self.text(label);
+                self.text_internal(Text::builder(label));
                 self.same_line();
 
                 let id = Id::new(label).add("#__slider");

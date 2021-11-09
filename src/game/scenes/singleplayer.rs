@@ -60,7 +60,7 @@ impl SceneTrait for SinglePlayerScene {
             app.new_ui(window_layout);
 
             // Ui
-            app.text("PAUSED");
+            Text::new("PAUSED", app);
             if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }

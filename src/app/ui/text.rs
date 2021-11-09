@@ -3,6 +3,7 @@ use super::*;
 
 pub struct Text<'a> {
     text: &'a str,
+    disabled: bool,
     //max_width: Option<u32>,
 }
 
@@ -14,35 +15,40 @@ impl<'a> Text<'a> {
     pub fn builder<'b: 'a>(text: &'b str) -> Self {
         Self {
             text,
+            disabled: false,
             //max_width: None,
         }
     }
 
+    pub fn disabled(self, disabled: bool) -> Self {
+        Self {
+            disabled,
+            ..self
+        }
+    }
+
     pub fn build(self, app: &mut App) {
-        let id = Id::new(self.text);
-        app.text_with_id(id, self.text);
+        app.text_internal(self);
     }
 }
 
 // ----
 
-fn new_text(text: &str) -> State {
+fn new_text(text: &str, disabled: bool) -> State {
     State {
         pressed: false,
         down: false,
         hovering: false,
+        disabled,
         variant: ElementVariant::Text { text: text.to_owned() },
     }
 }
 
 impl App<'_> {
-    pub fn text(&mut self, text: &str) {
-        let id = Id::new(text);
-        self.text_with_id(id, text);
-    }
+    pub(super) fn text_internal(&mut self, text: Text) {
+        let id = Id::new(text.text);
 
-    pub(in super) fn text_with_id(&mut self, id: Id, text: &str) {
-        let size = self.calculate_text_size(text);
+        let size = self.calculate_text_size(text.text);
         let ui = &self.ui_system.uis.last().unwrap();
         let layout = Layout {
             pos: Vec2i {
@@ -58,6 +64,9 @@ impl App<'_> {
         //       Maybe create a function that compares the strings (or the string ids) and swap the
         //       contents in case they are different
         self.ui_system.states.entry(id)
-            .or_insert_with(|| new_text(text));
+            .and_modify(|state| {
+                state.disabled = text.disabled;
+            })
+            .or_insert_with(|| new_text(text.text, text.disabled));
     }
 }
