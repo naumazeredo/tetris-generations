@@ -46,7 +46,7 @@ fn new_text(text: &str, disabled: bool) -> State {
 
 impl App<'_> {
     pub(super) fn text_internal(&mut self, text: Text) {
-        let id = Id::new(text.text);
+        let id = Id::new(text.text).add("#__text");
 
         let size = self.calculate_text_size(text.text);
         let ui = &self.ui_system.uis.last().unwrap();

@@ -68,25 +68,25 @@ impl SceneTrait for SinglePlayerStartMenuScene {
         Checkbox::new("IRS", &mut self.rules.has_initial_rotation_system, app);
         Checkbox::new("IHS", &mut self.rules.has_initial_hold_system, app);
 
-        app.slider_u8("spawn row", &mut self.rules.spawn_row, 0, 24);
-        app.slider_u8("next pieces", &mut self.rules.next_pieces_preview_count, 0, 6);
+        // @Refactor app.slider_u8("spawn row", &mut self.rules.spawn_row, 0, 24);
+        // @Refactor app.slider_u8("next pieces", &mut self.rules.next_pieces_preview_count, 0, 6);
 
         //pub line_clear_rule: LineClearRule,
         //pub top_out_rule: TopOutRule,
 
         // @TODO ui for time values
-        app.slider_u64("DAS", &mut self.rules.das_repeat_delay, 0, 500_000);
-        app.slider_u64("ARR", &mut self.rules.das_repeat_interval, 0, 500_000);
+        // @Refactor app.slider_u64("DAS", &mut self.rules.das_repeat_delay, 0, 500_000);
+        // @Refactor app.slider_u64("ARR", &mut self.rules.das_repeat_interval, 0, 500_000);
 
-        app.slider_u64("soft drop interval", &mut self.rules.soft_drop_interval, 0, 500_000);
-        app.slider_u64("line clear delay", &mut self.rules.line_clear_delay, 0, 500_000);
+        // @Refactor app.slider_u64("soft drop interval", &mut self.rules.soft_drop_interval, 0, 500_000);
+        // @Refactor app.slider_u64("line clear delay", &mut self.rules.line_clear_delay, 0, 500_000);
 
         //pub gravity_curve: GravityCurve,
         //pub scoring_curve: ScoringRule,
         //pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
 
-        app.slider_u8("start level", &mut self.rules.start_level, self.rules.minimum_level, 50);
-        app.slider_u64("entry delay", &mut self.rules.entry_delay, 0, 2_000_000);
+        // @Refactor app.slider_u8("start level", &mut self.rules.start_level, self.rules.minimum_level, 50);
+        // @Refactor app.slider_u64("entry delay", &mut self.rules.entry_delay, 0, 2_000_000);
 
         //pub lock_delay: LockDelayRule,
         //pub rotation_system: RotationSystem,

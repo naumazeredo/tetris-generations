@@ -7,6 +7,8 @@ use crate::app::{
     utils::fnv_hasher::FNVHasher,
 };
 
+const CHANNEL_COUNT: i32 = 8;
+
 // @TODO macro this
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, ImDraw)]
 pub struct MusicId(u64);
@@ -41,11 +43,13 @@ impl AudioSystem<'_> {
         sdl2::mixer::open_audio(
             sdl2::mixer::DEFAULT_FREQUENCY,
             sdl2::mixer::DEFAULT_FORMAT,
-            2,
-            1024
+            sdl2::mixer::DEFAULT_CHANNELS,
+            1024 // @Future get chunksize from AppConfig
         ).unwrap();
 
-        sdl2::mixer::allocate_channels(16);
+        // @Future get channel_count from AppConfig
+        let channels = sdl2::mixer::allocate_channels(CHANNEL_COUNT);
+        assert!(channels == CHANNEL_COUNT);
 
         Self {
             musics: BTreeMap::new(),
@@ -60,6 +64,9 @@ impl Drop for AudioSystem<'_> {
     }
 }
 
+impl_imdraw_todo!(AudioSystem<'_>);
+
+// @TODO move this to audio/mod.rs
 impl App<'_> {
     pub fn load_music(&mut self, filename: &str) -> MusicId {
         let music_id = MusicId::new(filename);
@@ -94,6 +101,14 @@ impl App<'_> {
         sdl2::mixer::Channel::all().play(&chunk, 0).unwrap();
     }
 
+    pub fn play_sfx_on_channel(&self, sfx_id: SfxId, channel: i32) {
+        assert!(channel >= 0 && channel < CHANNEL_COUNT);
+        let chunk = self.audio_system.sfxs.get(&sfx_id).unwrap();
+        sdl2::mixer::Channel(channel).play(&chunk, 0).unwrap();
+    }
+
+    // @XXX self parameters are not needed for most of mixer functions
+
     pub fn pause_audio(&self) {
         sdl2::mixer::Channel::all().pause();
     }
@@ -105,6 +120,25 @@ impl App<'_> {
     pub fn halt_audio(&self) {
         sdl2::mixer::Channel::all().halt();
     }
-}
 
-impl_imdraw_todo!(AudioSystem<'_>);
+    pub fn max_volume(&self) -> i32 {
+        sdl2::mixer::MAX_VOLUME
+    }
+
+    // @Refactor return float (/MAX_VOLUME) (waiting for ui::SliderF32)
+    pub fn music_volume(&self) -> i32 {
+        sdl2::mixer::Music::get_volume()
+    }
+
+    pub fn set_music_volume(&mut self, volume: i32) {
+        sdl2::mixer::Music::set_volume(volume);
+    }
+
+    pub fn sfx_volume(&self) -> i32 {
+        sdl2::mixer::Channel::all().get_volume()
+    }
+
+    pub fn set_sfx_volume(&mut self, volume: i32) {
+        sdl2::mixer::Channel::all().set_volume(volume);
+    }
+}

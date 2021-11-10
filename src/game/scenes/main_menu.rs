@@ -29,6 +29,7 @@ enum State {
     Options,
     OptionsVideo,
     OptionsAudio,
+    OptionsControls,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -86,6 +87,7 @@ impl SceneTrait for MainMenuScene {
             State::Options => self.show_options(app, persistent),
             State::OptionsVideo => self.show_options_video(app, persistent),
             State::OptionsAudio => self.show_options_audio(app, persistent),
+            State::OptionsControls => self.show_options_controls(app, persistent),
 
             // @Remove
             _ => self.state = State::Main,
@@ -267,6 +269,10 @@ impl MainMenuScene {
             self.state = State::OptionsAudio;
         }
 
+        if ui::Button::new("CONTROLS", app).pressed {
+            self.state = State::OptionsControls;
+        }
+
         if ui::Button::new("BACK", app).pressed {
             self.state = State::Main;
         }
@@ -432,7 +438,51 @@ impl MainMenuScene {
 
         Text::new("OPTIONS - AUDIO", app);
 
-        // @TODO Volume mixer
+        // Music volume
+        let mut music_volume = app.music_volume();
+        let music_volume_slider =
+            SliderI32::builder("MUSIC", 0, app.max_volume())
+                .build(&mut music_volume, app);
+
+        if music_volume_slider.changed {
+            app.set_music_volume(music_volume);
+        }
+
+        // SFX volume
+        let mut sfx_volume = app.sfx_volume();
+        let sfx_volume_slider =
+            SliderI32::builder("SFX", 0, app.max_volume())
+                .build(&mut sfx_volume, app);
+
+        if sfx_volume_slider.changed {
+            app.set_sfx_volume(sfx_volume);
+        }
+
+        if ui::Button::new("BACK", app).pressed {
+            self.state = State::Options;
+        }
+    }
+
+    fn show_options_controls(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
+        let window_size = app.window_size();
+        let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
+        let menu_size = Vec2i { x: 600, y: 300 };
+
+        // Ui
+        let window_layout = Layout {
+            pos: Vec2i {
+                x: 40,
+                y: (window_size.y - menu_size.y) / 2
+            },
+            size: menu_size
+        };
+        app.new_ui(window_layout);
+
+        Text::new("OPTIONS - CONTROLS", app);
 
         if ui::Button::new("BACK", app).pressed {
             self.state = State::Options;

@@ -45,12 +45,11 @@ pub struct Style {
     pub input_focused_color: Color,
 
     pub slider_box_padding:  i32,
-    pub slider_box_color:    Color,
     pub slider_cursor_width: u32,
     pub slider_cursor_hover_color:     Color,
     pub slider_cursor_unfocused_color: Color,
     pub slider_cursor_focused_color:   Color,
-    // @TODO disabled
+    pub slider_cursor_disabled_color:  Color,
 
     pub combobox_selected_option_color: Color,
     pub combobox_option_background_color: Color,
@@ -94,11 +93,11 @@ impl Default for Style {
             input_focused_color: Color { r: 0.8, g: 0.8, b: 1.0, a: 1.0 },
 
             slider_box_padding:  4,
-            slider_box_color:    Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
             slider_cursor_width: 20,
             slider_cursor_hover_color:     Color { r: 0.4, g: 0.4, b: 0.4, a: 1.0 },
-            slider_cursor_unfocused_color: Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
+            slider_cursor_unfocused_color: Color { r: 0.3, g: 0.3, b: 0.3, a: 1.0 },
             slider_cursor_focused_color:   Color { r: 0.6, g: 0.6, b: 0.6, a: 1.0 },
+            slider_cursor_disabled_color:  Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },
 
             combobox_selected_option_color: Color { r: 0.3, g: 0.3, b: 0.3, a: 1.0 },
             combobox_option_background_color: Color { r: 0.2, g: 0.2, b: 0.2, a: 1.0 },

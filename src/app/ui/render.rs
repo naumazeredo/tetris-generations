@@ -315,7 +315,13 @@ impl Ui {
                 pop_clip(&mut app.renderer);
             }
 
-            ElementVariant::Slider { percent, variant } => {
+            ElementVariant::Slider { percent, variant, .. } => {
+                let box_color = if state.disabled {
+                    self.style.box_disabled_color
+                } else {
+                    self.style.box_color
+                };
+
                 queue_draw_solid(
                     &mut app.renderer,
                     &Transform {
@@ -325,16 +331,19 @@ impl Ui {
                         layer: 910,
                     },
                     layout.size.into(),
-                    self.style.slider_box_color,
+                    box_color,
                 );
 
                 // Draw cursor
-                let color;
-                if state.hovering {
-                    color = self.style.slider_cursor_hover_color;
+                let color = if state.disabled {
+                    self.style.slider_cursor_disabled_color
+                } else if state.down {
+                    self.style.slider_cursor_focused_color
+                } else if state.hovering {
+                    self.style.slider_cursor_hover_color
                 } else {
-                    color = self.style.slider_cursor_unfocused_color;
-                }
+                    self.style.slider_cursor_unfocused_color
+                };
 
                 // @Refactor this into a function since it's used for both rendering and state
                 //           update
@@ -364,6 +373,12 @@ impl Ui {
                 );
 
                 // Value
+                let text_color = if state.disabled {
+                    self.style.text_disabled_color
+                } else {
+                    self.style.text_color
+                };
+
                 let text = &variant.to_str();
 
                 let text_draw_size: Vec2i = calculate_draw_text_size(
@@ -392,7 +407,7 @@ impl Ui {
                         layer: 910,
                     },
                     self.style.font_size as f32,
-                    self.style.text_color,
+                    text_color,
                 );
             }
 

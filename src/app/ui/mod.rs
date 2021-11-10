@@ -23,7 +23,7 @@ pub use checkbox::*;
 pub use combobox::*;
 pub use input::*;
 pub use text::*;
-use slider::*;
+pub use slider::*;
 use style::*;
 
 #[derive(ImDraw)]
@@ -181,21 +181,21 @@ enum ElementVariant {
     Button   { text: String, },
     Checkbox { value: bool, },
     Input    {
-        is_input_focus: bool,
         changed: bool,
+        is_input_focus: bool,
 
         value_str: String,
         variant: InputVariant,
     },
     Slider {
+        changed: bool,
         percent: f32,
         variant: SliderVariant,
     },
     Combobox {
+        changed: bool,
         index: usize,
         text: String,
-        changed: bool,
-
         scroll_top_index: usize,
     },
     ComboboxOption {
