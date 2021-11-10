@@ -1,3 +1,5 @@
+// @TODO create ScreenMode to abstract FullscreenType (because FullscreenType is a bad name, with
+//       bad variant names)
 pub use sdl2::video::{DisplayMode, FullscreenType};
 use super::{
     App,
@@ -30,18 +32,26 @@ impl VideoSystem {
         gl_attr.set_multisample_buffers(1);
         gl_attr.set_multisample_samples(4);
 
-        // @TODO use config info
-        let window =
+        let mut window_builder =
             video_subsystem.window(
                 &config.window_name,
                 config.window_size.0,
                 config.window_size.1
-            )
-            .opengl()
-            .position_centered()
-            .resizable()
-            .build()
-            .unwrap();
+            );
+
+        window_builder.opengl();
+
+        if let Some((x, y)) = config.window_position {
+            window_builder.position(x, y);
+        } else {
+            window_builder.position_centered();
+        }
+
+        if config.window_resizable {
+            window_builder.resizable();
+        }
+
+        let window = window_builder.build().unwrap();
 
         let gl_context = window.gl_create_context().unwrap();
         gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
@@ -100,9 +110,9 @@ impl App<'_> {
 
     pub fn move_window_to_display(&mut self, display_index: u32) {
         // @XXX workaround on SDL issue: can't move to another window while not on windowed mode
-        let fullscreen_state = self.window_fullscreen_state();
-        if fullscreen_state != FullscreenType::Off {
-            self.set_window_fullscreen_state(FullscreenType::Off);
+        let screen_mode = self.window_screen_mode();
+        if screen_mode != FullscreenType::Off {
+            self.set_window_screen_mode(FullscreenType::Off);
         }
 
         let display_bounds = self.sdl_context.video_subsystem.display_bounds(display_index as i32).unwrap();
@@ -116,8 +126,8 @@ impl App<'_> {
             (display_bounds.y() + (display_bounds.height() as i32 - h) / 2).into()
         );
 
-        if fullscreen_state != FullscreenType::Off {
-            self.set_window_fullscreen_state(fullscreen_state);
+        if screen_mode != FullscreenType::Off {
+            self.set_window_screen_mode(screen_mode);
         }
     }
 
@@ -185,11 +195,11 @@ impl App<'_> {
         sizes_and_rates
     }
 
-    pub fn window_fullscreen_state(&self) -> FullscreenType {
+    pub fn window_screen_mode(&self) -> FullscreenType {
         self.video_system.window.fullscreen_state()
     }
 
-    pub fn set_window_fullscreen_state(&mut self, fullscreen_type: FullscreenType) {
-        self.video_system.window.set_fullscreen(fullscreen_type).unwrap();
+    pub fn set_window_screen_mode(&mut self, screen_mode: FullscreenType) {
+        self.video_system.window.set_fullscreen(screen_mode).unwrap();
     }
 }

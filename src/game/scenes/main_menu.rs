@@ -42,7 +42,7 @@ struct VideoInfo {
 impl VideoInfo {
     fn load(app: &App) -> Self {
         Self {
-            screen_mode: app.window_fullscreen_state(),
+            screen_mode: app.window_screen_mode(),
             display_index: app.window_display_index(),
             display_mode: app.window_display_mode(),
             window_size: app.window_size(),
@@ -316,7 +316,7 @@ impl MainMenuScene {
                 _ => FullscreenType::Desktop,
             };
 
-            app.set_window_fullscreen_state(self.video_info.screen_mode);
+            app.set_window_screen_mode(self.video_info.screen_mode);
         }
 
         // Display
@@ -331,8 +331,8 @@ impl MainMenuScene {
 
         // Resolution and refresh rate
         let window_sizes_and_rates = app.available_window_sizes_and_rates();
-        let is_fullscreen = app.window_fullscreen_state() == FullscreenType::True;
-        let is_desktop    = app.window_fullscreen_state() == FullscreenType::Desktop;
+        let is_fullscreen = app.window_screen_mode() == FullscreenType::True;
+        let is_desktop    = app.window_screen_mode() == FullscreenType::Desktop;
 
         // Resolution
         let current_size = (self.video_info.window_size.0, self.video_info.window_size.1);

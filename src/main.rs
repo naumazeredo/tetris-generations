@@ -29,6 +29,8 @@ fn main() {
     let config = AppConfig {
         window_name: "Tetris for all".to_string(),
         window_size: (1280, 961),
+        window_position: None,
+        window_resizable: false,
     };
 
     app::run::<State>(config);
@@ -81,19 +83,6 @@ impl GameState for State {
         if self.scene_manager.handle_input(app, &mut self.persistent, event) { return true; }
 
         match event {
-            Event::KeyDown { scancode: Some(Scancode::F11), .. } => {
-                let new_fullscreen_state = match app.window_fullscreen_state() {
-                    //FullscreenType::Off => FullscreenType::True,
-                    //FullscreenType::True => FullscreenType::Desktop,
-                    //FullscreenType::Desktop => FullscreenType::Off,
-
-                    FullscreenType::Off => FullscreenType::Desktop,
-                    _ => FullscreenType::Off,
-                };
-
-                app.set_window_fullscreen_state(new_fullscreen_state);
-            }
-
             Event::KeyDown { scancode: Some(Scancode::Q), .. } => {
                 if self.persistent.pixel_scale > 1 {
                     self.persistent.pixel_scale -= 1;

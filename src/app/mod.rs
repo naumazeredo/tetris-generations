@@ -186,6 +186,9 @@ impl App<'_> {
 pub struct AppConfig {
     pub window_name: String,
     pub window_size: (u32, u32),
+    pub window_position: Option<(i32, i32)>,
+    pub window_resizable: bool,
+    // pub start_screen_mode: FullscreenType,
 }
 
 /*
