@@ -1,10 +1,18 @@
 # Tasks
 
-## v0.0.2
+## Future
+
+- we need tests!
+- matchmaking, please?
+- all rules, finally
+- time to refactor time
+- editor stuff
+- the real input support
+
+## v0.0.2: we have a game (roughly)
 
 ### Game
 
-- [ ] Main menu background
 - [ ] General refactor/cleanup
   - [x] Refactor SinglePlayerScene into RulesInstance (maybe a better name)
   - [ ] Refactor orientation rule usage and rules functions
@@ -14,7 +22,11 @@
     - [ ] All render functions to receive Vec2i or integers instead of floats
 - [ ] Scenes
   - [x] Main menu
+    - [ ] Background
     - [ ] Options
+      - [ ] Video
+      - [ ] Audio
+      - [ ] Controls
   - [ ] Classic game
     - [ ] Local
     - [ ] Multiplayer
@@ -22,75 +34,60 @@
     - [ ] Local
     - [ ] Multiplayer
   - [ ] Custom game
-
+- [ ] [render] Clip render of blocks to playfield
+  - [ ] ~[bug] Piece movement animation makes the rendering be outside of the playfield. This should be
+      fixed with rendering on a framebuffer instead of directly on the screen~
+- [ ] [bug] multiplayer scene -> game over = crash (after some time)?
+- [ ] [bug] multiplayer spectate scene -> connecting is not dropping after server died?
+- [ ] [visual bug] animations are skipped if the piece is locked in the middle of the animation
+- [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
+    were made, so this bug is still there)
 
 ### Engine
 
 - [ ] Refactor systems to be data and App interface to implement the logic
-  - [ ] Refactor systems to have a uniform interface
-- [ ] Networking
+  - [ ] Refactor systems to have a uniform interface (system/mod.rs should contain the pub
+      interface)
+- [ ] [network]
   - [x] Rename app/net to app/network
   - [x] public interface instead of whole struct being public
-  - [ ] Packet fragmentation
   - [ ] Server-client
     - [ ] Connection
       - [x] Naive
-      - [ ] Reliable UDP
-      - [ ] Encryption
       - [ ] Challenge (remove connection IP spoofing)
-    - [ ] Heartbeat
+    - [x] Heartbeat
       - [x] Request/reply
-      - [ ] Timeout state
-    - [ ] Server slots (max number of players)
-    - [ ] Server configuration
-      - [ ] Retry duration
-      - [ ] Timeout duration
   - [ ] Serialization
     - [ ] Bit packing
       - [ ] Integer
         - [x] i8, i16, i32, i64, u8, u16, u32, u64
         - [ ] i128, u128
       - [ ] Floating point
-      - [ ] Strings (?)
-    - [ ] Reserve bits
-    - [ ] Derive macro
-  - [ ] Twitch integration
-  - [ ] Steam integration
-  - [ ] Matchmaking
-- [ ] Logger system: just improve logging.
-- [ ] Asset system
-  - [ ] [asset] Asset System should not hold all data, each component can hold its own data.
-      It should handle what should be loaded and unloaded into/from memory (seems that this has is
-      somewhat what a Scene Manager is for, though, except for streaming data)
-- [ ] Video system
+- [ ] [logging]: just improve logging.
+- [ ] [video]
   - [x] Get display modes
-  - [ ] use sdl2::video::* in video_system since we use the structs
-- [ ] Audio system
+  - [x] use sdl2::video::{DisplayMode, FullscreenType} in video_system since we use the structs
+  - [ ] [issue] Change screen mode to desktop doesn't change display mode (going back to fullscreen
+      won't be on monitor resolution)
+  - [ ] [issue] Change screen mode to fullscreen and back to windowed should restore windowed size
+- [x] [audio]
   - [x] Music loading
   - [x] Sfx loading
-  - [ ] Volume mixer
-    - [ ] Split music channel from sfx
-- [ ] Timer data structure (and dt in update functions)
-    - (always using game time makes it really hard to stack. Moving from one scene to another, game
-    over action, etc)
-    - (design: `app.update_timer(&mut timer); let elapsed_time = timer.elapsed_time();`)
-- [ ] Duration/Time struct (mainly to better integrate with SDL times)
+  - [x] Volume mixer
+    - [x] Music + SFX (all channels)
 - [x] [render]
   - [x] Axis-aligned (+ scissor) rendering
   - [x] Stack of modifier commands
     - [x] Scissor/Clip
-- [ ] UI system
-  - [ ] Position/size should be calculated on rendering call. The calls should store the layout and
-      state (this will make the rendering delayed by 1 frame, which should might fine)
-    - [ ] Layout: size (auto+min+max, fixed)
-    - [ ] Extra commands: indent, unindent, same line, (group start/end? -> maybe this will require
-        two passes: calculate position/size, render)
-    - [ ] Animations
+- [ ] [ui]
+  - [x] Render scissor
   - [ ] Widgets
     - [x] Text
       - [x] Basic functionality
       - [x] State+Build pattern
       - [ ] Allow more sizes?
+      - [ ] Centered
+      - [ ] Header (maybe just centered text and custom text size?)
     - [x] Button
       - [x] Basic functionality
       - [x] State+Build pattern
@@ -106,57 +103,23 @@
     - [ ] Combobox
       - [x] Basic functionality
       - [x] State+Build pattern (changed, changing?)
-      - [ ] Combowheel
-      - [ ] Enum macro
-    - [ ] Slides
+      - [ ] Left/right control (seems to be the simplest and better control)
+    - [ ] Slider
       - [x] Basic functionality
+      - [x] Disabled colors
       - [ ] State+Build pattern
-      - [ ] Disabled colors
+        - [ ] Annoying to deal with multiple integer types
     - [ ] Input float range
     - [ ] Input color
     - [ ] Input key
-    - [ ] Separator
-  - [ ] Disabled widgets
+  - [x] Disabled widgets
   - [ ] Keyboard/Controller support
     - [ ] Selected line
     - [ ] Styling colors for text/widgets (or colored background of the line)
-  - [ ] Styling options
-  - [ ] Custom shader
-  - [ ] Improvements
-    - [ ] Multipage window
-    - [ ] Align to bottom
-    - [ ] Allow strings to change? (we are not comparing string changes for most widgets, and we
-        only update state in case we see the difference. This should be done with a string hashing
-        system to avoid copying the strings over and over)
-- [ ] [editor]
-  - [ ] Remove Dear ImGUI
-    - [ ] [imdraw] Maybe this will just be entirely removed
-      - [ ] Remove imgui::im_str2
-      - [ ] derive: check for #[imdraw_ignore] to not show some fields
-  - [ ] Implement basic Editor functionality using UI System
-    - [ ] Save/load UI designs
-- [ ] [scene system]: Refactor into App
+- [x] [input]
+  - [x] Use real time and somehow manage game system
 
-#### Issues
-
-- [ ] [game] multiplayer scene -> game over = crash?
-- [ ] [game] multiplayer spectate scene -> connecting is not dropping?
-- [ ] [font render] fix background not being transparent -> rendering issue: z orders not matching
-    rendering order (z order fight?)
-- [ ] fix cargo clippy warnings
-- [ ] [game animations] animations are skipped if the piece is locked in the middle of the animation
-- [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
-    were made, so this bug is still there)
-- [ ] [bug] Piece movement animation makes the rendering be outside of the playfield. This should be
-    fixed with rendering on a framebuffer instead of directly on the screen
-
-## Future
-
-### Game/Engine
-- [ ] Make it run in frames instead of continuous time
-
-
-## v0.0.1
+## v0.0.1: The start of the journey
 
 ### Game
 
@@ -233,8 +196,7 @@
 
 ### Engine
 
-- [x] Create imgui macro to draw structs
-- [x] Input system
+- [x] [input]
   - [x] Mapping
     - [x] Basic mapping
   - [x] Virtual button
@@ -244,19 +206,18 @@
     - [x] Controller axis
     - [x] Key repeat
   - [x] Feedback
-    - [x] Rumble normal
+    - [x] Rumble
 - [x] [render]
   - [x] Font rendering
   - [x] Improve rendering performance
 - [x] Refactor systems to match
-- [x] ImDraw derive to enums
-- [x] Split debug system from the rest (to be able to use dear imgui to draw the app)
-  - (Ended up refactoring the App new and run to be able to do this consistently)
-- [x] [imdraw] Enums should have the variant name in label
-- [x] Fix fullscreen mode
-
-#### Issues
-
+- [x] [debug]
+  - [x] Create imgui macro to draw structs
+  - [x] Split debug system from the rest (to be able to use dear imgui to draw the app)
+      (Ended up refactoring the App new and run to be able to do this consistently)
+  - [x] [imdraw] ImDraw derive to enums
+  - [x] [imdraw] Enums should have the variant name in label
+- [x] [video] Fix fullscreen mode
 - [x] [system design] Rename animations, time and tasks to *_system
 - [x] [deps] rust-sdl2 subsystems should be copied instead of referenced. We may refactor a lot of
     the app code
@@ -324,30 +285,43 @@
 
 ### Engine
 
-- [ ] Test all parts
+- [ ] Address cargo clippy warnings
+- [ ] Memory allocation
+  - [ ] Have a custom allocator to remove most use cases of dynamic arrays (Vec)
+  - [ ] Frame allocator
+- [ ] Test systems
 - [ ] [animation system / task system] task system turned out to be a bad idea. We may need to find
     a better, more reliable solution to it.
     - Maybe a stackable task system could be a good solution to be able to add it to the scenes (and
       update with dt instead of game time?)
     - Doing this can be a good opportunity to remove the State generics from App!
-- [ ] Multithread
-  - [ ] Maybe use persistent structures for rendering (or just have a double/triple buffer)
 - [ ] [render]
+  - [ ] [bug] [font render] Fix background not being transparent -> rendering issue: z orders not
+      matching rendering order. Maybe just order everything by the z order (more draw calls might be
+      needed and the state function changes should be stored in the post processed draw call
+      somehow)
   - [ ] Stack commands
     - [ ] Blending
     - [ ] Matrix transformation
   - [ ] Batch rendering
   - [ ] Shader struct
   - [ ] Render to framebuffer + post render effects
-  - [ ] verify gl errors
-- [ ] [ui system]
-  - [ ] Stretching sizes
-  - [ ] Anchored positioning
-  - [ ] Render scissor
-  - [ ] Cache rendered components
-- [ ] [input system]
-  - [x] Use real time and somehow manage game system
-  - [ ] Flush/Reset
+  - [ ] Check GL errors
+  - [ ] More backend supports (Vulkan, DirectX)
+  - [ ] Multithreading
+    - [ ] Maybe use persistent structures for rendering (or have a double/triple buffer)
+- [ ] [input]
+  - [ ] [issue] Not updating an input_mapping can break it: maybe having a local timer for each
+      input_manager, getting the whole global key state on enabling and calling update with dt will
+      solve all related problems.
+    - [ ] [issue] It may also be related to: how to address 'pressed_for' and opening
+        an UI (opening the UI will probably disable the input_mapping, since it moved the focus, and
+        the 'pressed_for' will be using real time)
+  - [ ] Buffer input for some frames: good when character is hit and the player starts hitting
+      buttons before the character is completely functional
+    - [ ] Input sequences: good to grab complicated sequences or 2+ buttons (Circle+Triangle) as a
+        single action
+  - [ ] Flush/Reset (what is this? I forgot)
   - [ ] Mapping
     - [ ] Bind mapping to a controller and detect input change from keyboard to controller
   - [ ] Virtual button
@@ -365,6 +339,85 @@
     - [ ] (extra) Multimedia button
   - [ ] Feedback
     - [ ] Dualsense extra feedbacks
+- [ ] [audio]
+  - [ ] Fine tuning (AppConfig)
+  - [ ] Volume mixer
+    - [ ] Individual channel control
+- [ ] [video]
+  - [ ] Abstract FullscreenType since it has a quite bad name for all variants
+- [ ] [network]
+  - [ ] Packet fragmentation
+  - [ ] Server-client
+    - [ ] Connection
+      - [ ] Reliable UDP
+      - [ ] Encryption
+    - [ ] Heartbeat
+      - [ ] Timeout state
+    - [ ] Server slots (max number of players)
+    - [ ] Server configuration
+      - [ ] Retry duration
+      - [ ] Timeout duration
+  - [ ] Serialization
+    - [ ] Bit packing
+      - [ ] Strings (?)
+    - [ ] Reserve bits
+    - [ ] Derive macro
+  - [ ] Twitch integration
+  - [ ] Steam integration
+  - [ ] Matchmaking
+- [ ] [assets]
+  - [ ] Asset System should not hold all data, each component can hold its own data.
+      It should handle what should be loaded and unloaded into/from memory (seems that this has is
+      somewhat what a Scene Manager is for, though, except for streaming data)
+- [ ] [time]
+  - [ ] Make game run in frames instead of continuous time
+  - [ ] Timer data structure (and dt in update functions)
+      - (always using game time makes it really hard to stack. Moving from one scene to another, game
+      over action, etc)
+      - (design: `app.update_timer(&mut timer); let elapsed_time = timer.elapsed_time();`)
+  - [ ] Duration/Time struct (mainly to better integrate with SDL times): maybe use
+      Instant/Duration?
+- [ ] [ui]
+  - [ ] Custom layout
+    - [ ] Stretching sizes
+    - [ ] Anchored positioning
+  - [ ] Cache rendered components and windows
+  - [ ] Maybe have a "multiline" window (header + multiple lines) and a "freestyle" (hand placed
+      widgets): not sure how other UIs will work yet (HUD? maybe just more widgets, trying to not
+      generalize)
+  - [ ] UI stack? This will be needed if we want a Monster Hunter way of doing UI (controlling the
+      character works fine when UI is opened, but only the top of the UI stack accepts UI input)
+  - [ ] Position/size should be calculated on rendering call. The calls should store the layout and
+      state (this will make the rendering delayed by 1 frame, which should might fine)
+    - [ ] Layout: size (auto+min+max, fixed)
+    - [ ] Extra commands: indent, unindent, same line, (group start/end? -> maybe this will require
+        two passes: calculate position/size, render)
+    - [ ] Animations
+  - [ ] Widgets
+    - [ ] Combobox
+      - [ ] Combowheel?
+      - [ ] Enum macro?
+    - [ ] Separator
+  - [ ] Keyboard/Controller support
+    - [ ] Styling colors for text/widgets (or colored background of the line)
+  - [ ] Styling options
+  - [ ] Custom shader
+  - [ ] Multipage window ("multiline" window)
+  - [ ] Align to bottom ("multiline" window)
+  - [ ] Update state on string changes: we are not comparing string changes for most widgets, and we
+      only update state in case we see the difference. This should be done with a string hashing
+      system to avoid copying the strings over and over
+  - [ ] Label as format string? (maybe enable a flag in builder: .format_str())
+  - [ ] [optimization] Bake style into a better struct to avoid branching on rendering
+- [ ] [editor]
+  - [ ] Remove Dear ImGUI
+    - [ ] [imdraw]
+      - [ ] Remove imgui::im_str2
+      - [ ] derive: check for #[imdraw_ignore] to not show some fields
+  - [ ] Implement basic Editor functionality using UI System
+    - [ ] Save/load UI designs
+- [ ] [scene]: Refactor into App (how to do this properly without vtables? I would like to have the
+    App being in control of the scene manager while the game will give the scenes)
 
 ### Build system
 
