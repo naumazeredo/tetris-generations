@@ -248,8 +248,7 @@ impl MultiPlayerSpectateScene {
         let rules: Rules = RotationSystem::SRS.into();
         let rules_instance = RulesInstance::new(rules, 0, app, persistent);
 
-        let mut rng = rand_pcg::Pcg64::new(app.system_time() as u128, 0xa02bdbf7bb3c0a7ac28fa16a64abf96);
-        let client = Client::new(rng.next_u64()).unwrap();
+        let client = Client::new(persistent.rng.next_u64()).unwrap();
 
         Self {
             state: State::ConnectMenu,

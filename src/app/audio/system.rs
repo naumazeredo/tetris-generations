@@ -121,24 +121,19 @@ impl App<'_> {
         sdl2::mixer::Channel::all().halt();
     }
 
-    pub fn max_volume(&self) -> i32 {
-        sdl2::mixer::MAX_VOLUME
+    pub fn music_volume(&self) -> f32 {
+        sdl2::mixer::Music::get_volume() as f32 / sdl2::mixer::MAX_VOLUME as f32
     }
 
-    // @Refactor return float (/MAX_VOLUME) (waiting for ui::SliderF32)
-    pub fn music_volume(&self) -> i32 {
-        sdl2::mixer::Music::get_volume()
+    pub fn set_music_volume(&mut self, volume: f32) {
+        sdl2::mixer::Music::set_volume((volume * sdl2::mixer::MAX_VOLUME as f32 + 0.5) as i32);
     }
 
-    pub fn set_music_volume(&mut self, volume: i32) {
-        sdl2::mixer::Music::set_volume(volume);
+    pub fn sfx_volume(&self) -> f32 {
+        sdl2::mixer::Channel::all().get_volume() as f32 / sdl2::mixer::MAX_VOLUME as f32
     }
 
-    pub fn sfx_volume(&self) -> i32 {
-        sdl2::mixer::Channel::all().get_volume()
-    }
-
-    pub fn set_sfx_volume(&mut self, volume: i32) {
-        sdl2::mixer::Channel::all().set_volume(volume);
+    pub fn set_sfx_volume(&mut self, volume: f32) {
+        sdl2::mixer::Channel::all().set_volume((volume * sdl2::mixer::MAX_VOLUME as f32 + 0.5) as i32);
     }
 }

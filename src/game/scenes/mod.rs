@@ -5,8 +5,7 @@ mod debug_pieces;
 mod main_menu;
 mod persistent_data;
 mod scene_manager;
-mod singleplayer;
-mod singleplayer_start_menu;
+mod single_local;
 mod multiplayer;
 mod multiplayer_spectate;
 
@@ -14,8 +13,7 @@ pub use debug_pieces::*;
 pub use main_menu::*;
 pub use persistent_data::*;
 pub use scene_manager::*;
-pub use singleplayer::*;
-pub use singleplayer_start_menu::*;
+pub use single_local::*;
 pub use multiplayer::*;
 pub use multiplayer_spectate::*;
 
@@ -34,13 +32,12 @@ pub trait SceneTrait {
 }
 
 // @TODO remove capital from Player
-// @TODO remove MenuScene suffix
+// @TODO remove Scene suffix
 #[enum_dispatch(SceneTrait)]
 #[derive(Debug, ImDraw)]
 pub enum Scene {
     MainMenuScene,
-    SinglePlayerStartMenuScene,
-    SinglePlayerScene,
+    SingleLocalScene,
     MultiPlayerScene,
     MultiPlayerSpectateScene,
     DebugPiecesScene,

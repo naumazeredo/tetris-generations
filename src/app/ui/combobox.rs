@@ -44,6 +44,7 @@ where
         }
     }
 
+    // @XXX this is a custom layout, that will only be implemented throughtout widgets later
     pub fn box_width(self, box_width: u32) -> Self {
         Self {
             box_width: Some(box_width),

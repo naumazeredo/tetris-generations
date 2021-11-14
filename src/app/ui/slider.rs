@@ -130,7 +130,7 @@ macro_rules! slider_variant_integer_impl {
 
                 let ui = &self.ui_system.uis.last().unwrap();
                 let size = Vec2i {
-                    x: ui.style.box_width as i32,
+                    x: ui.draw_width() / 2,
                     y: ui.style.line_height as i32,
                 };
                 let layout = self.new_layout_right(size);

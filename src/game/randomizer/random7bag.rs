@@ -11,6 +11,7 @@ use super::RandomizerTrait;
 #[derive(Clone, Debug, ImDraw)]
 pub struct Randomizer7Bag {
     rng: rand_pcg::Pcg32,
+    seed: u64,
     sequence: [u8; 7],
     index: u8,
 }
@@ -19,6 +20,7 @@ impl Randomizer7Bag {
     pub fn new(seed: u64) -> Self {
         Self {
             rng: rand_pcg::Pcg32::new(seed, 0xa02bdbf7bb3c0a7),
+            seed,
             sequence: [0, 1, 2, 3, 4, 5, 6],
             index: 7,
         }
@@ -44,4 +46,6 @@ impl RandomizerTrait for Randomizer7Bag {
         self.index += 1;
         PIECES[piece_id]
     }
+
+    fn seed(&self) -> u64 { self.seed }
 }

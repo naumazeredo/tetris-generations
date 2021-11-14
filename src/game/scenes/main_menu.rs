@@ -1,6 +1,7 @@
 use crate::app::*;
 use crate::linalg::Vec2i;
 
+use crate::game::rules::RotationSystem;
 use super::*;
 
 const DISPLAY_NAMES : &[&str] = &["DISPLAY 1", "DISPLAY 2", "DISPLAY 3", "DISPLAY 4", "DISPLAY 5", "DISPLAY 6"];
@@ -113,6 +114,21 @@ impl SceneTrait for MainMenuScene {
         persistent: &mut PersistentData
     ) -> Option<SceneTransition> {
         match self.state {
+            State::ClassicLocal => {
+                let mut rules = RotationSystem::NRSR.into();
+
+                Some(
+                    SceneTransition::Push(
+                        SingleLocalScene::new(
+                            persistent.rng.next_u64(),
+                            rules,
+                            app,
+                            persistent
+                        ).into()
+                    )
+                )
+            }
+
             State::ModernOnlineSolo =>
                 Some(SceneTransition::Push(MultiPlayerScene::new(app, persistent).into())),
 
@@ -305,6 +321,9 @@ impl MainMenuScene {
 
         Text::new("OPTIONS - VIDEO", app);
 
+        // @TODO most video options should have a confirm button in 15 sec or change back if the
+        //       the user can't click it. This will avoid issues
+
         // Fullscreen options
         let mut screen_mode_index = match self.video_info.screen_mode {
             FullscreenType::Off     => 0,
@@ -439,23 +458,23 @@ impl MainMenuScene {
         Text::new("OPTIONS - AUDIO", app);
 
         // Music volume
-        let mut music_volume = app.music_volume();
+        let mut music_volume = (app.music_volume() * 255.0) as i32;
         let music_volume_slider =
-            SliderI32::builder("MUSIC", 0, app.max_volume())
-                .build(&mut music_volume, app);
+            SliderI32::builder("MUSIC", 0, 255)
+            .build(&mut music_volume, app);
 
         if music_volume_slider.changed {
-            app.set_music_volume(music_volume);
+            app.set_music_volume(music_volume as f32 / 255.0);
         }
 
         // SFX volume
-        let mut sfx_volume = app.sfx_volume();
+        let mut sfx_volume = (app.sfx_volume() * 255.0) as i32;
         let sfx_volume_slider =
-            SliderI32::builder("SFX", 0, app.max_volume())
+            SliderI32::builder("SFX", 0, 255)
                 .build(&mut sfx_volume, app);
 
         if sfx_volume_slider.changed {
-            app.set_sfx_volume(sfx_volume);
+            app.set_sfx_volume(sfx_volume as f32 / 255.0);
         }
 
         if ui::Button::new("BACK", app).pressed {

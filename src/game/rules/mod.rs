@@ -9,8 +9,8 @@ pub mod rotation;
 pub mod scoring;
 pub mod topout;
 
-use lock::{ LockedPieceResult, LockedPiece };
-use line_clear::LineClearRule;
+use lock::{LockedPieceResult, LockedPiece};
+use line_clear::{LineClearAnimationType, LineClearRule};
 use scoring::ScoringRule;
 use topout::TopOutRule;
 
@@ -82,7 +82,20 @@ pub struct Rules {
 
     // randomizer
     pub randomizer_type: RandomizerType,
+
+    // Animation
+    has_movement_animation: bool,
+    movement_animation_show_ghost: bool,
+    movement_animation_duration: u64,
+
+    has_line_clear_animation: bool,
+    line_clear_animation_type: LineClearAnimationType,
+
+    has_locking_animation: bool,
+    locking_animation_duration: u64,
 }
+
+// @TODO RulesBuilder?
 
 impl From<RotationSystem> for Rules {
     fn from(rotation_system: RotationSystem) -> Self {
@@ -125,8 +138,20 @@ impl From<RotationSystem> for Rules {
                     rotation_system: RotationSystem::NRSR,
 
                     randomizer_type: RandomizerType::FullRandom,
+
+                    // Animation
+                    has_movement_animation: false,
+                    movement_animation_show_ghost: false,
+                    movement_animation_duration: 0,
+
+                    has_line_clear_animation: true,
+                    line_clear_animation_type: LineClearAnimationType::Classic,
+
+                    has_locking_animation: false,
+                    locking_animation_duration: 0,
                 }
-            },
+            }
+
             _ => {
                 Self {
                     has_hard_drop: true,
@@ -169,6 +194,17 @@ impl From<RotationSystem> for Rules {
                     rotation_system: RotationSystem::SRS,
 
                     randomizer_type: RandomizerType::FullRandom,
+
+                    // Animation
+                    has_movement_animation: true,
+                    movement_animation_show_ghost: true,
+                    movement_animation_duration: 50_000,
+
+                    has_line_clear_animation: true,
+                    line_clear_animation_type: LineClearAnimationType::Classic,
+
+                    has_locking_animation: true,
+                    locking_animation_duration: 250_000,
                 }
             }
         }

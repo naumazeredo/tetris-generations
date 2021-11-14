@@ -1,3 +1,5 @@
+pub use crate::rand_core::RngCore;
+
 use crate::app::*;
 use crate::linalg::*;
 use crate::game::input::get_default_input_mapping;
@@ -14,6 +16,7 @@ pub struct PersistentData {
     pub input_mapping: InputMapping,
     pub sprites: Sprites,
     pub pixel_scale: u8,
+    pub rng: rand_pcg::Pcg64,
 }
 
 impl PersistentData {
@@ -48,6 +51,7 @@ impl PersistentData {
                 block,
             },
             pixel_scale,
+            rng: rand_pcg::Pcg64::new(app.system_time() as u128, 0xa02bdbf7bb3c0a7ac28fa16a64abf96),
         }
     }
 }

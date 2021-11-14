@@ -11,6 +11,11 @@ pub enum LineClearRule {
     Cascade,
 }
 
+#[derive(Copy, Clone, Debug, ImDraw)]
+pub enum LineClearAnimationType {
+    Classic,
+}
+
 impl Rules {
     // @TODO is this really a try? I think it's always called correctly
     //pub fn try_clear_lines(&self, playfield: &mut Playfield) -> Option<LineClear> {

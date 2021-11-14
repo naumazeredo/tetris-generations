@@ -10,7 +10,7 @@ use crate::game::{
     rules::{
         LockDelayRule,
         Rules,
-        //line_clear::*,
+        line_clear::*,
         lock::*,
         movement::*,
         rotation::*,
@@ -76,13 +76,14 @@ pub struct RulesInstance {
     has_line_clear_animation: bool,
     line_clear_animation_type: LineClearAnimationType,
 
-    locking_animation_timestamp: u64,
+    has_locking_animation: bool,
     locking_animation_duration: u64,
+    locking_animation_timestamp: u64,
 }
 
 impl RulesInstance {
-    pub fn rules(&self) -> &Rules         { &self.rules }
-    pub fn playfield(&self) -> &Playfield { &self.playfield }
+    pub fn rules(&self) -> &Rules           { &self.rules }
+    pub fn playfield(&self) -> &Playfield   { &self.playfield }
     pub fn randomizer(&self) -> &Randomizer { &self.randomizer }
 }
 
@@ -133,6 +134,17 @@ impl RulesInstance {
         // lock delay
         let remaining_lock_delay = rules.lock_delay;
 
+        //
+        let has_movement_animation = rules.has_movement_animation;
+        let movement_animation_show_ghost = rules.movement_animation_show_ghost;
+        let movement_animation_duration = rules.movement_animation_duration;
+
+        let has_line_clear_animation = rules.has_line_clear_animation;
+        let line_clear_animation_type = rules.line_clear_animation_type;
+
+        let has_locking_animation = rules.has_locking_animation;
+        let locking_animation_duration = rules.locking_animation_duration;
+
         Self {
             has_topped_out: false,
 
@@ -168,18 +180,19 @@ impl RulesInstance {
             movement_last_timestamp_x: app.game_timestamp(),
             movement_last_timestamp_y: app.game_timestamp(),
 
-            has_movement_animation: true,
-            movement_animation_show_ghost: false,
-            movement_animation_duration: 50_000,
+            has_movement_animation,
+            movement_animation_show_ghost,
+            movement_animation_duration,
             movement_animation_delta_grid_x: 0.0,
             movement_animation_delta_grid_y: 0.0,
             movement_animation_current_delta_grid: Vec2::new(),
 
-            has_line_clear_animation: true,
-            line_clear_animation_type: LineClearAnimationType::Classic,
+            has_line_clear_animation,
+            line_clear_animation_type,
 
+            has_locking_animation,
+            locking_animation_duration,
             locking_animation_timestamp: 0,
-            locking_animation_duration: 250_000,
         }
     }
 
@@ -682,7 +695,7 @@ impl RulesInstance {
             }
 
             let color;
-            if self.is_locking {
+            if self.is_locking && self.has_locking_animation {
                 let delta_time = app.game_timestamp() - self.locking_animation_timestamp;
                 let alpha = 2.0 * std::f32::consts::PI * delta_time as f32;
                 let alpha = alpha / (self.locking_animation_duration as f32);
@@ -1049,6 +1062,7 @@ impl RulesInstance {
             has_line_clear_animation: true,
             line_clear_animation_type: LineClearAnimationType::Classic,
 
+            has_locking_animation: true,
             locking_animation_timestamp: 0,
             locking_animation_duration: 250_000,
         }

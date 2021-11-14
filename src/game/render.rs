@@ -3,9 +3,12 @@ use crate::app::*;
 use crate::linalg::*;
 
 use crate::game::{
-    pieces::{ get_piece_type_color, Piece },
-    playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
-    rules::RotationSystem,
+    pieces::{get_piece_type_color, Piece},
+    playfield::{Playfield, PLAYFIELD_VISIBLE_HEIGHT},
+    rules::{
+        RotationSystem,
+        line_clear::LineClearAnimationType,
+    },
     scenes::PersistentData,
 };
 
@@ -375,11 +378,6 @@ pub fn draw_piece_window(
             persistent
         );
     }
-}
-
-#[derive(Copy, Clone, Debug, ImDraw)]
-pub enum LineClearAnimationType {
-    Classic,
 }
 
 fn line_clear_animation_should_draw_block(

@@ -8,6 +8,7 @@
 - time to refactor time
 - editor stuff
 - the real input support
+- adding audio
 
 ## v0.0.2: we have a game (roughly)
 
@@ -48,21 +49,18 @@
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface (system/mod.rs should contain the pub
       interface)
-- [ ] [network]
+- [x] [network]
   - [x] Rename app/net to app/network
   - [x] public interface instead of whole struct being public
-  - [ ] Server-client
-    - [ ] Connection
+  - [x] Server-client
+    - [x] Connection
       - [x] Naive
-      - [ ] Challenge (remove connection IP spoofing)
     - [x] Heartbeat
       - [x] Request/reply
-  - [ ] Serialization
-    - [ ] Bit packing
-      - [ ] Integer
+  - [x] Serialization
+    - [x] Bit packing
+      - [x] Integer
         - [x] i8, i16, i32, i64, u8, u16, u32, u64
-        - [ ] i128, u128
-      - [ ] Floating point
 - [ ] [logging]: just improve logging.
 - [ ] [video]
   - [x] Get display modes
@@ -282,6 +280,8 @@
   - Show all piece orientations (with spawn height indicator)
 - [ ] [test] Test all wall/floor kick rotations!
 - [ ] PAL vs NTSC framerates (update speeds to frames)
+- [ ] [scene manager]: Refactor into App (how to do this properly without vtables? I would like to have the
+    App being in control of the scene manager while the game will give the scenes)
 
 ### Engine
 
@@ -339,6 +339,7 @@
     - [ ] (extra) Multimedia button
   - [ ] Feedback
     - [ ] Dualsense extra feedbacks
+  - [ ] Clipboard support
 - [ ] [audio]
   - [ ] Fine tuning (AppConfig)
   - [ ] Volume mixer
@@ -351,6 +352,7 @@
     - [ ] Connection
       - [ ] Reliable UDP
       - [ ] Encryption
+      - [ ] Challenge (remove connection IP spoofing)
     - [ ] Heartbeat
       - [ ] Timeout state
     - [ ] Server slots (max number of players)
@@ -359,6 +361,9 @@
       - [ ] Timeout duration
   - [ ] Serialization
     - [ ] Bit packing
+      - [ ] Integer
+        - [ ] i128, u128
+      - [ ] Floating point
       - [ ] Strings (?)
     - [ ] Reserve bits
     - [ ] Derive macro
@@ -416,8 +421,7 @@
       - [ ] derive: check for #[imdraw_ignore] to not show some fields
   - [ ] Implement basic Editor functionality using UI System
     - [ ] Save/load UI designs
-- [ ] [scene]: Refactor into App (how to do this properly without vtables? I would like to have the
-    App being in control of the scene manager while the game will give the scenes)
+- [ ] [vfs] Virtual file system (like physicsFS)
 
 ### Build system
 

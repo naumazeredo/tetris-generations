@@ -28,4 +28,6 @@ impl RandomizerTrait for RandomizerSequential {
         if self.current >= 7 { self.current = 0; }
         PIECES[self.current as usize]
     }
+
+    fn seed(&self) -> u64 { 0 }
 }

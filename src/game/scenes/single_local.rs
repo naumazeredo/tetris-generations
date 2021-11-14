@@ -11,17 +11,13 @@ use crate::game::{
 };
 
 #[derive(Clone, Debug, ImDraw)]
-pub struct SinglePlayerScene {
-    debug_pieces_scene_opened: bool,
-    quit: bool,
-
+pub struct SingleLocalScene {
     rules_instance: RulesInstance,
-    seed: u64, // @TODO move this to RulesInstance
-
     music_id: MusicId,
+    quit: bool,
 }
 
-impl SceneTrait for SinglePlayerScene {
+impl SceneTrait for SingleLocalScene {
     fn update(
         &mut self,
         app: &mut App,
@@ -90,6 +86,8 @@ impl SceneTrait for SinglePlayerScene {
         };
         */
 
+        self.rules_instance.render(app, persistent);
+
         app.queue_draw_text(
             &format!("time: {:.2}", app.game_time()),
             &TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
@@ -117,8 +115,6 @@ impl SceneTrait for SinglePlayerScene {
             32.,
             WHITE
         );
-
-        self.rules_instance.render(app, persistent);
     }
 
     fn handle_input(
@@ -137,10 +133,6 @@ impl SceneTrait for SinglePlayerScene {
 
             Event::KeyDown { scancode: Some(Scancode::F4), .. } => {
                 app.set_time_scale(1.0);
-            }
-
-            Event::KeyDown { scancode: Some(Scancode::F10), .. } => {
-                self.debug_pieces_scene_opened = true;
             }
 
             Event::KeyDown { scancode: Some(Scancode::W), .. } => {
@@ -162,10 +154,7 @@ impl SceneTrait for SinglePlayerScene {
     }
 
     fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
-        if self.debug_pieces_scene_opened {
-            self.debug_pieces_scene_opened = false;
-            Some(SceneTransition::Push(Scene::DebugPiecesScene(DebugPiecesScene::new())))
-        } else if self.quit {
+        if self.quit {
             Some(SceneTransition::Pop)
         } else {
             None
@@ -178,7 +167,7 @@ impl SceneTrait for SinglePlayerScene {
     }
 }
 
-impl SinglePlayerScene {
+impl SingleLocalScene {
     pub fn new(seed: u64, rules: Rules, app: &mut App, persistent: &mut PersistentData) -> Self {
         // rules
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
@@ -186,13 +175,9 @@ impl SinglePlayerScene {
         let music_id = app.load_music("assets/sfx/Original-Tetris-theme.ogg");
 
         Self {
-            debug_pieces_scene_opened: false,
-            quit: false,
-
             rules_instance,
-            seed,
-
             music_id,
+            quit: false,
         }
     }
 }

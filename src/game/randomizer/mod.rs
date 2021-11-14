@@ -42,6 +42,7 @@ impl RandomizerType {
 pub trait RandomizerTrait {
     fn reset(&mut self);
     fn next_piece(&mut self) -> PieceType;
+    fn seed(&self) -> u64;
 }
 
 #[enum_dispatch(RandomizerTrait)]
@@ -53,3 +54,4 @@ pub enum Randomizer {
 }
 
 impl_imdraw_todo!(rand_pcg::Pcg32);
+impl_imdraw_todo!(rand_pcg::Pcg64);
