@@ -3,20 +3,20 @@ use super::*;
 
 pub struct Text<'a> {
     text: &'a str,
+    max_width: Option<u32>,
     disabled: bool,
-    //max_width: Option<u32>,
 }
 
 impl<'a> Text<'a> {
     pub fn new(text: &str, app: &mut App) {
-        Text::builder(text).build(app)
+        Text::builder(text).build(app);
     }
 
     pub fn builder<'b: 'a>(text: &'b str) -> Self {
         Self {
             text,
             disabled: false,
-            //max_width: None,
+            max_width: None,
         }
     }
 
@@ -27,8 +27,27 @@ impl<'a> Text<'a> {
         }
     }
 
-    pub fn build(self, app: &mut App) {
-        app.text_internal(self);
+    pub fn max_width(self, max_width: u32) -> Self {
+        Self {
+            max_width: Some(max_width),
+            ..self
+        }
+    }
+
+    #[inline(always)] pub fn build(self, app: &mut App) -> Option<()> {
+        self.build_with_placer(&mut app.ui_system.top_ui().index(), app)
+    }
+
+    #[inline(always)] pub fn build_with_placer<P: Placer>(
+        self,
+        placer: &mut P,
+        app: &mut App
+    ) -> Option<()> {
+        let line_padding = placer.ui(app).style.line_padding;
+        placer.add_padding(line_padding, app);
+        let opt = text_internal(self, placer, app);
+        placer.remove_padding(app);
+        opt
     }
 }
 
@@ -36,37 +55,41 @@ impl<'a> Text<'a> {
 
 fn new_text(text: &str, disabled: bool) -> State {
     State {
-        pressed: false,
-        down: false,
-        hovering: false,
         disabled,
+        pressed:  false,
+        down:     false,
+        hovering: false,
+        scroll: 0,
         variant: ElementVariant::Text { text: text.to_owned() },
     }
 }
 
-impl App<'_> {
-    pub(super) fn text_internal(&mut self, text: Text) {
-        let id = Id::new(text.text).add("#__text");
+// @TODO return a state like all other widgets
+pub(super) fn text_internal<P: Placer>(
+    text: Text,
+    placer: &mut P,
+    app: &mut App,
+) -> Option<()> {
+    let id = Id::new(text.text).add("#__text");
 
-        let size = self.calculate_text_size(text.text);
-        let ui = &self.ui_system.uis.last().unwrap();
-        let layout = Layout {
-            pos: Vec2i {
-                x: self.ui_system.cursor.x,
-                y: self.ui_system.cursor.y + ui.style.box_padding,
-            },
-            size
-        };
+    let render_size = app.calculate_text_size(text.text);
+    let ui = placer.ui(app);
 
-        self.add_element(id, layout);
+    let size = Vec2i {
+        x: text.max_width.unwrap_or(render_size.x as u32) as i32,
+        y: ui.line_draw_height(),
+    };
 
-        // @TODO check if text should be updated
-        //       Maybe create a function that compares the strings (or the string ids) and swap the
-        //       contents in case they are different
-        self.ui_system.states.entry(id)
-            .and_modify(|state| {
-                state.disabled = text.disabled;
-            })
-            .or_insert_with(|| new_text(text.text, text.disabled));
-    }
+    if placer.place_element(id, size, app).is_none() { return None; }
+
+    // @TODO check if text should be updated
+    //       Maybe create a function that compares the strings (or the string ids) and swap the
+    //       contents in case they are different
+    app.ui_system.states.entry(id)
+        .and_modify(|state| {
+            state.disabled = text.disabled;
+        })
+        .or_insert_with(|| new_text(text.text, text.disabled));
+
+    Some(())
 }

@@ -1,5 +1,6 @@
 // Remove console on Windows if not in debug build
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 #![cfg_attr(not(debug_assertions), deny(dead_code))]
 #![cfg_attr(debug_assertions, allow(dead_code))]
 #![cfg_attr(debug_assertions, allow(incomplete_features))]
@@ -8,15 +9,6 @@
 #![feature(generic_const_exprs)]
 #![feature(maybe_uninit_uninit_array)]
 #![feature(maybe_uninit_array_assume_init)]
-
-#[macro_use] extern crate bitflags;
-extern crate imgui;
-extern crate imgui_opengl_renderer;
-extern crate enum_dispatch;
-
-// @Important maybe remove this dependency
-extern crate rand_pcg;
-extern crate rand_core;
 
 #[macro_use] mod app;
 mod linalg;
@@ -28,7 +20,7 @@ use game::scenes::*;
 fn main() {
     let config = AppConfig {
         window_name: "Tetris for all".to_string(),
-        window_size: (1280, 961),
+        window_size: (1280, 960),
         window_position: None,
         window_resizable: false,
     };
@@ -39,7 +31,7 @@ fn main() {
 #[derive(ImDraw)]
 pub struct State {
     pub persistent: PersistentData,
-    pub scene_manager: SceneManager,
+    pub scene_manager: SceneManager<Scene>,
 
     seed: u64,
 }
@@ -76,11 +68,11 @@ impl GameState for State {
         self.scene_manager.render(app, &mut self.persistent);
     }
 
-    fn handle_input(&mut self, app: &mut App, event: &sdl2::event::Event) -> bool {
+    fn handle_input(&mut self, event: &sdl2::event::Event, app: &mut App) -> bool {
         use sdl2::event::Event;
         use sdl2::keyboard::Scancode;
 
-        if self.scene_manager.handle_input(app, &mut self.persistent, event) { return true; }
+        if self.scene_manager.handle_input(event, app, &mut self.persistent) { return true; }
 
         match event {
             Event::KeyDown { scancode: Some(Scancode::Q), .. } => {

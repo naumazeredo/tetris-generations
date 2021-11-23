@@ -23,7 +23,7 @@ pub trait ImDraw {
 #[macro_export]
 macro_rules! im_str2 {
     ($e:tt) => ({
-        &$crate::imgui::ImString::new($e)
+        &imgui::ImString::new($e)
     });
 }
 

@@ -16,6 +16,7 @@ use crate::{
 };
 
 use super::{
+    FONT_SCALE,
     FontSystem,
     char_data::CharData,
     packing::pack_font,
@@ -51,11 +52,11 @@ impl Font {
     ) -> Option<Self> {
         println!("[font bake] Packing {}", path.as_ref().display());
 
-        let scale = 64;
+        let scale = FONT_SCALE;
         match ttf_context.load_font(path.as_ref(), scale) {
             Ok(font) => {
                 let glyphs = build_ascii_and_latin1_string();
-                let (packed_surface, mapping) = pack_font(font, glyphs, scale as u32, 1, true);
+                let (packed_surface, mapping) = pack_font(font, glyphs, scale as u32, 2, true);
 
                 // @TODO save packed font to file?
                 //packed_surface.save_bmp("tmp/font.bmp").unwrap();
@@ -112,7 +113,7 @@ pub(in crate::app) fn calculate_draw_text_size(
 
     for ch in text.chars() {
         if let Some(char_data) = font.get_char_data(ch) {
-            let scale = font_size / 64.;
+            let scale = font_size / FONT_SCALE as f32;
             let char_top_left = Vec2 {
                 x:  char_data.metrics.minx as f32 * scale,
                 y: -char_data.metrics.maxy as f32 * scale

@@ -24,7 +24,7 @@ pub struct Sprite {
     pub size: Vec2,
 }
 
-pub(super) fn queue_draw_sprite(
+pub(in crate::app) fn queue_draw_sprite(
     renderer: &mut Renderer,
     transform: &Transform,
     sprite: &Sprite,

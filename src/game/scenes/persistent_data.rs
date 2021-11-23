@@ -1,4 +1,4 @@
-pub use crate::rand_core::RngCore;
+pub use rand_core::RngCore;
 
 use crate::app::*;
 use crate::linalg::*;
@@ -17,6 +17,8 @@ pub struct PersistentData {
     pub sprites: Sprites,
     pub pixel_scale: u8,
     pub rng: rand_pcg::Pcg64,
+
+    pub music_id: MusicId,
 }
 
 impl PersistentData {
@@ -44,6 +46,9 @@ impl PersistentData {
         // pixel scaling
         let pixel_scale = 5;
 
+        // Music
+        let music_id = app.load_music("assets/sfx/Original-Tetris-theme.ogg");
+
         Self {
             input_mapping,
             sprites: Sprites {
@@ -52,6 +57,7 @@ impl PersistentData {
             },
             pixel_scale,
             rng: rand_pcg::Pcg64::new(app.system_time() as u128, 0xa02bdbf7bb3c0a7ac28fa16a64abf96),
+            music_id,
         }
     }
 }

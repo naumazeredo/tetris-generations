@@ -1,3 +1,4 @@
+use paste::paste;
 use crate::app::{
     App,
     ImDraw,
@@ -9,53 +10,6 @@ pub struct SliderState {
     pub down: bool,
     pub hovering: bool,
     pub changed: bool,
-}
-
-pub struct SliderI32<'a> {
-    label: &'a str,
-    disabled: bool,
-    min: i32,
-    max: i32,
-}
-
-impl<'a> SliderI32<'a> {
-    pub fn new(label: &str, min: i32, max: i32, value: &mut i32, app: &mut App) -> SliderState {
-        SliderI32::builder(label, min, max).build(value, app)
-    }
-
-    pub fn builder<'b: 'a>(label: &'b str, min: i32, max: i32) -> Self {
-        Self {
-            label,
-            min,
-            max,
-            disabled: false,
-        }
-    }
-
-    pub fn disabled(self, disabled: bool) -> Self {
-        Self {
-            disabled,
-            ..self
-        }
-    }
-
-    pub fn build(self, value: &mut i32, app: &mut App) -> SliderState {
-        let state = app.slider_i32_internal(self.label, self.min, self.max, self.disabled, value);
-
-        if let ElementVariant::Slider {
-            changed,
-            ..
-        } = state.variant {
-            SliderState {
-                pressed:  state.pressed,
-                down:     state.down,
-                hovering: state.hovering,
-                changed,
-            }
-        } else {
-            unreachable!();
-        }
-    }
 }
 
 // ------------
@@ -92,57 +46,132 @@ impl SliderVariant {
 }
 
 macro_rules! slider_variant_integer_impl {
-    ($build_fn:ident, $internal_fn:ident, $var:ident, $type:ident) => {
-        fn $build_fn(value: $type, min: $type, max: $type, disabled: bool) -> State {
-            let mut percent = (value.saturating_sub(min)) as f32 / (max - min) as f32;
-            if percent < 0.0 { percent = 0.0; }
-            if percent > 1.0 { percent = 1.0; }
-
-            State {
-                pressed: false,
-                down: false,
-                hovering: false,
-                disabled,
-                variant: ElementVariant::Slider {
-                    changed: false,
-                    percent,
-                    variant: SliderVariant::$var { value, min, max },
-                },
-            }
-        }
-
-        impl App<'_> {
-            // @Refactor accept Input* instead of multiple params
-            fn $internal_fn(
-                &mut self,
-                label: &str,
+    ($type:ident) => {
+        paste! {
+            pub struct [<Slider $type:upper>]<'a> {
+                label: &'a str,
+                disabled: bool,
                 min: $type,
                 max: $type,
-                disabled: bool,
-                value: &mut $type
-            ) -> &State {
+            }
+
+            impl<'a> [<Slider $type:upper>]<'a> {
+                pub fn new<'b: 'a>(label: &'b str, min: $type, max: $type, value: &mut $type, app: &mut App) -> SliderState {
+                    Self::builder(label, min, max).build(value, app)
+                }
+
+                pub fn builder<'b: 'a>(label: &'b str, min: $type, max: $type) -> Self {
+                    Self { label, min, max, disabled: false, }
+                }
+
+                pub fn disabled(self, disabled: bool) -> Self {
+                    Self { disabled, ..self }
+                }
+
+                #[inline(always)] pub fn build(
+                    self,
+                    value: &mut $type,
+                    app: &mut App
+                ) -> SliderState {
+                    self.build_with_placer(value, &mut app.ui_system.top_ui().index(), app)
+                }
+
+                #[inline(always)] pub fn build_with_placer<P: Placer>(
+                    self,
+                    value: &mut $type,
+                    placer: &mut P,
+                    app: &mut App
+                ) -> SliderState {
+                    if let Some(state) = [<slider_ $type _internal>](value, self, placer, app) {
+                        if let ElementVariant::Slider {
+                            changed,
+                            ..
+                        } = state.variant {
+                            SliderState {
+                                pressed:  state.pressed,
+                                down:     state.down,
+                                hovering: state.hovering,
+                                changed,
+                            }
+                        } else {
+                            unreachable!();
+                        }
+                    } else {
+                        SliderState {
+                            pressed:  false,
+                            down:     false,
+                            hovering: false,
+                            changed:  false,
+                        }
+                    }
+                }
+            }
+
+            fn [<new_slider_ $type>](value: $type, min: $type, max: $type, disabled: bool) -> State {
+                let mut percent = (value.saturating_sub(min)) as f32 / (max - min) as f32;
+                if percent < 0.0 { percent = 0.0; }
+                if percent > 1.0 { percent = 1.0; }
+
+                State {
+                    disabled,
+                    pressed:  false,
+                    down:     false,
+                    hovering: false,
+                    scroll:   0,
+                    variant: ElementVariant::Slider {
+                        changed: false,
+                        percent,
+                        variant: SliderVariant::[<$type:upper>]{ value, min, max },
+                    },
+                }
+            }
+
+            fn [<slider_ $type _internal>]<'a, P: Placer>(
+                value: &mut $type,
+                slider: [<Slider $type:upper>],
+                placer: &mut P,
+                app: &'a mut App,
+            ) -> Option<&'a State> {
+                let ui = placer.ui(app);
+                let spacing = ui.style.spacing;
+                let line_padding = ui.style.line_padding;
+
+                placer.add_padding(line_padding, app);
+                let col_width = (placer.draw_width(app) - spacing) / 2;
 
                 // Add label
-                self.text_internal(Text::builder(label).disabled(disabled));
-                self.same_line();
+                text_internal(
+                    Text::builder(slider.label)
+                        .disabled(slider.disabled)
+                        .max_width(col_width as u32),
+                    placer,
+                    app
+                );
 
-                let id = Id::new(label).add("#__slider");
+                placer.same_line(app);
+                placer.add_spacing(app);
 
-                let ui = &self.ui_system.uis.last().unwrap();
+                let id = Id::new(slider.label).add("#__slider");
+
+                let ui = placer.ui(app);
                 let size = Vec2i {
-                    x: ui.draw_width() / 2,
-                    y: ui.style.line_height as i32,
+                    x: col_width,
+                    y: ui.line_draw_height() as i32,
                 };
-                let layout = self.new_layout_right(size);
-                self.add_element(id, layout);
+                let layout = placer.place_element(id, size, app);
+
+                placer.remove_padding(app);
+
+                if layout.is_none() { return None; }
+                let layout = layout.unwrap();
 
                 // @TODO we should update the input state in case referenced value changed
-                self.ui_system.states.entry(id)
+                app.ui_system.states.entry(id)
                     .and_modify(|state| {
                         if let ElementVariant::Slider {
                             changed,
                             percent,
-                            variant: SliderVariant::$var { value: v, min, max },
+                            variant: SliderVariant::[<$type:upper>]{ value: v, min, max },
                         } = &mut state.variant {
                             if *v != *value {
                                 *v = *value;
@@ -156,16 +185,16 @@ macro_rules! slider_variant_integer_impl {
                             unreachable!();
                         }
                     })
-                    .or_insert_with(|| $build_fn(*value, min, max, disabled));
+                    .or_insert_with(|| [<new_slider_ $type>](*value, slider.min, slider.max, slider.disabled));
 
-                if !disabled {
-                    // Copy values that require self reference access
-                    let mouse_pos_x = self.get_mouse_position().0 as i32;
-                    let ui = &self.ui_system.uis.last().unwrap();
+                if !slider.disabled {
+                    // Copy values since borrow-checker doesn't allow multiple references
+                    let mouse_pos_x = app.get_mouse_position().0 as i32;
+                    let ui = placer.ui(app);
                     let slider_box_padding = ui.style.slider_box_padding;
                     let slider_cursor_width = ui.style.slider_cursor_width;
 
-                    let state = self.update_state_interaction(id, layout);
+                    let state = app.update_state_interaction(id, layout);
                     if state.down {
                         let mouse_pos_x = mouse_pos_x - layout.pos.x - slider_box_padding;
                         let mouse_pos_x = mouse_pos_x as f32 - slider_cursor_width as f32 / 2.0;
@@ -179,7 +208,7 @@ macro_rules! slider_variant_integer_impl {
                         if let ElementVariant::Slider {
                             changed,
                             percent,
-                            variant: SliderVariant::$var { value: v, min, max },
+                            variant: SliderVariant::[<$type:upper>] { value: v, min, max },
                         } = &mut state.variant {
                             *v = ((*max - *min) as f32 * new_percent + (*min as f32)).round() as $type;
                             *percent = (*v - *min) as f32 / (*max - *min) as f32;
@@ -190,30 +219,23 @@ macro_rules! slider_variant_integer_impl {
                         }
                     }
 
-                    state
+                    Some(state)
                 } else {
-                    self.ui_system.states.get(&id).unwrap()
+                    Some(app.ui_system.states.get(&id).unwrap())
                 }
-
-                /*
-                // Add number value
-                self.same_line();
-                // @TODO cache this string
-                self.text(&format!("{}", value));
-                */
             }
         }
     }
 }
 
-slider_variant_integer_impl!(new_slider_i8,   slider_i8_internal,   I8,   i8);
-slider_variant_integer_impl!(new_slider_i16,  slider_i16_internal,  I16,  i16);
-slider_variant_integer_impl!(new_slider_i32,  slider_i32_internal,  I32,  i32);
-slider_variant_integer_impl!(new_slider_i64,  slider_i64_internal,  I64,  i64);
-//slider_variant_integer_impl!(new_slider_i128, slider_i128_internal, I128, i128);
+slider_variant_integer_impl!(i8);
+slider_variant_integer_impl!(i16);
+slider_variant_integer_impl!(i32);
+slider_variant_integer_impl!(i64);
+//slider_variant_integer_impl!(i128);
 
-slider_variant_integer_impl!(new_slider_u8,   slider_u8_internal,   U8,   u8);
-slider_variant_integer_impl!(new_slider_u16,  slider_u16_internal,  U16,  u16);
-slider_variant_integer_impl!(new_slider_u32,  slider_u32_internal,  U32,  u32);
-slider_variant_integer_impl!(new_slider_u64,  slider_u64_internal,  U64,  u64);
-//slider_variant_integer_impl!(new_slider_u128, slider_u128_internal, U128, u128);
+slider_variant_integer_impl!(u8);
+slider_variant_integer_impl!(u16);
+slider_variant_integer_impl!(u32);
+slider_variant_integer_impl!(u64);
+//slider_variant_integer_impl!(u128);

@@ -644,6 +644,13 @@ impl RulesInstance {
             );
         }
 
+        // Clip
+        app.push_clip(
+            self.playfield.pos,
+            playfield_size.into()
+        );
+
+
         // ghost piece
         if let Some(piece) = self.current_piece {
             let (piece, piece_pos) = piece;
@@ -716,6 +723,9 @@ impl RulesInstance {
                 persistent
             );
         }
+
+        // Clip
+        app.pop_clip();
     }
 
     pub fn render_next_pieces_preview(

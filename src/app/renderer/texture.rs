@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use std::path::Path;
 use gl::types::*;
 use sdl2::image::*;
@@ -45,7 +46,7 @@ pub(in crate::app) fn load_texture_from_surface(surface: sdl2::surface::Surface)
 
     let mut obj : TextureObject = 0;
 
-    //let surface = surface.convert_format(sdl2::pixels::PixelFormatEnum::RGBA32).unwrap();
+    let surface = surface.convert_format(sdl2::pixels::PixelFormatEnum::RGBA32).unwrap();
     surface.with_lock(|pixels| unsafe {
         gl::GenTextures(1, &mut obj);
         gl::BindTexture(gl::TEXTURE_2D, obj);

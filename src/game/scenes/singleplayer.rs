@@ -10,18 +10,22 @@ use crate::game::{
     }
 };
 
-#[derive(Clone, Debug, ImDraw)]
-pub struct SingleLocalScene {
+#[derive(Debug, ImDraw)]
+pub struct SingleplayerScene {
     rules_instance: RulesInstance,
     music_id: MusicId,
+    server: Option<Server>,
     quit: bool,
 }
 
-impl SceneTrait for SingleLocalScene {
+impl SceneTrait for SingleplayerScene {
+    type Scene = Scene;
+    type PersistentData = PersistentData;
+
     fn update(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         // pause
         let options_button = persistent.input_mapping.button("options".to_string());
@@ -38,9 +42,10 @@ impl SceneTrait for SingleLocalScene {
     fn render(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         if app.is_paused() {
+            /*
             let window_size = app.window_size();
             let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
             let menu_size = Vec2i { x: 600, y: 300 };
@@ -53,10 +58,10 @@ impl SceneTrait for SingleLocalScene {
                 },
                 size: menu_size
             };
-            app.new_ui(window_layout);
+
+            UiBuilder::new(window_layout).header("PAUSED").build(app);
 
             // Ui
-            Text::new("PAUSED", app);
             if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }
@@ -68,6 +73,7 @@ impl SceneTrait for SingleLocalScene {
             if ui::Button::new("QUIT", app).pressed {
                 self.quit = true;
             }
+            */
         }
 
         /*
@@ -119,9 +125,9 @@ impl SceneTrait for SingleLocalScene {
 
     fn handle_input(
         &mut self,
+        event: &sdl2::event::Event,
         app: &mut App,
-        _persistent: &mut PersistentData,
-        event: &sdl2::event::Event
+        _persistent: &mut Self::PersistentData,
     ) -> bool {
         use sdl2::event::Event;
         use sdl2::keyboard::Scancode;
@@ -153,7 +159,11 @@ impl SceneTrait for SingleLocalScene {
         false
     }
 
-    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
+    fn transition(
+        &mut self,
+        _app: &mut App,
+        _persistent: &mut Self::PersistentData
+    ) -> Option<SceneTransition<Self::Scene>> {
         if self.quit {
             Some(SceneTransition::Pop)
         } else {
@@ -161,13 +171,13 @@ impl SceneTrait for SingleLocalScene {
         }
     }
 
-    fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData,) {
+    fn on_enter(&mut self, app: &mut App, _persistent: &mut Self::PersistentData,) {
         app.restart_time_system();
         //app.play_music(self.music_id);
     }
 }
 
-impl SingleLocalScene {
+impl SingleplayerScene {
     pub fn new(seed: u64, rules: Rules, app: &mut App, persistent: &mut PersistentData) -> Self {
         // rules
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
@@ -177,6 +187,7 @@ impl SingleLocalScene {
         Self {
             rules_instance,
             music_id,
+            server: None,
             quit: false,
         }
     }

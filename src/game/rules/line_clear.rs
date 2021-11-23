@@ -3,6 +3,9 @@ use crate::game::playfield::Playfield;
 
 use super::*;
 
+// @TODO macro to generate this from the enum
+pub const LINE_CLEAR_RULE_NAMES: &[&str] = &["NAIVE", "STICKY", "CASCADE"];
+
 // https://tetris.fandom.com/wiki/Line_clear
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub enum LineClearRule {

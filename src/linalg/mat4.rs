@@ -4,7 +4,7 @@ use std::ops::{Mul, MulAssign};
 use std::ops::{Div, DivAssign};
 use std::ops::Neg;
 
-use crate::imgui;
+use imgui;
 use crate::app::ImDraw;
 
 use super::vec3::Vec3;

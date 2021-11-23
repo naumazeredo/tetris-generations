@@ -2,6 +2,7 @@ mod button;
 mod checkbox;
 mod combobox;
 mod input;
+mod paged_box;
 mod render;
 mod slider;
 mod style;
@@ -22,13 +23,16 @@ pub use button::*;
 pub use checkbox::*;
 pub use combobox::*;
 pub use input::*;
-pub use text::*;
+pub use paged_box::*;
 pub use slider::*;
 use style::*;
+pub use text::*;
 
 #[derive(ImDraw)]
 pub(in crate::app) struct UiSystem {
-    states: HashMap<Id, State>,
+    states:  HashMap<Id, State>,
+    //layouts: HashMap<Id, Layout>, // @TODO calculate layout pre-render
+
     uis: Vec<Ui>,
 
     input_focus: Option<Id>,
@@ -40,11 +44,6 @@ pub(in crate::app) struct UiSystem {
 
     modal_open: Option<Id>,
     modal_change: Option<Id>,
-
-    // Placer variables
-    indentation: u8,
-    cursor: Vec2i,
-    same_line_cursor: Vec2i,
 
     // Frame variables
     found_input_focus: bool,
@@ -65,10 +64,6 @@ impl UiSystem {
 
             modal_open: None,
             modal_change: None,
-
-            indentation: 0,
-            cursor: Vec2i::new(),
-            same_line_cursor: Vec2i::new(),
 
             found_input_focus: false,
         }
@@ -108,24 +103,189 @@ impl UiSystem {
 
         false
     }
+
+    fn get_ui<'a>(&'a mut self, index: u32) -> &'a mut Ui {
+        &mut self.uis[index as usize]
+    }
+
+    fn top_ui<'a>(&'a mut self) -> &'a mut Ui {
+        self.uis.last_mut().unwrap()
+    }
+}
+
+pub struct UiBuilder<'a> {
+    //id: Id,
+    layout: Layout,
+    style: Option<Style>,
+    header: Option<&'a str>,
+    adjust_height: bool, // @TODO this should be part of Layout
+}
+
+impl<'a> UiBuilder<'a> {
+    pub fn style(&mut self, style: Style) -> &mut Self {
+        self.style = Some(style);
+        self
+    }
+
+    pub fn header<'b: 'a>(&mut self, header: &'b str) -> &mut Self {
+        self.header = Some(header);
+        self
+    }
+
+    pub fn fixed_height(&mut self) -> &mut Self {
+        self.adjust_height = false;
+        self
+    }
+
+    pub fn build(&mut self, app: &mut App<'_>) {
+        let style = std::mem::take(&mut self.style);
+        let style = style.unwrap_or_else(|| Style::default());
+
+        // @Maybe move the block below to Ui
+        // ---
+        let index = app.ui_system.uis.len() as u32;
+        let cursor = self.layout.pos + style.padding;
+
+        let ui = Ui {
+            index,
+            style,
+            layout: self.layout,
+            elements: Vec::new(),
+            modal_elements: Vec::new(),
+            adjust_height: self.adjust_height,
+
+            cursor,
+            same_line_cursor: cursor,
+            padding: Vec2i::new(),
+        };
+
+        app.ui_system.uis.push(ui);
+        // ---
+
+        if let Some(header) = self.header {
+            Text::builder(header).build_with_placer(&mut UiIndex(index), app);
+        }
+    }
+}
+
+pub trait Placer: Copy + Clone {
+    fn place_element(&mut self, id: Id, size: Vec2i, app: &mut App) -> Option<Layout>;
+
+    fn ui<'a>(&mut self, app: &'a mut App) -> &'a mut Ui;
+    fn draw_width(&mut self, app: &mut App) -> i32;
+    fn same_line(&mut self, app: &mut App);
+
+    // @Refactor this seems so bad...
+    fn add_padding(&mut self, padding: Vec2i, app: &mut App);
+    fn remove_padding(&mut self, app: &mut App);
+
+    fn add_spacing(&mut self, app: &mut App);
+
 }
 
 #[derive(ImDraw)]
 pub struct Ui {
+    //id: Id,
+    index: u32,
+
     style: Style,
     layout: Layout,
+
     elements: Vec<Element>,
     modal_elements: Vec<Element>,
+    adjust_height: bool,
+
+    //focused_line: Option<u32>,
+
+    // @Refactor move these to UiPlacer?
+    // Placer
+    cursor: Vec2i,
+    same_line_cursor: Vec2i,
+    padding: Vec2i,
 }
 
-impl Ui {
-    fn draw_width(&self) -> i32 {
-        self.layout.size.x - 2 * self.style.padding
+impl<'a> Ui {
+    pub fn builder(layout: Layout) -> UiBuilder<'a> {
+        UiBuilder {
+            layout,
+            style: None,
+            header: None,
+            adjust_height: true,
+        }
+    }
+
+    fn index(&self) -> UiIndex { UiIndex(self.index) }
+
+    fn line_draw_height(&self) -> i32 { self.style.line_height - 2 * self.style.line_padding.y }
+
+    fn add_modal_element(&mut self, id: Id, layout: Layout) {
+        self.modal_elements.push(Element { id, layout });
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, ImDraw)]
-struct Id(u64);
+struct UiIndex(u32); // index in uis array
+
+impl Placer for UiIndex {
+    fn place_element(&mut self, id: Id, size: Vec2i, app: &mut App) -> Option<Layout> {
+        let ui = self.ui(app);
+
+        let layout = Layout {
+            pos: ui.cursor + ui.padding,
+            size,
+        };
+
+        ui.elements.push(Element { id, layout });
+
+        ui.same_line_cursor.x = ui.cursor.x + layout.size.x;
+        ui.same_line_cursor.y = ui.cursor.y;
+
+        ui.cursor.x = ui.layout.pos.x + ui.style.padding.x;
+        ui.cursor.y += layout.size.y + 2 * ui.padding.y;
+
+        if app.ui_system.input_focus == Some(id) {
+            app.ui_system.found_input_focus = true;
+        }
+
+        let ui = app.ui_system.get_ui(self.0);
+        if ui.adjust_height {
+            // @TODO limit by layout max height
+            ui.layout.size.y = ui.cursor.y - ui.layout.pos.y + ui.style.padding.y;
+        }
+
+        Some(layout)
+    }
+
+    fn ui<'a>(&mut self, app: &'a mut App) -> &'a mut Ui { app.ui_system.get_ui(self.0) }
+
+    #[inline(always)] fn same_line(&mut self, app: &mut App) {
+        let ui = self.ui(app);
+        ui.cursor = ui.same_line_cursor;
+    }
+
+    fn draw_width(&mut self, app: &mut App) -> i32 {
+        let ui = self.ui(app);
+        ui.layout.size.x - 2 * (ui.style.padding.x + ui.padding.x)
+    }
+
+    fn add_padding(&mut self, padding: Vec2i, app: &mut App) {
+        let ui = self.ui(app);
+        ui.padding += padding;
+    }
+
+    fn remove_padding(&mut self, app: &mut App) {
+        let ui = self.ui(app);
+        ui.padding = Vec2i::new();
+    }
+
+    fn add_spacing(&mut self, app: &mut App) {
+        let ui = self.ui(app);
+        ui.cursor.x += ui.style.spacing;
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, ImDraw)]
+pub struct Id(u64);
 
 // @TODO macro this
 impl Id {
@@ -162,10 +322,11 @@ struct Element {
 
 #[derive(Debug, ImDraw)]
 struct State {
+    disabled: bool,
     pressed: bool, // = true only if down and mouse released on top of the button
     down: bool,
     hovering: bool,
-    disabled: bool,
+    scroll: i32,
 
     // Some if element is focusable, Some(true) if it's currently the focus, Some(false) otherwise
     //focus: Option<bool>,
@@ -192,6 +353,7 @@ enum ElementVariant {
         percent: f32,
         variant: SliderVariant,
     },
+
     Combobox {
         changed: bool,
         index: usize,
@@ -202,148 +364,43 @@ enum ElementVariant {
         selected: bool,
         text: String,
     },
-    Separator,
     Scrollbar,
+
+    PagedBox {
+        lines_per_page: u32,
+        current_page: u32,
+        num_lines: u32,
+    },
+
+    Separator,
 }
 
 impl App<'_> {
-    pub fn new_ui(&mut self, layout: Layout) {
-        let style = Style::default();
-        self.ui_system.cursor = layout.pos + Vec2i { x: style.padding, y: style.padding };
-        self.ui_system.same_line_cursor = layout.pos + Vec2i { x: style.padding, y: style.padding };
-
-        let ui = Ui {
-            style,
-            layout,
-            elements: Vec::new(),
-            modal_elements: Vec::new(),
-        };
-
-        self.ui_system.uis.push(ui);
-    }
-
-    pub fn new_ui_with_style(&mut self, layout: Layout, style: Style) {
-        self.ui_system.cursor = layout.pos + Vec2i { x: style.padding, y: style.padding };
-        self.ui_system.same_line_cursor = layout.pos + Vec2i { x: style.padding, y: style.padding };
-
-        let ui = Ui {
-            style,
-            layout,
-            elements: Vec::new(),
-            modal_elements: Vec::new(),
-        };
-
-        self.ui_system.uis.push(ui);
-    }
-
-    //------------------
-    // Layout functions
-    //------------------
-
-    pub fn indent(&mut self) {
-        let ui = &mut self.ui_system.uis.last_mut().unwrap();
-        let indent_size = ui.style.indent_size;
-        self.ui_system.cursor.x += indent_size;
-        self.ui_system.indentation += 1;
-    }
-
-    pub fn unindent(&mut self) {
-        let ui = &mut self.ui_system.uis.last_mut().unwrap();
-        let indent_size = ui.style.indent_size;
-        self.ui_system.cursor.x -= indent_size;
-        self.ui_system.indentation -= 1;
-    }
-
-    /*
-    pub fn padding(&mut self) {
-        let ui = &mut self.ui_system.uis.last_mut().unwrap();
-        let padding = ui.style.padding;
-        self.ui_system.cursor += Vec2i { x: padding, y: 0 };
-    }
-    */
-
-    pub fn same_line(&mut self) {
-        let ui = &mut self.ui_system.uis.last_mut().unwrap();
-        let padding = ui.style.padding;
-
-        self.ui_system.cursor = self.ui_system.same_line_cursor;
-        self.ui_system.cursor += Vec2i { x: padding, y: 0 };
-    }
 
     // -----------------
     // private functions
     // -----------------
 
-    fn new_layout(&self, size: Vec2i) -> Layout {
-        Layout { pos: self.ui_system.cursor, size }
-    }
-
-    // @Cleanup this seems unnecessary. The design will change and we will be able to remove this
-    fn new_layout_right(&self, size: Vec2i) -> Layout {
-        let ui = &self.ui_system.uis.last().unwrap();
-        let pos = Vec2i {
-            x: ui.layout.pos.x + ui.layout.size.x - size.x - ui.style.padding,
-            y: self.ui_system.cursor.y,
-        };
-
-        Layout { pos, size }
-    }
-
     fn calculate_text_size(&self, text: &str) -> Vec2i {
         let ui = &self.ui_system.uis.last().unwrap();
-        calculate_draw_text_size(
+        let size = calculate_draw_text_size(
             &self.font_system,
             text,
             self.font_system.default_font_id,
-            ui.style.font_size as f32,
-        ).into()
-    }
+            ui.style.text_size as f32,
+        );
 
-
-    // @TODO no need for this same line/next line logic. We won't use it and it's making the whole
-    //       design worse (this is too general)
-    fn add_element(&mut self, id: Id, layout: Layout) {
-        let ui = &mut self.ui_system.uis.last_mut().unwrap();
-        ui.elements.push(Element { id, layout });
-
-        let ui_layout = ui.layout;
-        let padding = ui.style.padding;
-        let spacing = ui.style.spacing;
-        let indent_size = ui.style.indent_size;
-
-        self.ui_system.same_line_cursor.x = self.ui_system.cursor.x + layout.size.x;
-        self.ui_system.same_line_cursor.y = self.ui_system.cursor.y;
-
-        self.ui_system.cursor.x = ui_layout.pos.x + padding + indent_size * self.ui_system.indentation as i32;
-        //self.ui_system.cursor.y += layout.size.y + spacing;
-        self.ui_system.cursor.y += ui.style.line_height + spacing;
-
-        if self.ui_system.input_focus == Some(id) {
-            self.ui_system.found_input_focus = true;
+        Vec2i {
+            x: (size.x + 0.5) as i32,
+            y: (size.y + 0.5) as i32,
         }
     }
-
-    fn add_modal_element(&mut self, id: Id, layout: Layout) {
-        let ui = &mut self.ui_system.uis.last_mut().unwrap();
-        ui.modal_elements.push(Element { id, layout });
-    }
-
-    /*
-    fn begin_element(&mut self, element: Element) {
-        self.add_element(element, Vec2i::new());
-        self.indent();
-    }
-
-    fn end_element(&mut self) {
-        self.unindent();
-    }
-    */
 
     fn is_mouse_hovering_clipped_layout(&self, layout: Layout) -> bool {
         let mouse_pos: Vec2i = self.get_mouse_position().into();
 
         let ui = &self.ui_system.uis.last().unwrap();
-        let padding = Vec2i { x: ui.style.padding, y: ui.style.padding };
+        let padding = ui.style.padding;
         let ui_layout = ui.layout;
 
         return
@@ -358,7 +415,7 @@ impl App<'_> {
     }
 
     // @TODO somehow refactor this function to be able to have a state tied to a deeper level
-    //       of the app, instead of self
+    //       of the app, instead of self (tie to UiSystem instead)
     fn update_state_interaction(&mut self, id: Id, layout: Layout) -> &mut State {
         // @TODO only update if mouse is inside the element container (we will need to propagate
         //       the container size)
@@ -367,6 +424,7 @@ impl App<'_> {
         let mouse_left_pressed = self.mouse_left_pressed();
         let mouse_left_released = self.mouse_left_released();
         let mouse_hovering = self.is_mouse_hovering_clipped_layout(layout);
+        let scroll = self.mouse_scroll();
 
         let mut state = self.ui_system.states.get_mut(&id).unwrap();
 
@@ -374,6 +432,7 @@ impl App<'_> {
 
         state.pressed = false;
         state.hovering = false;
+        state.scroll = 0;
 
         // Check modal opened
         if self.ui_system.modal_open.is_some() {
@@ -384,6 +443,7 @@ impl App<'_> {
         // Handle mouse interactions
         if mouse_hovering {
             state.hovering = true;
+            state.scroll = scroll;
             if mouse_left_pressed {
                 state.down = true;
             } else if mouse_left_released {
@@ -409,6 +469,7 @@ impl App<'_> {
         let mouse_left_pressed = self.mouse_left_pressed();
         let mouse_left_released = self.mouse_left_released();
         let mouse_hovering = mouse_pos.is_inside(layout.pos, layout.size);
+        let scroll = self.mouse_scroll();
 
         let mut state = self.ui_system.states.get_mut(&id).unwrap();
 
@@ -416,10 +477,12 @@ impl App<'_> {
 
         state.pressed = false;
         state.hovering = false;
+        state.scroll = 0;
 
         // Handle mouse interactions
         if mouse_hovering {
             state.hovering = true;
+            state.scroll = scroll;
             if mouse_left_pressed {
                 state.down = true;
             } else if mouse_left_released {

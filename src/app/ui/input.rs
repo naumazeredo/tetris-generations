@@ -24,9 +24,11 @@ pub struct InputState {
 }
 
 impl<'a> Input<'a> {
+    /*
     pub fn new(label: &str, value: &mut String, app: &mut App) -> InputState {
         Input::builder(label).build(value, app)
     }
+    */
 
     pub fn builder<'b: 'a>(label: &'b str) -> Self {
         Self {
@@ -50,23 +52,44 @@ impl<'a> Input<'a> {
         }
     }
 
-    pub fn build(self, value: &mut String, app: &mut App) -> InputState {
-        let state = app.input_str_internal(value, self);
+    #[inline(always)] pub fn build(
+        self,
+        value: &mut String,
+        app: &mut App
+    ) -> InputState {
+        self.build_with_placer(value, &mut app.ui_system.top_ui().index(), app)
+    }
 
-        if let ElementVariant::Input {
-            is_input_focus,
-            changed,
-            ..
-        } = state.variant {
-            InputState {
-                pressed: state.pressed,
-                down: state.down,
-                hovering: state.hovering,
-                changed,
+    #[inline(always)] pub fn build_with_placer<P: Placer>(
+        self,
+        value: &mut String,
+        placer: &mut P,
+        app: &mut App
+    ) -> InputState {
+        if let Some(state) = input_str_internal(value, self, placer, app) {
+            if let ElementVariant::Input {
                 is_input_focus,
+                changed,
+                ..
+            } = state.variant {
+                InputState {
+                    pressed:  state.pressed,
+                    down:     state.down,
+                    hovering: state.hovering,
+                    changed,
+                    is_input_focus,
+                }
+            } else {
+                unreachable!();
             }
         } else {
-            unreachable!();
+            InputState {
+                pressed:  false,
+                down:     false,
+                hovering: false,
+                changed:  false,
+                is_input_focus: false,
+            }
         }
     }
 }
@@ -164,10 +187,11 @@ pub(super) enum InputVariant {
 impl State {
     fn new_input_str(value: &str, max_length: usize, disabled: bool) -> Self {
         State {
-            pressed: false,
-            down: false,
-            hovering: false,
             disabled,
+            pressed:  false,
+            down:     false,
+            hovering: false,
+            scroll:   0,
             variant: ElementVariant::Input {
                 is_input_focus: false,
                 changed: false,
@@ -281,58 +305,74 @@ impl App<'_> {
 
 // String Input
 
-impl App<'_> {
-    fn input_str_internal(
-        &mut self,
-        value: &mut String,
-        input: Input,
-    ) -> &State {
-        let id = Id::new(input.label);
+fn input_str_internal<'a, P: Placer>(
+    value: &mut String,
+    input: Input,
+    placer: &mut P,
+    app: &'a mut App,
+) -> Option<&'a State> {
+    let ui = placer.ui(app);
+    let spacing = ui.style.spacing;
+    let line_padding = ui.style.line_padding;
 
-        // Add label
-        self.text_internal(Text::builder(input.label).disabled(input.disabled));
-        self.same_line();
+    let col_width = (placer.draw_width(app) - spacing) / 2;
 
-        let id = id.add("#__input");
+    placer.add_padding(line_padding, app);
 
-        let ui = &self.ui_system.uis.last().unwrap();
-        let size = Vec2i {
-            x: ui.draw_width() / 2,
-            y: ui.style.line_height as i32,
-        };
-        let layout = self.new_layout_right(size);
-        self.add_element(id, layout);
+    // Add label
+    text_internal(
+        Text::builder(input.label)
+            .disabled(input.disabled)
+            .max_width(col_width as u32),
+        placer,
+        app
+    );
 
-        // @TODO we should update the input state in case referenced value changed
-        self.ui_system.states.entry(id)
-            .and_modify(|state| {
-                state.disabled = input.disabled;
+    placer.same_line(app);
+    placer.add_spacing(app);
 
-                if let ElementVariant::Input {
-                    value_str,
-                    ..
-                } = &mut state.variant {
-                    std::mem::swap(value_str, value);
-                } else {
-                    unreachable!();
-                }
-            })
-            .or_insert_with(|| State::new_input_str(&value, input.max_length, input.disabled));
+    let id = Id::new(input.label).add("#__input");
 
-        if !input.disabled {
-            let state = self.update_input_state_interaction(id, layout);
+    let ui = placer.ui(app);
+    let size = Vec2i {
+        x: col_width,
+        y: ui.line_draw_height() as i32,
+    };
+    let layout = placer.place_element(id, size, app);
+    placer.remove_padding(app);
+
+    if layout.is_none() { return None; }
+    let layout = layout.unwrap();
+
+    // @TODO we should update the input state in case referenced value changed
+    app.ui_system.states.entry(id)
+        .and_modify(|state| {
+            state.disabled = input.disabled;
+
             if let ElementVariant::Input {
-                changed: true,
                 value_str,
                 ..
             } = &mut state.variant {
-                *value = value_str.clone();
+                std::mem::swap(value_str, value);
+            } else {
+                unreachable!();
             }
+        })
+        .or_insert_with(|| State::new_input_str(&value, input.max_length, input.disabled));
 
-            state
-        } else {
-            self.ui_system.states.get(&id).unwrap()
+    if !input.disabled {
+        let state = app.update_input_state_interaction(id, layout);
+        if let ElementVariant::Input {
+            changed: true,
+            value_str,
+            ..
+        } = &mut state.variant {
+            *value = value_str.clone();
         }
+
+        Some(state)
+    } else {
+        Some(app.ui_system.states.get(&id).unwrap())
     }
 }
 
@@ -351,10 +391,11 @@ macro_rules! input_variant_integer_impl {
     ) => {
         fn $build_fn(value: $type, min: Option<$type>, max: Option<$type>) -> State {
             State {
-                pressed: false,
-                down: false,
-                hovering: false,
                 disabled: false, // @TODO disabled
+                pressed:  false,
+                down:     false,
+                hovering: false,
+                scroll:   0,
                 variant: ElementVariant::Input {
                     is_input_focus: false,
                     changed: false,
@@ -365,6 +406,7 @@ macro_rules! input_variant_integer_impl {
             }
         }
 
+        /*
         impl App<'_> {
             fn $internal_fn(
                 &mut self,
@@ -372,8 +414,10 @@ macro_rules! input_variant_integer_impl {
                 value: &mut $type,
                 min: Option<$type>,
                 max: Option<$type>,
-                stretch: bool,
+                _stretch: bool,
             ) {
+                // @TODO fix this based on multiline UI
+
                 let id = Id::new(label);
 
                 // Add label
@@ -385,6 +429,8 @@ macro_rules! input_variant_integer_impl {
                 let layout;
 
                 let ui = &self.ui_system.uis.last().unwrap();
+                /*
+                // @Fix
                 if !stretch {
                     let size = Vec2i {
                         x: ui.draw_width() / 2,
@@ -392,12 +438,15 @@ macro_rules! input_variant_integer_impl {
                     };
                     layout = self.new_layout_right(size);
                 } else {
+                */
                     let size = Vec2i {
                         x: ui.layout.size.x - self.ui_system.cursor.x,
                         y: ui.style.line_height as i32,
                     };
                     layout = self.new_layout(size);
+                /*
                 }
+                */
 
                 self.ui_system.states.entry(id)
                     .and_modify(|state| {
@@ -442,6 +491,7 @@ macro_rules! input_variant_integer_impl {
                 self.$internal_fn(label, value, None, None, true);
             }
         }
+        */
     }
 }
 

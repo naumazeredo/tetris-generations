@@ -15,20 +15,18 @@ use crate::game::{
 #[derive(Debug, ImDraw)]
 pub struct MultiPlayerScene {
     quit: bool,
-
     rules_instance: RulesInstance,
-    seed: u64, // @TODO move this to RulesInstance
-
-    music_id: MusicId,
-
     server: Server,
 }
 
 impl SceneTrait for MultiPlayerScene {
+    type Scene = Scene;
+    type PersistentData = PersistentData;
+
     fn update(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         // Networking
         loop {
@@ -84,7 +82,7 @@ impl SceneTrait for MultiPlayerScene {
     fn render(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         if app.is_paused() {
             let window_size = app.window_size();
@@ -167,16 +165,16 @@ impl SceneTrait for MultiPlayerScene {
 
     fn handle_input(
         &mut self,
+        event: &sdl2::event::Event,
         app: &mut App,
-        _persistent: &mut PersistentData,
-        event: &sdl2::event::Event
+        _persistent: &mut Self::PersistentData,
     ) -> bool {
         use sdl2::event::Event;
         use sdl2::keyboard::Scancode;
 
         match event {
             Event::KeyDown { scancode: Some(Scancode::F), .. } => {
-                app.play_music(self.music_id);
+                //app.play_music(self.music_id);
             }
 
             _ => {}
@@ -188,15 +186,15 @@ impl SceneTrait for MultiPlayerScene {
     fn transition(
         &mut self,
         _app: &mut App,
-        _persistent: &mut PersistentData
-    ) -> Option<SceneTransition> {
+        _persistent: &mut Self::PersistentData
+    ) -> Option<SceneTransition<Self::Scene>> {
         if self.quit { Some(SceneTransition::Pop) } else { None }
     }
 
     fn on_enter(
         &mut self,
         app: &mut App,
-        _persistent: &mut PersistentData
+        _persistent: &mut Self::PersistentData
     ) {
         app.restart_time_system();
         //app.play_music(self.music_id);
@@ -204,13 +202,11 @@ impl SceneTrait for MultiPlayerScene {
 }
 
 impl MultiPlayerScene {
-    pub fn new(app: &mut App, persistent: &mut PersistentData) -> Self {
+    pub fn new(app: &mut App, persistent: &mut Self::PersistentData) -> Self {
         // rules
         let seed = app.system_time();
         let rules: Rules = RotationSystem::SRS.into();
         let rules_instance = RulesInstance::new(rules, seed, app, persistent);
-
-        let music_id = app.load_music("assets/sfx/Original-Tetris-theme.ogg");
 
         let server = Server::new("127.0.0.1:42042").unwrap();
 
@@ -218,9 +214,6 @@ impl MultiPlayerScene {
             quit: false,
 
             rules_instance,
-            seed,
-
-            music_id,
 
             server,
         }

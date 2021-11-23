@@ -21,6 +21,7 @@ pub struct Rules {
     // @TODO use bitfields
     // gameplay rules
 
+    // @TODO HardDropRule, SoftDropRule
     // https://tetris.fandom.com/wiki/Drop
     pub has_hard_drop: bool,
     pub has_hard_drop_lock: bool, // Firm drop = false
@@ -85,7 +86,7 @@ pub struct Rules {
 
     // Animation
     has_movement_animation: bool,
-    movement_animation_show_ghost: bool,
+    movement_animation_show_ghost: bool, // @Remove this is debug only
     movement_animation_duration: u64,
 
     has_line_clear_animation: bool,
@@ -152,12 +153,69 @@ impl From<RotationSystem> for Rules {
                 }
             }
 
+            RotationSystem::SRS => {
+                Self {
+                    has_hard_drop: true,
+                    has_hard_drop_lock: true,
+                    has_soft_drop: true,
+                    has_soft_drop_lock: false,
+                    has_hold_piece: true,
+                    has_ghost_piece: true,
+                    hold_piece_reset_rotation: true,
+                    spawn_drop: true,
+
+                    has_initial_rotation_system: false,
+                    has_initial_hold_system: false,
+
+                    spawn_row: 22u8,
+                    next_pieces_preview_count: 4u8,
+
+                    line_clear_rule: LineClearRule::Naive,
+
+                    top_out_rule: TopOutRule::BLOCK_OUT | TopOutRule::LOCK_OUT,
+
+                    das_repeat_delay: 266_228,   // 16 frames at 60.0988 Hz
+                    das_repeat_interval: 99_835, // 6 frames at 60.0988 Hz
+                    soft_drop_interval: 33_279,  // 1/2G at 60.0988 Hz
+                    line_clear_delay: 332_785,   // 20 frames at 60.0988 Hz
+
+                    gravity_curve: GravityCurve::Classic,
+                    scoring_curve: ScoringRule::Classic,
+                    level_curve: LevelCurve::Classic,
+                    start_level: 1,
+                    minimum_level: 1,
+
+                    entry_delay: 0,
+                    lock_delay: LockDelayRule::MoveReset {
+                        duration: 500_000,
+                        rotations: 5,
+                        movements: 5,
+                    },
+
+                    rotation_system: RotationSystem::SRS,
+
+                    randomizer_type: RandomizerType::FullRandom,
+
+                    // Animation
+                    has_movement_animation: true,
+                    movement_animation_show_ghost: false,
+                    movement_animation_duration: 50_000,
+
+                    has_line_clear_animation: true,
+                    line_clear_animation_type: LineClearAnimationType::Classic,
+
+                    has_locking_animation: true,
+                    locking_animation_duration: 250_000,
+                }
+            }
+
             _ => {
                 Self {
                     has_hard_drop: true,
                     has_hard_drop_lock: false,
                     has_soft_drop: true,
                     has_soft_drop_lock: false,
+
                     has_hold_piece: true,
                     has_ghost_piece: true,
                     hold_piece_reset_rotation: true,
@@ -212,6 +270,7 @@ impl From<RotationSystem> for Rules {
 }
 
 /*
+// @TODO HardDropRule, SoftDropRule
 // https://tetris.fandom.com/wiki/Drop
 #[derive(Copy, Clone, Debug)]
 pub enum HardDropRule {
@@ -228,6 +287,8 @@ pub enum SoftDropRule {
 }
 */
 
+// @TODO macro this
+pub const ROTATION_SYSTEM_NAMES: &[&str] = &["ORIGINAL", "NRSL", "NRSR", "SEGA", "ARS", "SRS", "DTET"];
 
 // https://tetris.fandom.com/wiki/Category:Rotation_Systems
 #[derive(Copy, Clone, Debug, ImDraw)]

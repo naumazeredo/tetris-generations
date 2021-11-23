@@ -1,25 +1,23 @@
 use crate::app::*;
 
 use super::{
-    Scene,
-    PersistentData,
     SceneTrait,
     SceneTransition,
 };
 
 #[derive(Debug, ImDraw)]
-pub struct SceneManager {
-    scenes: Vec<Scene>,
+pub struct SceneManager<S: SceneTrait> {
+    scenes: Vec<S>,
 }
 
-impl SceneManager {
-    pub fn new(main_scene: Scene) -> Self {
+impl<S: SceneTrait<Scene = S>> SceneManager<S> {
+    pub fn new(main_scene: S) -> Self {
         Self {
             scenes: vec![main_scene],
         }
     }
 
-    pub fn update(&mut self, app: &mut App, persistent: &mut PersistentData) {
+    pub fn update(&mut self, app: &mut App, persistent: &mut <S as SceneTrait>::PersistentData) {
         self.try_transition(app, persistent);
 
         if let Some(scene) = self.scenes.last_mut() {
@@ -29,7 +27,7 @@ impl SceneManager {
         }
     }
 
-    pub fn render(&mut self, app: &mut App, persistent: &mut PersistentData) {
+    pub fn render(&mut self, app: &mut App, persistent: &mut <S as SceneTrait>::PersistentData) {
         if let Some(scene) = self.scenes.last_mut() {
             scene.render(app, persistent);
         } else {
@@ -39,18 +37,18 @@ impl SceneManager {
 
     pub fn handle_input(
         &mut self,
+        event: &sdl2::event::Event,
         app: &mut App,
-        persistent: &mut PersistentData,
-        event: &sdl2::event::Event
+        persistent: &mut <S as SceneTrait>::PersistentData,
     ) -> bool {
         if let Some(scene) = self.scenes.last_mut() {
-            scene.handle_input(app, persistent, event)
+            scene.handle_input(event, app, persistent)
         } else {
             panic!("[scene_manager render] empty scene being updated!");
         }
     }
 
-    pub fn current_scene(&mut self) -> &mut Scene {
+    pub fn current_scene(&mut self) -> &mut S {
         if let Some(scene) = self.scenes.last_mut() {
             scene
         } else {
@@ -58,7 +56,7 @@ impl SceneManager {
         }
     }
 
-    fn try_transition(&mut self, app: &mut App, persistent: &mut PersistentData) {
+    fn try_transition(&mut self, app: &mut App, persistent: &mut <S as SceneTrait>::PersistentData) {
         let transition;
 
         if let Some(scene) = self.scenes.last_mut() {

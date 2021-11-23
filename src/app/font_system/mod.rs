@@ -31,6 +31,8 @@ use std::collections::BTreeMap;
 
 use crate::app::imgui_wrapper::ImDraw;
 
+pub(in crate::app) const FONT_SCALE: u16 = 72;
+
 #[derive(ImDraw)]
 pub(in crate::app) struct FontSystem {
     pub(super) default_font_id: FontId,
@@ -40,7 +42,7 @@ pub(in crate::app) struct FontSystem {
 
 impl FontSystem {
     pub(in crate::app) fn new(ttf_context: &sdl2::ttf::Sdl2TtfContext) -> Self {
-        let (default_font_id, default_font) = bake_font("assets/fonts/Monocons.ttf", ttf_context).unwrap();
+        let (default_font_id, default_font) = bake_font("assets/fonts/Fami-Sans-Bold.ttf", ttf_context).unwrap();
 
         let mut fonts = BTreeMap::new();
         fonts.insert(default_font_id, default_font);

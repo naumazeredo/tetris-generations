@@ -2,7 +2,7 @@ mod sequential;
 mod fullrandom;
 mod random7bag;
 
-use crate::enum_dispatch::*;
+use enum_dispatch::*;
 use crate::app::ImDraw;
 use super::pieces::PieceType;
 
@@ -38,6 +38,7 @@ impl RandomizerType {
     }
 }
 
+// @Cleanup is enum_dispatch totally needed
 #[enum_dispatch]
 pub trait RandomizerTrait {
     fn reset(&mut self);

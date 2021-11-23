@@ -22,14 +22,13 @@ use std::ffi::CString;
 use std::path::Path;
 use gl::types::*;
 use crate::linalg::*;
-use crate::app::{ App, ImDraw };
+use crate::app::{App, ImDraw};
 
 pub use color::*;
+use draw_command::*;
 use shader::*;
 pub use sprite::*;
 pub use texture::*;
-
-use draw_command::{Command, DrawCommand, DrawVariant};
 
 pub type VertexArray    = GLuint;
 pub type BufferObject   = GLuint;

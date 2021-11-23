@@ -1,6 +1,7 @@
 // @TODO create ScreenMode to abstract FullscreenType (because FullscreenType is a bad name, with
 //       bad variant names)
-pub use sdl2::video::{DisplayMode, FullscreenType};
+// @TODO create VSyncMode to abstract SwapInterval (because LateSwapTearing is hard to remember)
+pub use sdl2::video::{DisplayMode, FullscreenType, SwapInterval};
 use super::{
     App,
     AppConfig,
@@ -201,5 +202,22 @@ impl App<'_> {
 
     pub fn set_window_screen_mode(&mut self, screen_mode: FullscreenType) {
         self.video_system.window.set_fullscreen(screen_mode).unwrap();
+    }
+
+    pub fn set_vsync(&self, mut vsync: SwapInterval) -> SwapInterval {
+        if vsync == SwapInterval::LateSwapTearing {
+            if self.sdl_context.video_subsystem.gl_set_swap_interval(vsync).is_ok() {
+                return vsync;
+            }
+
+            vsync = SwapInterval::VSync;
+        }
+
+        self.sdl_context.video_subsystem.gl_set_swap_interval(vsync).unwrap();
+        return vsync;
+    }
+
+    pub fn vsync(&self) -> SwapInterval {
+        self.sdl_context.video_subsystem.gl_get_swap_interval()
     }
 }

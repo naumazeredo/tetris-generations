@@ -1,7 +1,13 @@
 use crate::app::*;
 use crate::linalg::Vec2i;
 
-use crate::game::rules::RotationSystem;
+use crate::game::rules::{
+    Rules,
+    RotationSystem,
+    ROTATION_SYSTEM_NAMES,
+    line_clear::{LINE_CLEAR_RULE_NAMES, LineClearRule},
+    topout::TopOutRule,
+};
 use super::*;
 
 const DISPLAY_NAMES : &[&str] = &["DISPLAY 1", "DISPLAY 2", "DISPLAY 3", "DISPLAY 4", "DISPLAY 5", "DISPLAY 6"];
@@ -25,6 +31,7 @@ enum State {
     ModernOnlineBattle,
     ModernOnlineSpectate,
 
+    CustomRules,
     Custom,
 
     Options,
@@ -39,6 +46,7 @@ struct VideoInfo {
     display_index: i32,
     display_mode: DisplayMode,
     window_size: (u32, u32),
+    vsync: SwapInterval,
 }
 
 impl VideoInfo {
@@ -48,6 +56,7 @@ impl VideoInfo {
             display_index: app.window_display_index(),
             display_mode: app.window_display_mode(),
             window_size: app.window_size(),
+            vsync: app.vsync(),
         }
     }
 }
@@ -59,20 +68,24 @@ impl_imdraw_todo!(VideoInfo);
 pub struct MainMenuScene {
     state: State,
     video_info: VideoInfo,
+    custom_rules: Rules, // @TODO list of presets (and player presets also)
 }
 
 impl SceneTrait for MainMenuScene {
+    type Scene = Scene;
+    type PersistentData = PersistentData;
+
     fn update(
         &mut self,
         _app: &mut App,
-        _persistent: &mut PersistentData
+        _persistent: &mut Self::PersistentData
     )
     {}
 
     fn render(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         match self.state {
             State::Main => self.show_main(app, persistent),
@@ -83,7 +96,7 @@ impl SceneTrait for MainMenuScene {
             State::Modern       => self.show_modern(app, persistent),
             State::ModernOnline => self.show_modern_online(app, persistent),
 
-            //State::Custom  => {}
+            State::CustomRules  => self.show_custom_rules(app, persistent),
 
             State::Options => self.show_options(app, persistent),
             State::OptionsVideo => self.show_options_video(app, persistent),
@@ -97,9 +110,9 @@ impl SceneTrait for MainMenuScene {
 
     fn handle_input(
         &mut self,
+        event: &sdl2::event::Event,
         _app: &mut App,
-        _persistent: &mut PersistentData,
-        event: &sdl2::event::Event
+        _persistent: &mut Self::PersistentData,
     ) -> bool {
         match event {
             _ => {}
@@ -111,17 +124,15 @@ impl SceneTrait for MainMenuScene {
     fn transition(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
-    ) -> Option<SceneTransition> {
+        persistent: &mut Self::PersistentData
+    ) -> Option<SceneTransition<Self::Scene>> {
         match self.state {
             State::ClassicLocal => {
-                let mut rules = RotationSystem::NRSR.into();
-
                 Some(
                     SceneTransition::Push(
-                        SingleLocalScene::new(
+                        SingleplayerScene::new(
                             persistent.rng.next_u64(),
-                            rules,
+                            RotationSystem::NRSR.into(),
                             app,
                             persistent
                         ).into()
@@ -129,11 +140,26 @@ impl SceneTrait for MainMenuScene {
                 )
             }
 
+            State::ModernLocal => {
+                Some(
+                    SceneTransition::Push(
+                        SingleplayerScene::new(
+                            persistent.rng.next_u64(),
+                            RotationSystem::SRS.into(),
+                            app,
+                            persistent
+                        ).into()
+                    )
+                )
+            }
+
+            /*
             State::ModernOnlineSolo =>
                 Some(SceneTransition::Push(MultiPlayerScene::new(app, persistent).into())),
 
             State::ModernOnlineSpectate =>
                 Some(SceneTransition::Push(MultiPlayerSpectateScene::new(app, persistent).into())),
+            */
 
             _ => None
         }
@@ -143,8 +169,10 @@ impl SceneTrait for MainMenuScene {
 impl MainMenuScene {
     pub fn new(app: &mut App) -> Self {
         Self {
-            state: State::Main,
+            //state: State::Main,
+            state: State::CustomRules,
             video_info: VideoInfo::load(app),
+            custom_rules: RotationSystem::NRSR.into(),
         }
     }
 
@@ -155,7 +183,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -165,7 +193,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
+        Ui::builder(window_layout).build(app);
 
         if ui::Button::new("CLASSIC", app).pressed {
             self.state = State::Classic;
@@ -176,7 +204,7 @@ impl MainMenuScene {
         }
 
         if ui::Button::new("CUSTOM", app).pressed {
-            self.state = State::Custom;
+            self.state = State::CustomRules;
         }
 
         if ui::Button::new("OPTIONS", app).pressed {
@@ -195,7 +223,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -205,9 +233,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
-
-        Text::new("CLASSIC", app);
+        Ui::builder(window_layout).header("CLASSIC").build(app);
 
         if ui::Button::new("LOCAL", app).pressed {
             self.state = State::ClassicLocal;
@@ -229,7 +255,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -239,9 +265,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
-
-        Text::new("MODERN", app);
+        Ui::builder(window_layout).header("MODERN").build(app);
 
         if ui::Button::new("LOCAL", app).pressed {
             self.state = State::ModernLocal;
@@ -263,7 +287,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -273,9 +297,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
-
-        Text::new("OPTIONS", app);
+        Ui::builder(window_layout).header("OPTIONS").build(app);
 
         if ui::Button::new("VIDEO", app).pressed {
             self.state = State::OptionsVideo;
@@ -307,7 +329,7 @@ impl MainMenuScene {
 
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -317,9 +339,10 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
 
-        Text::new("OPTIONS - VIDEO", app);
+        Ui::builder(window_layout).header("OPTIONS - VIDEO").build(app);
+
+        //Text::new("OPTIONS - VIDEO", app);
 
         // @TODO most video options should have a confirm button in 15 sec or change back if the
         //       the user can't click it. This will avoid issues
@@ -426,6 +449,33 @@ impl MainMenuScene {
             app.set_window_display_mode(self.video_info.display_mode);
         }
 
+        // VSync
+        let mut vsync            = self.video_info.vsync != SwapInterval::Immediate;
+        let mut adaptative_vsync = self.video_info.vsync == SwapInterval::LateSwapTearing;
+
+        let vsync_checkbox =
+            Checkbox::builder("VSYNC")
+            .build(&mut vsync, app);
+
+        let adaptative_vsync_checkbox =
+            Checkbox::builder("  ADAPTATIVE")
+            .disabled(!vsync)
+            .build(&mut adaptative_vsync, app);
+
+        if vsync_checkbox.changed || adaptative_vsync_checkbox.changed {
+            self.video_info.vsync = if vsync {
+                if adaptative_vsync {
+                    SwapInterval::LateSwapTearing
+                } else {
+                    SwapInterval::VSync
+                }
+            } else {
+                SwapInterval::Immediate
+            };
+
+            app.set_vsync(self.video_info.vsync);
+        }
+
         /*
         if ui::Button::new("APPLY", app).pressed {
         }
@@ -443,7 +493,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -453,9 +503,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
-
-        Text::new("OPTIONS - AUDIO", app);
+        Ui::builder(window_layout).header("OPTIONS - AUDIO").build(app);
 
         // Music volume
         let mut music_volume = (app.music_volume() * 255.0) as i32;
@@ -489,7 +537,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -499,9 +547,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
-
-        Text::new("OPTIONS - CONTROLS", app);
+        Ui::builder(window_layout).header("OPTIONS - CONTROLS").build(app);
 
         if ui::Button::new("BACK", app).pressed {
             self.state = State::Options;
@@ -515,7 +561,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -525,9 +571,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
-
-        Text::new("CLASSIC ONLINE", app);
+        Ui::builder(window_layout).header("CLASSIC ONLINE").build(app);
 
         if ui::Button::new("SOLO", app).pressed {
             self.state = State::ClassicOnlineSolo;
@@ -542,7 +586,7 @@ impl MainMenuScene {
         }
 
         if ui::Button::new("BACK", app).pressed {
-            self.state = State::Main;
+            self.state = State::Classic;
         }
     }
 
@@ -553,7 +597,7 @@ impl MainMenuScene {
     ) {
         let window_size = app.window_size();
         let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
-        let menu_size = Vec2i { x: 600, y: 300 };
+        let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
         let window_layout = Layout {
@@ -563,9 +607,7 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        app.new_ui(window_layout);
-
-        Text::new("MODERN ONLINE", app);
+        Ui::builder(window_layout).header("MODERN ONLINE").build(app);
 
         if ui::Button::new("SOLO", app).pressed {
             self.state = State::ModernOnlineSolo;
@@ -577,6 +619,182 @@ impl MainMenuScene {
 
         if ui::Button::new("SPECTATE", app).pressed {
             self.state = State::ModernOnlineSpectate;
+        }
+
+        if ui::Button::new("BACK", app).pressed {
+            self.state = State::Modern;
+        }
+    }
+
+    fn show_custom_rules(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
+        //let window_size = app.window_size();
+        //let window_size = Vec2i { x: window_size.0 as i32, y: window_size.1 as i32 };
+        let menu_size = Vec2i { x: 580, y: 880 };
+
+        // Ui
+        let window_layout = Layout {
+            pos: Vec2i { x: 40, y: 40, },
+            size: menu_size
+        };
+        Ui::builder(window_layout)
+            .header("CUSTOM GAME")
+            .fixed_height()
+            .build(app);
+
+        let mut rules_box_placer = PagedBox::builder("rules", 26).build(app).unwrap();
+        {
+            // @TODO combobox for presets
+            let mut preset_index = 0;
+            Combobox::builder("PRESET", &["(CUSTOM)"])
+                .build_with_placer(&mut preset_index, &mut rules_box_placer, app);
+
+            // @TODO ComboboxEnum
+            let mut rotation_system = match self.custom_rules.rotation_system {
+                RotationSystem::Original => 0,
+                RotationSystem::NRSL     => 1,
+                RotationSystem::NRSR     => 2,
+                RotationSystem::Sega     => 3,
+                RotationSystem::ARS      => 4,
+                RotationSystem::SRS      => 5,
+                RotationSystem::DTET     => 6,
+            };
+            Combobox::builder("ROTATION SYSTEM", ROTATION_SYSTEM_NAMES)
+                .build_with_placer(&mut rotation_system, &mut rules_box_placer, app);
+            self.custom_rules.rotation_system = match rotation_system {
+                0 => RotationSystem::Original,
+                1 => RotationSystem::NRSL,
+                2 => RotationSystem::NRSR,
+                3 => RotationSystem::Sega,
+                4 => RotationSystem::ARS,
+                5 => RotationSystem::SRS,
+                _ => RotationSystem::DTET,
+            };
+
+            Checkbox::builder("HARD DROP")
+                .build_with_placer(&mut self.custom_rules.has_hard_drop, &mut rules_box_placer, app);
+            Checkbox::builder("  HARD DROP LOCK")
+                .disabled(!self.custom_rules.has_hard_drop)
+                .build_with_placer(&mut self.custom_rules.has_hard_drop_lock, &mut rules_box_placer, app);
+
+            Checkbox::builder("SOFT DROP")
+                .build_with_placer(&mut self.custom_rules.has_soft_drop, &mut rules_box_placer, app);
+            Checkbox::builder("  SOFT DROP LOCK")
+                .disabled(!self.custom_rules.has_soft_drop)
+                .build_with_placer(&mut self.custom_rules.has_soft_drop_lock, &mut rules_box_placer, app);
+
+            SliderU64::builder("  INTERVAL", 0, 500_000)
+                .build_with_placer(&mut self.custom_rules.soft_drop_interval, &mut rules_box_placer, app);
+
+            Checkbox::builder("HOLD PIECE")
+                .build_with_placer(&mut self.custom_rules.has_hold_piece, &mut rules_box_placer, app);
+            Checkbox::builder("  RESET ROTATION")
+                .disabled(!self.custom_rules.has_hold_piece)
+                .build_with_placer(&mut self.custom_rules.hold_piece_reset_rotation, &mut rules_box_placer, app);
+
+            Checkbox::builder("GHOST PIECE")
+                .build_with_placer(&mut self.custom_rules.has_ghost_piece, &mut rules_box_placer, app);
+
+            Checkbox::builder("SPAWN DROP")
+                .build_with_placer(&mut self.custom_rules.spawn_drop, &mut rules_box_placer, app);
+
+            Checkbox::builder("IRS")
+                .build_with_placer(&mut self.custom_rules.has_initial_rotation_system, &mut rules_box_placer, app);
+            Checkbox::builder("IHS")
+                .build_with_placer(&mut self.custom_rules.has_initial_hold_system, &mut rules_box_placer, app);
+
+            SliderU8::builder("SPAWN ROW", 0, 24)
+                .build_with_placer(&mut self.custom_rules.spawn_row, &mut rules_box_placer, app);
+            SliderU8::builder("NEXT PIECES", 0, 8)
+                .build_with_placer(&mut self.custom_rules.next_pieces_preview_count, &mut rules_box_placer, app);
+
+            // @TODO ComboboxEnum
+            let mut line_clear = match self.custom_rules.line_clear_rule {
+                LineClearRule::Naive   => 0,
+                LineClearRule::Sticky  => 1,
+                LineClearRule::Cascade => 2,
+            };
+            Combobox::builder("LINE CLEAR", LINE_CLEAR_RULE_NAMES)
+                .build_with_placer(&mut line_clear, &mut rules_box_placer, app);
+            self.custom_rules.line_clear_rule = match line_clear {
+                0 => LineClearRule::Naive,
+                1 => LineClearRule::Sticky,
+                _ => LineClearRule::Cascade,
+            };
+
+            SliderU64::builder("  DELAY", 0, 1_000_000)
+                .build_with_placer(&mut self.custom_rules.line_clear_delay, &mut rules_box_placer, app);
+
+            Text::builder("TOP OUT RULE")
+                .build_with_placer(&mut rules_box_placer, app);
+
+            let mut block_out = self.custom_rules.top_out_rule.contains(TopOutRule::BLOCK_OUT);
+            let block_out_state = Checkbox::builder("  BLOCK OUT")
+                .build_with_placer(&mut block_out, &mut rules_box_placer, app);
+            if block_out_state.changed {
+                self.custom_rules.top_out_rule.toggle(TopOutRule::BLOCK_OUT);
+                if self.custom_rules.top_out_rule.is_empty() {
+                    self.custom_rules.top_out_rule.toggle(TopOutRule::BLOCK_OUT);
+                }
+            }
+
+            let mut lock_out = self.custom_rules.top_out_rule.contains(TopOutRule::LOCK_OUT);
+            let lock_out_state = Checkbox::builder("  LOCK OUT").
+                build_with_placer(&mut lock_out, &mut rules_box_placer, app);
+            if lock_out_state.changed {
+                self.custom_rules.top_out_rule.toggle(TopOutRule::LOCK_OUT);
+                if self.custom_rules.top_out_rule.is_empty() {
+                    self.custom_rules.top_out_rule.toggle(TopOutRule::LOCK_OUT);
+                }
+            }
+
+            let mut partial_lock_out = self.custom_rules.top_out_rule.contains(TopOutRule::PARTIAL_LOCK_OUT);
+            let partial_lock_out_state = Checkbox::builder("  PARTIAL LOCK OUT")
+                .build_with_placer(&mut partial_lock_out, &mut rules_box_placer, app);
+            if partial_lock_out_state.changed {
+                self.custom_rules.top_out_rule.toggle(TopOutRule::PARTIAL_LOCK_OUT);
+                if self.custom_rules.top_out_rule.is_empty() {
+                    self.custom_rules.top_out_rule.toggle(TopOutRule::PARTIAL_LOCK_OUT);
+                }
+            }
+
+            let mut garbage_out = self.custom_rules.top_out_rule.contains(TopOutRule::GARBAGE_OUT);
+            let garbage_out_state = Checkbox::builder("  GARBAGE OUT")
+                .build_with_placer(&mut garbage_out, &mut rules_box_placer, app);
+            if garbage_out_state.changed {
+                self.custom_rules.top_out_rule.toggle(TopOutRule::GARBAGE_OUT);
+                if self.custom_rules.top_out_rule.is_empty() {
+                    self.custom_rules.top_out_rule.toggle(TopOutRule::GARBAGE_OUT);
+                }
+            }
+
+            // @TODO ui for time values (in frames?)
+            // @TODO slider float
+            SliderU64::builder("DAS", 0, 500_000)
+                .build_with_placer(&mut self.custom_rules.das_repeat_delay, &mut rules_box_placer, app);
+            SliderU64::builder("ARR", 0, 500_000)
+                .build_with_placer(&mut self.custom_rules.das_repeat_interval, &mut rules_box_placer, app);
+
+            //pub gravity_curve: GravityCurve,
+            //pub scoring_curve: ScoringRule,
+            //pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
+
+            SliderU8::builder("START LEVEL", self.custom_rules.minimum_level, 50)
+                .build_with_placer(&mut self.custom_rules.minimum_level, &mut rules_box_placer, app);
+            SliderU64::builder("ENTRY DELAY", 0, 2_000_000)
+                .build_with_placer(&mut self.custom_rules.entry_delay, &mut rules_box_placer, app);
+
+            //pub lock_delay: LockDelayRule,
+
+            //pub randomizer_type: RandomizerType,
+            //app.input_u64_stretch("seed", &mut self.seed);
+        }
+
+        if ui::Button::new("START GAME", app).pressed {
+            self.state = State::Custom;
         }
 
         if ui::Button::new("BACK", app).pressed {

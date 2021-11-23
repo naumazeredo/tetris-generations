@@ -31,13 +31,27 @@ impl<'a> Button<'a> {
         }
     }
 
-    pub fn build(self, app: &mut App<'_>) -> ButtonState {
-        let state = app.button_internal(self);
+    #[inline(always)] pub fn build(self, app: &mut App) -> ButtonState {
+        self.build_with_placer(&mut app.ui_system.top_ui().index(), app)
+    }
 
-        ButtonState {
-            pressed: state.pressed,
-            down: state.down,
-            hovering: state.hovering
+    #[inline(always)] pub fn build_with_placer<P: Placer>(
+        self,
+        placer: &mut P,
+        app: &mut App
+    ) -> ButtonState {
+        if let Some(state) = button_internal(self, placer, app) {
+            ButtonState {
+                pressed:  state.pressed,
+                down:     state.down,
+                hovering: state.hovering
+            }
+        } else {
+            ButtonState {
+                pressed:  false,
+                down:     false,
+                hovering: false,
+            }
         }
     }
 }
@@ -46,41 +60,48 @@ impl<'a> Button<'a> {
 
 fn new_button(text: &str, disabled: bool) -> State {
     State {
-        pressed: false,
-        down: false,
-        hovering: false,
         disabled,
+        pressed:  false,
+        down:     false,
+        hovering: false,
+        scroll:   0,
         variant: ElementVariant::Button { text: text.to_owned() },
     }
 }
 
-impl App<'_> {
-    fn button_internal(&mut self, button: Button) -> &State {
-        // @Maybe add text using the app.text method instead of calculating everything
+fn button_internal<'a, P: Placer>(
+    button: Button,
+    placer: &mut P,
+    app: &'a mut App,
+) -> Option<&'a State> {
+    // @Maybe add text using the Text method instead of calculating everything
 
-        let id = Id::new(button.text).add("#__button");
+    let id = Id::new(button.text).add("#__button");
 
-        // @Cleanup these ui.last_mut().unwrap() calls
-        // Calculate element size
-        let ui = &self.ui_system.uis.last().unwrap();
-        let size = Vec2i {
-            x: ui.draw_width(),
-            y: ui.style.line_height
-        };
-        let layout = self.new_layout(size);
+    let line_padding = placer.ui(app).style.line_padding;
+    placer.add_padding(line_padding, app);
 
-        self.add_element(id, layout);
+    // Calculate element size
+    let size = Vec2i {
+        x: placer.draw_width(app),
+        y: placer.ui(app).line_draw_height()
+    };
+    let layout = placer.place_element(id, size, app);
 
-        self.ui_system.states.entry(id)
-            .and_modify(|state| {
-                state.disabled = button.disabled;
-            })
-            .or_insert_with(|| new_button(button.text, button.disabled));
+    placer.remove_padding(app);
 
-        if !button.disabled {
-            self.update_state_interaction(id, layout)
-        } else {
-            self.ui_system.states.get(&id).unwrap()
-        }
+    if layout.is_none() { return None; }
+    let layout = layout.unwrap();
+
+    app.ui_system.states.entry(id)
+        .and_modify(|state| {
+            state.disabled = button.disabled;
+        })
+        .or_insert_with(|| new_button(button.text, button.disabled));
+
+    if !button.disabled {
+        Some(app.update_state_interaction(id, layout))
+    } else {
+        Some(app.ui_system.states.get(&id).unwrap())
     }
 }

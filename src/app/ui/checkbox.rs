@@ -1,7 +1,6 @@
 use crate::app::App;
 use super::*;
 
-
 pub struct CheckboxState {
     pub pressed: bool,
     pub down: bool,
@@ -33,14 +32,34 @@ impl<'a> Checkbox<'a> {
         }
     }
 
-    pub fn build(self, value: &mut bool, app: &mut App) -> CheckboxState {
-        let state = app.checkbox_internal(value, self);
+    #[inline(always)] pub fn build(
+        self,
+        value: &mut bool,
+        app: &mut App
+    ) -> CheckboxState {
+        self.build_with_placer(value, &mut app.ui_system.top_ui().index(), app)
+    }
 
-        CheckboxState {
-            pressed: state.pressed,
-            down:    state.down,
-            hovering: state.hovering,
-            changed: state.pressed,
+    #[inline(always)] pub fn build_with_placer<P: Placer>(
+        self,
+        value: &mut bool,
+        placer: &mut P,
+        app: &mut App
+    ) -> CheckboxState {
+        if let Some(state) = checkbox_internal(value, self, placer, app) {
+            CheckboxState {
+                pressed:  state.pressed,
+                down:     state.down,
+                hovering: state.hovering,
+                changed:  state.pressed,
+            }
+        } else {
+            CheckboxState {
+                pressed:  false,
+                down:     false,
+                hovering: false,
+                changed:  false,
+            }
         }
     }
 }
@@ -49,57 +68,80 @@ impl<'a> Checkbox<'a> {
 
 fn new_checkbox(value: bool, disabled: bool) -> State {
     State {
-        pressed: false,
-        down: false,
-        hovering: false,
         disabled,
+        pressed:  false,
+        down:     false,
+        hovering: false,
+        scroll:   0,
         variant: ElementVariant::Checkbox { value },
     }
 }
 
-impl App<'_> {
-    fn checkbox_internal(&mut self, value: &mut bool, checkbox: Checkbox) -> &State {
-        // Add label
-        self.text_internal(Text::builder(checkbox.label).disabled(checkbox.disabled));
-        self.same_line();
+fn checkbox_internal<'a, P: Placer>(
+    value: &mut bool,
+    checkbox: Checkbox,
+    placer: &mut P,
+    app: &'a mut App,
+) -> Option<&'a State> {
+    let ui = placer.ui(app);
+    let spacing = ui.style.spacing;
+    let line_padding = ui.style.line_padding;
 
-        // Update/create box state
-        let id = Id::new(checkbox.label).add("#__checkbox");
+    let checkbox_box_size = ui.line_draw_height();
 
-        let ui = &self.ui_system.uis.last().unwrap();
-        let checkbox_box_size = ui.style.line_height;
+    placer.add_padding(line_padding, app);
 
-        let size = Vec2i { x: checkbox_box_size as i32, y: checkbox_box_size as i32 };
-        let layout = self.new_layout_right(size);
-        self.add_element(id, layout);
+    let text_width = placer.draw_width(app) - checkbox_box_size - spacing;
 
-        self.ui_system.states.entry(id)
-            .and_modify(|state| {
-                state.disabled = checkbox.disabled;
+    // Add label
+    text_internal(
+        Text::builder(checkbox.label)
+            .disabled(checkbox.disabled)
+            .max_width(text_width as u32),
+        placer,
+        app
+    );
 
-                if let ElementVariant::Checkbox { value: v } = &mut state.variant {
-                    *v = *value;
-                } else {
-                    unreachable!();
-                }
-            })
-            .or_insert_with(|| new_checkbox(*value, checkbox.disabled));
+    placer.same_line(app);
+    placer.add_spacing(app);
 
-        if !checkbox.disabled {
-            let state = self.update_state_interaction(id, layout);
-            if state.pressed {
-                *value = !*value;
+    // Update/create box state
+    let id = Id::new(checkbox.label).add("#__checkbox");
 
-                // @XXX should we update the saved state or just be delayed by 1 frame?
-                match &mut state.variant {
-                    ElementVariant::Checkbox { value: v } => *v = !*v,
-                    _ => unreachable!()
-                }
+    let size = Vec2i { x: checkbox_box_size as i32, y: checkbox_box_size as i32 };
+    let layout = placer.place_element(id, size, app);
+
+    placer.remove_padding(app);
+
+    if layout.is_none() { return None; }
+    let layout = layout.unwrap();
+
+    app.ui_system.states.entry(id)
+        .and_modify(|state| {
+            state.disabled = checkbox.disabled;
+
+            if let ElementVariant::Checkbox { value: v } = &mut state.variant {
+                *v = *value;
+            } else {
+                unreachable!();
             }
+        })
+        .or_insert_with(|| new_checkbox(*value, checkbox.disabled));
 
-            state
-        } else {
-            self.ui_system.states.get(&id).unwrap()
+    if !checkbox.disabled {
+        let state = app.update_state_interaction(id, layout);
+        if state.pressed {
+            *value = !*value;
+
+            // @XXX should we update the saved state or just be delayed by 1 frame?
+            match &mut state.variant {
+                ElementVariant::Checkbox { value: v } => *v = !*v,
+                _ => unreachable!()
+            }
         }
+
+        Some(state)
+    } else {
+        Some(app.ui_system.states.get(&id).unwrap())
     }
 }

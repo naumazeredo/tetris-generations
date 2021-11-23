@@ -126,7 +126,7 @@ impl App<'_> {
                 // This can be useful if the game has some meta components, like
                 // not allowing you to close the window, or changing how it handles
                 // window focus/minimize/maximize, etc
-                if state.handle_input(self, &event) { continue; }
+                if state.handle_input(&event, self) { continue; }
 
                 self.handle_input(&event);
             }

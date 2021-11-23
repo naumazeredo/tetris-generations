@@ -1,5 +1,6 @@
 use crate::app::{
     font_system::{
+        FONT_SCALE,
         FontId,
         FontSystem,
     },
@@ -35,7 +36,7 @@ pub(in crate::app) fn queue_draw_text(
         if let Some(&char_data) = font_system.fonts.get(&font).unwrap().get_char_data(ch) {
             let uvs = char_data.get_uvs();
 
-            let scale = font_size / 64.;
+            let scale = font_size / FONT_SCALE as f32;
             let char_top_left = Vec2 {
                 x:  char_data.metrics.minx as f32 * scale,
                 y: -char_data.metrics.maxy as f32 * scale

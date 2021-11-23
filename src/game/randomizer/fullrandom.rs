@@ -1,5 +1,5 @@
 // @TODO abstract PCG
-use crate::rand_core::RngCore;
+use rand_core::RngCore;
 
 use crate::app::ImDraw;
 use crate::game::pieces::{

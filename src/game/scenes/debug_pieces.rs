@@ -22,10 +22,13 @@ pub struct DebugPiecesScene {
 }
 
 impl SceneTrait for DebugPiecesScene {
+    type Scene = Scene;
+    type PersistentData = PersistentData;
+
     fn update(
         &mut self,
         _app: &mut App,
-        _persistent: &mut PersistentData
+        _persistent: &mut Self::PersistentData
     ) {
         self.rot = ((self.rot % 4) + 4) % 4;
     }
@@ -33,7 +36,7 @@ impl SceneTrait for DebugPiecesScene {
     fn render(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         app.queue_draw_text(
             &format!("{:?}", self.rotation_system),
@@ -157,9 +160,9 @@ impl SceneTrait for DebugPiecesScene {
 
     fn handle_input(
         &mut self,
+        event: &sdl2::event::Event,
         app: &mut App,
-        _persistent: &mut PersistentData,
-        event: &sdl2::event::Event
+        _persistent: &mut Self::PersistentData,
     ) -> bool {
         use sdl2::event::Event;
         use sdl2::keyboard::Scancode;
@@ -201,7 +204,11 @@ impl SceneTrait for DebugPiecesScene {
         false
     }
 
-    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
+    fn transition(
+        &mut self,
+        _app: &mut App,
+        _persistent: &mut Self::PersistentData
+    ) -> Option<SceneTransition<Self::Scene>> {
         if self.go_back {
             Some(SceneTransition::Pop)
         } else {
@@ -209,11 +216,11 @@ impl SceneTrait for DebugPiecesScene {
         }
     }
 
-    fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData) {
+    fn on_enter(&mut self, app: &mut App, _persistent: &mut Self::PersistentData) {
         app.pause();
     }
 
-    fn on_exit(&mut self, app: &mut App, _persistent: &mut PersistentData) {
+    fn on_exit(&mut self, app: &mut App, _persistent: &mut Self::PersistentData) {
         app.resume();
     }
 }

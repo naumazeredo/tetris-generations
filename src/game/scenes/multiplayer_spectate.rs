@@ -32,10 +32,13 @@ pub struct MultiPlayerSpectateScene {
 }
 
 impl SceneTrait for MultiPlayerSpectateScene {
+    type Scene = Scene;
+    type PersistentData = PersistentData;
+
     fn update(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         // Networking
         loop {
@@ -104,7 +107,7 @@ impl SceneTrait for MultiPlayerSpectateScene {
     fn render(
         &mut self,
         app: &mut App,
-        persistent: &mut PersistentData
+        persistent: &mut Self::PersistentData
     ) {
         // UI
         let window_size = app.window_size();
@@ -216,9 +219,9 @@ impl SceneTrait for MultiPlayerSpectateScene {
 
     fn handle_input(
         &mut self,
+        event: &sdl2::event::Event,
         _app: &mut App,
-        _persistent: &mut PersistentData,
-        event: &sdl2::event::Event
+        _persistent: &mut Self::PersistentData,
     ) -> bool {
         //use sdl2::event::Event;
         //use sdl2::keyboard::Scancode;
@@ -230,7 +233,11 @@ impl SceneTrait for MultiPlayerSpectateScene {
         false
     }
 
-    fn transition(&mut self, _app: &mut App, _persistent: &mut PersistentData) -> Option<SceneTransition> {
+    fn transition(
+        &mut self,
+        _app: &mut App,
+        _persistent: &mut Self::PersistentData
+    ) -> Option<SceneTransition<Self::Scene>> {
         if let State::Quitting = self.state {
             Some(SceneTransition::Pop)
         } else {
@@ -238,13 +245,13 @@ impl SceneTrait for MultiPlayerSpectateScene {
         }
     }
 
-    fn on_enter(&mut self, app: &mut App, _persistent: &mut PersistentData,) {
+    fn on_enter(&mut self, app: &mut App, _persistent: &mut Self::PersistentData,) {
         app.restart_time_system();
     }
 }
 
 impl MultiPlayerSpectateScene {
-    pub fn new(app: &mut App, persistent: &mut PersistentData) -> Self {
+    pub fn new(app: &mut App, persistent: &mut Self::PersistentData) -> Self {
         let rules: Rules = RotationSystem::SRS.into();
         let rules_instance = RulesInstance::new(rules, 0, app, persistent);
 

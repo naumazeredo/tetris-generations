@@ -18,7 +18,9 @@ pub(super) fn pack_font<'a>(
             match font.find_glyph(glyph) {
                 Some(_) => true,
                 None => {
-                    println!("glyph |{}| not found", glyph);
+                    // @TODO count glyphs not found?
+                    // @TODO logging
+                    //println!("glyph |{}| not found", glyph);
                     false
                 }
             }

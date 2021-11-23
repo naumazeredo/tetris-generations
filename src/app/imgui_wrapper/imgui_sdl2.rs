@@ -1,6 +1,3 @@
-extern crate sdl2;
-extern crate imgui;
-
 use sdl2::video::Window;
 use sdl2::mouse::{Cursor,SystemCursor,MouseState};
 use sdl2::keyboard::Scancode;

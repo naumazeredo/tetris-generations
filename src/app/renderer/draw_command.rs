@@ -104,7 +104,7 @@ pub(in crate::app) fn push_clip(
         Command::PushClip {
             min: pos,
             max: pos + size,
-            intersect: true,
+            intersect: false,
         }
     );
 }
@@ -114,6 +114,7 @@ pub(in crate::app) fn pop_clip(renderer: &mut Renderer) {
 }
 
 impl App<'_> {
+    // @TODO move this somewhere else? To color module maybe?
     pub fn queue_draw_solid(
         &mut self,
         transform: &Transform,
@@ -130,5 +131,17 @@ impl App<'_> {
         color: Color,
     ) {
         queue_draw_quad(&mut self.renderer, transform, size, color);
+    }
+
+    pub fn push_clip(
+        &mut self,
+        pos: Vec2i,
+        size: Vec2i,
+    ) {
+        push_clip(&mut self.renderer, pos, size);
+    }
+
+    pub fn pop_clip(&mut self) {
+        pop_clip(&mut self.renderer);
     }
 }

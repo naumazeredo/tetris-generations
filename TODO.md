@@ -14,6 +14,7 @@
 
 ### Game
 
+- [ ] Fix Classic style: NES Classic has blocks with sizes 7x7, not 8x8
 - [ ] General refactor/cleanup
   - [x] Refactor SinglePlayerScene into RulesInstance (maybe a better name)
   - [ ] Refactor orientation rule usage and rules functions
@@ -30,25 +31,43 @@
       - [ ] Controls
   - [ ] Classic game
     - [ ] Local
+      - [ ] Select level menu
+      - [ ] Change layout to match NES
+      - [ ] Options in pause menu
     - [ ] Multiplayer
   - [ ] Modern game
     - [ ] Local
     - [ ] Multiplayer
   - [ ] Custom game
-- [ ] [render] Clip render of blocks to playfield
-  - [ ] ~[bug] Piece movement animation makes the rendering be outside of the playfield. This should be
+    - [ ] Explaination for each rule
+      - [ ] Times should show a realtime + slowdown near the action (or step by step explaination)
+      - [ ] Rotation systems should show all pieces rotations and have multiple pages showing the
+          kicks
+- [x] [render] Clip render of blocks to playfield
+  - [x] ~[bug] Piece movement animation makes the rendering be outside of the playfield. This should be
       fixed with rendering on a framebuffer instead of directly on the screen~
-- [ ] [bug] multiplayer scene -> game over = crash (after some time)?
+- [ ] [bug] multiplayer scene -> game over = crash (after some time and after a failed connect)?
 - [ ] [bug] multiplayer spectate scene -> connecting is not dropping after server died?
 - [ ] [visual bug] animations are skipped if the piece is locked in the middle of the animation
 - [ ] [bug] Controller buttons are not working for some reason (working fine for now, but no changes
     were made, so this bug is still there)
+- [ ] [scene manager]: Refactor into App (how to do this properly without vtables? I would like to have the
+    App being in control of the scene manager while the game will give the scenes)
+  - [ ] Create a derive macro like enum_dispatch (can't use enum dispatch with associated type)
+  - [ ] Use associate type in SceneTrait to be able to move SceneManager to App
+  - [ ] Add generic type Scene to App to move SceneManager to App
 
 ### Engine
 
+- [ ] Refactor projects: lib (engine), bins (game, server, etc)
+    linalg should be moved to the app
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface (system/mod.rs should contain the pub
-      interface)
+      interface) and avoid App self borrow:
+      app.time.delta(), app.tasks.queue_task(..), app.renderer.queue_draw(..)
+  - [ ] Refactor App into multiple traits to be able to have mockable parts to test everything
+      app.time().delta(), app.tasks().queue_task(..), app.renderer().queue_draw(..)
+      - This may be annoying since it would add a mut self reference to app
 - [x] [network]
   - [x] Rename app/net to app/network
   - [x] public interface instead of whole struct being public
@@ -65,6 +84,7 @@
 - [ ] [video]
   - [x] Get display modes
   - [x] use sdl2::video::{DisplayMode, FullscreenType} in video_system since we use the structs
+  - [x] Add vsync option
   - [ ] [issue] Change screen mode to desktop doesn't change display mode (going back to fullscreen
       won't be on monitor resolution)
   - [ ] [issue] Change screen mode to fullscreen and back to windowed should restore windowed size
@@ -79,6 +99,10 @@
     - [x] Scissor/Clip
 - [ ] [ui]
   - [x] Render scissor
+  - [x] Multipage window ("multiline" window)
+      - Maybe scroll page? Should need to split header and footer elements to not scroll with the
+          page
+  - [ ] Line focus?
   - [ ] Widgets
     - [x] Text
       - [x] Basic functionality
@@ -95,18 +119,25 @@
     - [ ] Input integer range
       - [x] Basic functionality
       - [ ] State+Build pattern
+      - [ ] Scroll interaction
     - [x] Input text
       - [x] Basic functionality
       - [x] State+Build pattern
     - [ ] Combobox
       - [x] Basic functionality
       - [x] State+Build pattern (changed, changing?)
+      - [ ] Center text to match slider
       - [ ] Left/right control (seems to be the simplest and better control)
+      - [ ] Enum
+        - [ ] Macro to generate list of strings from enum
+        - [ ] Enum as generics (get list of strings as trait and receive the value as enum type
+            directly)
     - [ ] Slider
       - [x] Basic functionality
       - [x] Disabled colors
-      - [ ] State+Build pattern
-        - [ ] Annoying to deal with multiple integer types
+      - [x] State+Build pattern
+      - [ ] Value step
+      - [ ] Scroll interaction
     - [ ] Input float range
     - [ ] Input color
     - [ ] Input key
@@ -280,26 +311,35 @@
   - Show all piece orientations (with spawn height indicator)
 - [ ] [test] Test all wall/floor kick rotations!
 - [ ] PAL vs NTSC framerates (update speeds to frames)
-- [ ] [scene manager]: Refactor into App (how to do this properly without vtables? I would like to have the
-    App being in control of the scene manager while the game will give the scenes)
+- [ ] Correct NES resolutions and scaling (PAL: 256x240, NTSC: 256x224 with bottom 8 scanlines not
+    visible)
+- [ ] Easter eggs
+  - [ ] Main menu match
+    - [ ] Have a Tetris game (classic) in the main menu. After a Tetris, the menu disappears, the
+        playfield centers, the classic music starts playing. Then the game goes on each generation
+        of Tetris, changing the rules, rotation, music, sounds, effects, graphics, etc.
+  - [ ] Nintendo code?
 
 ### Engine
 
 - [ ] Address cargo clippy warnings
+- [ ] Remove usize variables (why would I need 8 bytes for most things?)
+- [ ] Test systems
+- [ ] Document everything
 - [ ] Memory allocation
   - [ ] Have a custom allocator to remove most use cases of dynamic arrays (Vec)
   - [ ] Frame allocator
-- [ ] Test systems
 - [ ] [animation system / task system] task system turned out to be a bad idea. We may need to find
     a better, more reliable solution to it.
     - Maybe a stackable task system could be a good solution to be able to add it to the scenes (and
       update with dt instead of game time?)
     - Doing this can be a good opportunity to remove the State generics from App!
 - [ ] [render]
-  - [ ] [bug] [font render] Fix background not being transparent -> rendering issue: z orders not
+  - [ ] [bug] Fix background not being transparent -> rendering issue: z orders not
       matching rendering order. Maybe just order everything by the z order (more draw calls might be
       needed and the state function changes should be stored in the post processed draw call
       somehow)
+  - [ ] Pixel perfect rendering
   - [ ] Stack commands
     - [ ] Blending
     - [ ] Matrix transformation
@@ -310,6 +350,9 @@
   - [ ] More backend supports (Vulkan, DirectX)
   - [ ] Multithreading
     - [ ] Maybe use persistent structures for rendering (or have a double/triple buffer)
+  - [ ] [video?] Have a way to resize nicely: resizing the window doesn't change the rendering.
+      Maybe we should have specific layouts for specific aspect-ratios and make the renderer
+      re-scale based on the resolution
 - [ ] [input]
   - [ ] [issue] Not updating an input_mapping can break it: maybe having a local timer for each
       input_manager, getting the whole global key state on enabling and calling update with dt will
@@ -346,6 +389,10 @@
     - [ ] Individual channel control
 - [ ] [video]
   - [ ] Abstract FullscreenType since it has a quite bad name for all variants
+  - [ ] Abstract SwapInterval
+  - [ ] [render?] Have a way to resize nicely: resizing the window doesn't change the rendering.
+      Maybe we should have specific layouts for specific aspect-ratios and make the renderer
+      re-scale based on the resolution
 - [ ] [network]
   - [ ] Packet fragmentation
   - [ ] Server-client
@@ -374,6 +421,21 @@
   - [ ] Asset System should not hold all data, each component can hold its own data.
       It should handle what should be loaded and unloaded into/from memory (seems that this has is
       somewhat what a Scene Manager is for, though, except for streaming data)
+  - [ ] Asset system config file: there should be some files listing all assets being used, the name
+      of the asset, what's the actual file this asset is at.
+    - For textures it should know the rect of the image the asset represents
+    - For sounds it should know the interval of the music file the asset represents
+    - (There's probably more types that might be packed)
+    - [ ] Pack textures: to not manually need to pack them, we should be able to 
+    - [ ] Versioning: for packaging, we shouldn't modify already packaged config files (or packed
+        textures). So there might be multiple asset config files describing the assets (this seems
+        similar to virtual filesystem part also)
+  - [ ] Hold sprites?
+  - [ ] get_ui_sprite: Change sprite depending on most recent input type (keyboard/mouse, Xbox
+      controller, PS controller, etc)
+- [ ] [font]
+  - [ ] Store multiple font sizes or a chosen value that has a lot of divisors, to avoid conversion
+      issues
 - [ ] [time]
   - [ ] Make game run in frames instead of continuous time
   - [ ] Timer data structure (and dt in update functions)
@@ -383,9 +445,24 @@
   - [ ] Duration/Time struct (mainly to better integrate with SDL times): maybe use
       Instant/Duration?
 - [ ] [ui]
+  - [ ] UI code seems quite bad on system side: placers seems like a good idea but it turned out to
+      have a pretty bad code. We might need to redo the whole UI code design later
+  - [ ] Not doing: ~["multiline" window] Maybe refactor to be "widget centric" and left/right parts
+      - Right now each widget can have a left and right elements (not forced in the design, was just
+          coincidental) and the elements don't even know which widget they are.
+      - Maybe we should degeneralize (specify?) and force to be left+right or full line widget
+      - Widgets should know their full sizes to allow line focus and to have a better keyboard
+          support~
+  - [ ] Resolution/aspect ratios configurations: changing resolutions might require changing the UI
+      layout also. We should have preconfigured layouts for common aspect ratios and resolutions and
+      approximate in case it's not matching
+      - We need resolution (or height, or width) + aspect ratio since the same aspect ratio with a
+          smaller resolution can easily make the UI look quite bad (too small).
+  - [ ] UI scaling
   - [ ] Custom layout
     - [ ] Stretching sizes
     - [ ] Anchored positioning
+      - [ ] ~Align to bottom: footer? maybe explicitly add a header also? ("multiline" window)~
   - [ ] Cache rendered components and windows
   - [ ] Maybe have a "multiline" window (header + multiple lines) and a "freestyle" (hand placed
       widgets): not sure how other UIs will work yet (HUD? maybe just more widgets, trying to not
@@ -393,7 +470,7 @@
   - [ ] UI stack? This will be needed if we want a Monster Hunter way of doing UI (controlling the
       character works fine when UI is opened, but only the top of the UI stack accepts UI input)
   - [ ] Position/size should be calculated on rendering call. The calls should store the layout and
-      state (this will make the rendering delayed by 1 frame, which should might fine)
+      state (this makes the rendering and interactions delayed by 1 frame, which is usually fine)
     - [ ] Layout: size (auto+min+max, fixed)
     - [ ] Extra commands: indent, unindent, same line, (group start/end? -> maybe this will require
         two passes: calculate position/size, render)
@@ -401,14 +478,12 @@
   - [ ] Widgets
     - [ ] Combobox
       - [ ] Combowheel?
-      - [ ] Enum macro?
     - [ ] Separator
   - [ ] Keyboard/Controller support
     - [ ] Styling colors for text/widgets (or colored background of the line)
   - [ ] Styling options
-  - [ ] Custom shader
-  - [ ] Multipage window ("multiline" window)
-  - [ ] Align to bottom ("multiline" window)
+    - [ ] Split style into multiple sections (placer options can be easily copiable, for example)
+  - [ ] Custom render shader
   - [ ] Update state on string changes: we are not comparing string changes for most widgets, and we
       only update state in case we see the difference. This should be done with a string hashing
       system to avoid copying the strings over and over
