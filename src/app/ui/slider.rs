@@ -1,3 +1,4 @@
+use std::panic::Location;
 use paste::paste;
 use crate::app::{
     App,
@@ -56,6 +57,7 @@ macro_rules! slider_variant_integer_impl {
             }
 
             impl<'a> [<Slider $type:upper>]<'a> {
+                #[track_caller]
                 pub fn new<'b: 'a>(label: &'b str, min: $type, max: $type, value: &mut $type, app: &mut App) -> SliderState {
                     Self::builder(label, min, max).build(value, app)
                 }
@@ -68,6 +70,7 @@ macro_rules! slider_variant_integer_impl {
                     Self { disabled, ..self }
                 }
 
+                #[track_caller]
                 #[inline(always)] pub fn build(
                     self,
                     value: &mut $type,
@@ -76,13 +79,15 @@ macro_rules! slider_variant_integer_impl {
                     self.build_with_placer(value, &mut app.ui_system.top_ui().index(), app)
                 }
 
-                #[inline(always)] pub fn build_with_placer<P: Placer>(
+                #[track_caller]
+                pub fn build_with_placer<P: Placer>(
                     self,
                     value: &mut $type,
                     placer: &mut P,
                     app: &mut App
                 ) -> SliderState {
-                    if let Some(state) = [<slider_ $type _internal>](value, self, placer, app) {
+                    let id = Id::new(Location::caller());
+                    if let Some(state) = [<slider_ $type _internal>](value, id, self, placer, app) {
                         if let ElementVariant::Slider {
                             changed,
                             ..
@@ -118,6 +123,7 @@ macro_rules! slider_variant_integer_impl {
                     down:     false,
                     hovering: false,
                     scroll:   0,
+                    focused: false,
                     variant: ElementVariant::Slider {
                         changed: false,
                         percent,
@@ -128,6 +134,7 @@ macro_rules! slider_variant_integer_impl {
 
             fn [<slider_ $type _internal>]<'a, P: Placer>(
                 value: &mut $type,
+                id: Id,
                 slider: [<Slider $type:upper>],
                 placer: &mut P,
                 app: &'a mut App,
@@ -135,12 +142,17 @@ macro_rules! slider_variant_integer_impl {
                 let ui = placer.ui(app);
                 let spacing = ui.style.spacing;
                 let line_padding = ui.style.line_padding;
+                let line_height = ui.style.line_height;
+
+                let line_size = Vec2i { x: placer.draw_width(app), y: line_height };
+                let line_pos  = placer.cursor(app);
 
                 placer.add_padding(line_padding, app);
                 let col_width = (placer.draw_width(app) - spacing) / 2;
 
                 // Add label
                 text_internal(
+                    id.add("#__text"),
                     Text::builder(slider.label)
                         .disabled(slider.disabled)
                         .max_width(col_width as u32),
@@ -150,8 +162,6 @@ macro_rules! slider_variant_integer_impl {
 
                 placer.same_line(app);
                 placer.add_spacing(app);
-
-                let id = Id::new(slider.label).add("#__slider");
 
                 let ui = placer.ui(app);
                 let size = Vec2i {
@@ -188,6 +198,15 @@ macro_rules! slider_variant_integer_impl {
                     .or_insert_with(|| [<new_slider_ $type>](*value, slider.min, slider.max, slider.disabled));
 
                 if !slider.disabled {
+                    // Add line. Must come before updat
+                    let ui = placer.ui(app);
+                    let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+                    let ui_index = ui.index().0;
+                    app.update_line_state_interaction(ui_index, line_index);
+
+                    // Update widget state
+
                     // Copy values since borrow-checker doesn't allow multiple references
                     let mouse_pos_x = app.get_mouse_position().0 as i32;
                     let ui = placer.ui(app);

@@ -1,3 +1,4 @@
+use std::panic::Location;
 use crate::app::App;
 use super::*;
 
@@ -13,6 +14,7 @@ pub struct Button<'a> {
 }
 
 impl<'a> Button<'a> {
+    #[track_caller]
     pub fn new(text: &str, app: &mut App) -> ButtonState {
         Button::builder(text).build(app)
     }
@@ -31,16 +33,19 @@ impl<'a> Button<'a> {
         }
     }
 
+    #[track_caller]
     #[inline(always)] pub fn build(self, app: &mut App) -> ButtonState {
         self.build_with_placer(&mut app.ui_system.top_ui().index(), app)
     }
 
-    #[inline(always)] pub fn build_with_placer<P: Placer>(
+    #[track_caller]
+    pub fn build_with_placer<P: Placer>(
         self,
         placer: &mut P,
         app: &mut App
     ) -> ButtonState {
-        if let Some(state) = button_internal(self, placer, app) {
+        let id = Id::new(Location::caller());
+        if let Some(state) = button_internal(id, self, placer, app) {
             ButtonState {
                 pressed:  state.pressed,
                 down:     state.down,
@@ -65,18 +70,24 @@ fn new_button(text: &str, disabled: bool) -> State {
         down:     false,
         hovering: false,
         scroll:   0,
+        focused: false,
         variant: ElementVariant::Button { text: text.to_owned() },
     }
 }
 
 fn button_internal<'a, P: Placer>(
+    id: Id,
     button: Button,
     placer: &mut P,
     app: &'a mut App,
 ) -> Option<&'a State> {
-    // @Maybe add text using the Text method instead of calculating everything
+    let ui = placer.ui(app);
+    let line_height = ui.style.line_height;
 
-    let id = Id::new(button.text).add("#__button");
+    let line_size = Vec2i { x: placer.draw_width(app), y: line_height };
+    let line_pos  = placer.cursor(app);
+
+    // @Maybe add text using the Text method instead of calculating everything
 
     let line_padding = placer.ui(app).style.line_padding;
     placer.add_padding(line_padding, app);
@@ -100,8 +111,17 @@ fn button_internal<'a, P: Placer>(
         .or_insert_with(|| new_button(button.text, button.disabled));
 
     if !button.disabled {
+        // Add line. Must come before updat
+        let ui = placer.ui(app);
+        let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+        let ui_index = ui.index().0;
+        app.update_line_state_interaction(ui_index, line_index);
+
+        // Update widget state
         Some(app.update_state_interaction(id, layout))
     } else {
+        // @TODO function for this
         Some(app.ui_system.states.get(&id).unwrap())
     }
 }

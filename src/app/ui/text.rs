@@ -1,3 +1,4 @@
+use std::panic::Location;
 use crate::app::App;
 use super::*;
 
@@ -8,6 +9,7 @@ pub struct Text<'a> {
 }
 
 impl<'a> Text<'a> {
+    #[track_caller]
     pub fn new(text: &str, app: &mut App) {
         Text::builder(text).build(app);
     }
@@ -34,18 +36,22 @@ impl<'a> Text<'a> {
         }
     }
 
+    #[track_caller]
     #[inline(always)] pub fn build(self, app: &mut App) -> Option<()> {
         self.build_with_placer(&mut app.ui_system.top_ui().index(), app)
     }
 
-    #[inline(always)] pub fn build_with_placer<P: Placer>(
+    #[track_caller]
+    pub fn build_with_placer<P: Placer>(
         self,
         placer: &mut P,
         app: &mut App
     ) -> Option<()> {
+        let id = Id::new(Location::caller());
+
         let line_padding = placer.ui(app).style.line_padding;
         placer.add_padding(line_padding, app);
-        let opt = text_internal(self, placer, app);
+        let opt = text_internal(id, self, placer, app);
         placer.remove_padding(app);
         opt
     }
@@ -60,18 +66,18 @@ fn new_text(text: &str, disabled: bool) -> State {
         down:     false,
         hovering: false,
         scroll: 0,
+        focused: false,
         variant: ElementVariant::Text { text: text.to_owned() },
     }
 }
 
 // @TODO return a state like all other widgets
 pub(super) fn text_internal<P: Placer>(
+    id: Id,
     text: Text,
     placer: &mut P,
     app: &mut App,
 ) -> Option<()> {
-    let id = Id::new(text.text).add("#__text");
-
     let render_size = app.calculate_text_size(text.text);
     let ui = placer.ui(app);
 

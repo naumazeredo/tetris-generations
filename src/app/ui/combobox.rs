@@ -1,13 +1,15 @@
+use std::panic::Location;
 use crate::app::App;
 use super::*;
 
 const COMBOBOX_DEFAULT_SCROLL_SIZE: usize = 5;
 
 pub struct ComboboxState {
-    pub pressed: bool,
-    pub down: bool,
+    pub pressed:  bool,
+    pub down:     bool,
     pub hovering: bool,
-    pub changed: bool,
+    pub changed:  bool,
+    pub focused:  bool,
 }
 
 pub struct Combobox<'a, T>
@@ -25,6 +27,7 @@ impl<'a, T> Combobox<'a, T>
 where
     T: AsRef<str>
 {
+    #[track_caller]
     pub fn new(
         label: &str,
         options: &[T],
@@ -66,6 +69,7 @@ where
         }
     }
 
+    #[track_caller]
     #[inline(always)] pub fn build(
         self,
         index: &mut usize,
@@ -74,13 +78,15 @@ where
         self.build_with_placer(index, &mut app.ui_system.top_ui().index(), app)
     }
 
-    #[inline(always)] pub fn build_with_placer<P: Placer>(
+    #[track_caller]
+    pub fn build_with_placer<P: Placer>(
         self,
         index: &mut usize,
         placer: &mut P,
         app: &mut App
     ) -> ComboboxState {
-        if let Some(state) = combobox_internal(index, self, placer, app) {
+        let id = Id::new(Location::caller());
+        if let Some(state) = combobox_internal(index, id, self, placer, app) {
             if let ElementVariant::Combobox {
                 changed,
                 ..
@@ -90,6 +96,7 @@ where
                     down:     state.down,
                     hovering: state.hovering,
                     changed,
+                    focused:  state.focused,
                 }
             } else {
                 unreachable!();
@@ -100,6 +107,7 @@ where
                 down:     false,
                 hovering: false,
                 changed:  false,
+                focused:  false,
             }
         }
     }
@@ -114,6 +122,7 @@ fn new_combobox(text: &str, index: usize, disabled: bool) -> State {
         down:     false,
         hovering: false,
         scroll:   0,
+        focused: false,
         variant: ElementVariant::Combobox {
             index,
             text: text.to_owned(),
@@ -130,6 +139,7 @@ fn new_combobox_option(text: &str, selected: bool) -> State {
         down:     false,
         hovering: false,
         scroll:   0,
+        focused: false,
         variant: ElementVariant::ComboboxOption {
             selected,
             text: text.to_owned(),
@@ -144,12 +154,14 @@ fn new_scrollbar() -> State {
         down:     false,
         hovering: false,
         scroll:   0,
+        focused: false,
         variant: ElementVariant::Scrollbar,
     }
 }
 
 fn combobox_internal<'a, T: AsRef<str>, P: Placer>(
     index: &mut usize,
+    id: Id,
     combobox: Combobox<T>,
     placer: &mut P,
     app: &'a mut App,
@@ -157,12 +169,17 @@ fn combobox_internal<'a, T: AsRef<str>, P: Placer>(
     let ui = placer.ui(app);
     let spacing = ui.style.spacing;
     let line_padding = ui.style.line_padding;
+    let line_height = ui.style.line_height;
+
+    let line_size = Vec2i { x: placer.draw_width(app), y: line_height };
+    let line_pos  = placer.cursor(app);
 
     placer.add_padding(line_padding, app);
     let col_width = (placer.draw_width(app) - spacing) / 2;
 
     // Add label
     text_internal(
+        id.add("#__text"),
         Text::builder(combobox.label)
             .disabled(combobox.disabled)
             .max_width(col_width as u32),
@@ -174,8 +191,6 @@ fn combobox_internal<'a, T: AsRef<str>, P: Placer>(
     placer.add_spacing(app);
 
     // Combobox
-    let id = Id::new(combobox.label).add("#__combobox");
-
     let ui = placer.ui(app);
     let box_width = combobox.box_width.unwrap_or(col_width as u32);
     let size = Vec2i {
@@ -339,6 +354,14 @@ fn combobox_internal<'a, T: AsRef<str>, P: Placer>(
         );
 
     if !combobox.disabled {
+        // Add line. Must come before updat
+        let ui = placer.ui(app);
+        let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+        let ui_index = ui.index().0;
+        app.update_line_state_interaction(ui_index, line_index);
+
+        // Update widget state
         let state = app.update_state_interaction(id, layout);
         if state.pressed {
             app.ui_system.modal_change = Some(modal_id);

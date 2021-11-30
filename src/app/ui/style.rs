@@ -17,6 +17,8 @@ pub struct Style {
 
     pub background_color: Color,
 
+    pub line_focus_background_color: Color,
+
     // @TODO move to specific files
 
     pub input_cursor_duration: u64,
@@ -83,6 +85,8 @@ impl Default for Style {
             line_padding: Vec2i { x: 12, y: 1 },
 
             background_color: Color { r: 0.05, g: 0.05, b: 0.05, a: 1.0 },
+
+            line_focus_background_color: Color { r: 0.05, g: 0.1, b: 0.0, a: 1.0 },
 
             input_cursor_duration: 500_000,
             input_cursor_size: 4,

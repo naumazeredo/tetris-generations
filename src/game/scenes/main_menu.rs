@@ -1,5 +1,5 @@
 use crate::app::*;
-use crate::linalg::Vec2i;
+use crate::linalg::{Vec2, Vec2i};
 
 use crate::game::rules::{
     Rules,
@@ -52,23 +52,67 @@ struct VideoInfo {
 impl VideoInfo {
     fn load(app: &App) -> Self {
         Self {
-            screen_mode: app.window_screen_mode(),
+            screen_mode:   app.window_screen_mode(),
             display_index: app.window_display_index(),
-            display_mode: app.window_display_mode(),
-            window_size: app.window_size(),
-            vsync: app.vsync(),
+            display_mode:  app.window_display_mode(),
+            window_size:   app.window_size(),
+            vsync:         app.vsync(),
         }
     }
 }
 
 impl_imdraw_todo!(VideoInfo);
 
+#[derive(Copy, Clone, Debug)]
+enum FocusedRule {
+    RotationSystem,
+
+    HardDrop,
+    HardDropLock,
+
+    SoftDrop,
+    SoftDropLock,
+
+    LockDelayRule,
+
+    Ghost,
+    Hold,
+    HoldResetRotation,
+
+    InitialRotation,
+    InitialHold,
+    SpawnDrop,
+    SpawnRow,
+    NextPiecesPreview,
+
+    LineClearRule,
+    TopOutRule,
+
+    DelayedAutoShift,
+    AutoRepeatRate,
+
+    SoftDropInterval,
+    LineClearDelay,
+
+    GravityCurve,
+    ScoringCurve,
+    LevelCurve,
+    StartLevel,
+    MinimumLevel,
+
+    EntryDelay,
+
+    RandomizerType,
+}
+
+impl_imdraw_todo!(FocusedRule);
 
 #[derive(Debug, ImDraw)]
 pub struct MainMenuScene {
     state: State,
     video_info: VideoInfo,
     custom_rules: Rules, // @TODO list of presets (and player presets also)
+    focused_rule: Option<FocusedRule>,
 }
 
 impl SceneTrait for MainMenuScene {
@@ -170,9 +214,10 @@ impl MainMenuScene {
     pub fn new(app: &mut App) -> Self {
         Self {
             //state: State::Main,
-            state: State::CustomRules,
-            video_info: VideoInfo::load(app),
+            state:        State::CustomRules,
+            video_info:   VideoInfo::load(app),
             custom_rules: RotationSystem::NRSR.into(),
+            focused_rule: None,
         }
     }
 
@@ -233,7 +278,8 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        Ui::builder(window_layout).header("CLASSIC").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("CLASSIC").build(app);
 
         if ui::Button::new("LOCAL", app).pressed {
             self.state = State::ClassicLocal;
@@ -265,7 +311,8 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        Ui::builder(window_layout).header("MODERN").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("MODERN").build(app);
 
         if ui::Button::new("LOCAL", app).pressed {
             self.state = State::ModernLocal;
@@ -297,7 +344,8 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        Ui::builder(window_layout).header("OPTIONS").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("OPTIONS").build(app);
 
         if ui::Button::new("VIDEO", app).pressed {
             self.state = State::OptionsVideo;
@@ -340,7 +388,8 @@ impl MainMenuScene {
             size: menu_size
         };
 
-        Ui::builder(window_layout).header("OPTIONS - VIDEO").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("OPTIONS - VIDEO").build(app);
 
         //Text::new("OPTIONS - VIDEO", app);
 
@@ -503,7 +552,8 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        Ui::builder(window_layout).header("OPTIONS - AUDIO").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("OPTIONS - AUDIO").build(app);
 
         // Music volume
         let mut music_volume = (app.music_volume() * 255.0) as i32;
@@ -547,7 +597,8 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        Ui::builder(window_layout).header("OPTIONS - CONTROLS").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("OPTIONS - CONTROLS").build(app);
 
         if ui::Button::new("BACK", app).pressed {
             self.state = State::Options;
@@ -571,7 +622,8 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        Ui::builder(window_layout).header("CLASSIC ONLINE").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("CLASSIC ONLINE").build(app);
 
         if ui::Button::new("SOLO", app).pressed {
             self.state = State::ClassicOnlineSolo;
@@ -607,7 +659,8 @@ impl MainMenuScene {
             },
             size: menu_size
         };
-        Ui::builder(window_layout).header("MODERN ONLINE").build(app);
+        Ui::builder(window_layout).build(app);
+        Text::builder("MODERN ONLINE").build(app);
 
         if ui::Button::new("SOLO", app).pressed {
             self.state = State::ModernOnlineSolo;
@@ -641,17 +694,18 @@ impl MainMenuScene {
             size: menu_size
         };
         Ui::builder(window_layout)
-            .header("CUSTOM GAME")
             .fixed_height()
             .build(app);
+        Text::builder("CUSTOM GAME").build(app);
 
-        let mut rules_box_placer = PagedBox::builder("rules", 26).build(app).unwrap();
+        let mut rules_box_placer = PagedBox::builder(26).build(app).unwrap();
         {
             // @TODO combobox for presets
             let mut preset_index = 0;
             Combobox::builder("PRESET", &["(CUSTOM)"])
                 .build_with_placer(&mut preset_index, &mut rules_box_placer, app);
 
+            // Rotation Systems
             // @TODO ComboboxEnum
             let mut rotation_system = match self.custom_rules.rotation_system {
                 RotationSystem::Original => 0,
@@ -662,7 +716,7 @@ impl MainMenuScene {
                 RotationSystem::SRS      => 5,
                 RotationSystem::DTET     => 6,
             };
-            Combobox::builder("ROTATION SYSTEM", ROTATION_SYSTEM_NAMES)
+            let state = Combobox::builder("ROTATION SYSTEM", ROTATION_SYSTEM_NAMES)
                 .build_with_placer(&mut rotation_system, &mut rules_box_placer, app);
             self.custom_rules.rotation_system = match rotation_system {
                 0 => RotationSystem::Original,
@@ -674,14 +728,26 @@ impl MainMenuScene {
                 _ => RotationSystem::DTET,
             };
 
-            Checkbox::builder("HARD DROP")
+            if state.focused { self.focused_rule = Some(FocusedRule::RotationSystem); }
+
+            // Hard drop
+
+            let state = Checkbox::builder("HARD DROP")
                 .build_with_placer(&mut self.custom_rules.has_hard_drop, &mut rules_box_placer, app);
+
+            if state.focused { self.focused_rule = Some(FocusedRule::HardDrop); }
+
             Checkbox::builder("  HARD DROP LOCK")
                 .disabled(!self.custom_rules.has_hard_drop)
                 .build_with_placer(&mut self.custom_rules.has_hard_drop_lock, &mut rules_box_placer, app);
 
-            Checkbox::builder("SOFT DROP")
+            // Soft drop
+
+            let state = Checkbox::builder("SOFT DROP")
                 .build_with_placer(&mut self.custom_rules.has_soft_drop, &mut rules_box_placer, app);
+
+            if state.focused { self.focused_rule = Some(FocusedRule::SoftDrop); }
+
             Checkbox::builder("  SOFT DROP LOCK")
                 .disabled(!self.custom_rules.has_soft_drop)
                 .build_with_placer(&mut self.custom_rules.has_soft_drop_lock, &mut rules_box_placer, app);
@@ -782,10 +848,11 @@ impl MainMenuScene {
             //pub scoring_curve: ScoringRule,
             //pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
 
-            SliderU8::builder("START LEVEL", self.custom_rules.minimum_level, 50)
-                .build_with_placer(&mut self.custom_rules.minimum_level, &mut rules_box_placer, app);
             SliderU64::builder("ENTRY DELAY", 0, 2_000_000)
                 .build_with_placer(&mut self.custom_rules.entry_delay, &mut rules_box_placer, app);
+
+            SliderU8::builder("START LEVEL", self.custom_rules.minimum_level, 50)
+                .build_with_placer(&mut self.custom_rules.minimum_level, &mut rules_box_placer, app);
 
             //pub lock_delay: LockDelayRule,
 
@@ -800,5 +867,129 @@ impl MainMenuScene {
         if ui::Button::new("BACK", app).pressed {
             self.state = State::Main;
         }
+
+        self.show_custom_rules_preview(app, _persistent);
+    }
+
+    fn show_custom_rules_preview(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
+        match self.focused_rule {
+            Some(focused_rule) => {
+                match focused_rule {
+                    FocusedRule::RotationSystem => self.show_custom_rules_info_rotation_system(app, _persistent),
+                    FocusedRule::HardDrop => self.show_custom_rules_info_hard_drop(app, _persistent),
+                    //FocusedRule::SoftDrop => self.show_custom_rules_info_soft_drop(app, _persistent),
+                    _ => self.show_custom_rules_info(app, _persistent),
+                }
+            }
+
+            None => self.show_custom_rules_info(app, _persistent),
+        }
+
+        /*
+        RotationSystem,
+
+        HardDrop,
+        HardDropLock,
+
+        SoftDrop,
+        SoftDropLock,
+
+        LockDelayRule,
+
+        Ghost,
+        Hold,
+        HoldResetRotation,
+
+        InitialRotation,
+        InitialHold,
+        SpawnDrop,
+        SpawnRow,
+        NextPiecesPreview,
+
+        LineClearRule,
+        TopOutRule,
+
+        DelayedAutoShift,
+        AutoRepeatRate,
+
+        SoftDropInterval,
+        LineClearDelay,
+
+        GravityCurve,
+        ScoringCurve,
+        LevelCurve,
+        StartLevel,
+        MinimumLevel,
+
+        EntryDelay,
+
+        RandomizerType,
+        */
+    }
+
+    fn show_custom_rules_info(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
+        let menu_size = Vec2i { x: 580, y: 880 };
+
+        // Ui
+        let window_layout = Layout {
+            pos: Vec2i { x: 660, y: 40, },
+            size: menu_size
+        };
+        Ui::builder(window_layout).fixed_height().build(app);
+        Text::builder("RULE DESCRIPTION").build(app);
+
+        app.queue_draw_text_with_max_width(
+            "Test test 1 Test test 2 Test test 3 Test test 4 Test test 5 Test test 6 Test test 7 Test test 8",
+            &Transform {
+                pos: Vec2 { x: 680.0, y: 100.0 },
+                scale: Vec2 { x: 1.0, y: 1.0 },
+                rot: 0.0,
+                layer: 950,
+            },
+            16.0,
+            540,
+            color::WHITE,
+        );
+    }
+
+    fn show_custom_rules_info_rotation_system(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
+        let menu_size = Vec2i { x: 580, y: 880 };
+
+        // Ui
+        let window_layout = Layout {
+            pos: Vec2i { x: 660, y: 40, },
+            size: menu_size
+        };
+        Ui::builder(window_layout).fixed_height().build(app);
+        Text::builder("ROTATION SYSTEM").build(app);
+        Text::builder("NINTENDO ROTATION SYSTEM RIGHTHAND").build(app);
+    }
+
+    fn show_custom_rules_info_hard_drop(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
+        let menu_size = Vec2i { x: 580, y: 880 };
+
+        // Ui
+        let window_layout = Layout {
+            pos: Vec2i { x: 660, y: 40, },
+            size: menu_size
+        };
+        Ui::builder(window_layout).fixed_height().build(app);
+        Text::builder("HARD DROP").build(app);
     }
 }

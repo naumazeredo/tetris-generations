@@ -28,14 +28,14 @@ pub struct Rules {
     pub has_soft_drop: bool,
     pub has_soft_drop_lock: bool, // Lock when soft dropping
 
-    pub has_hold_piece: bool,
     pub has_ghost_piece: bool,
+    pub has_hold_piece: bool,
     pub hold_piece_reset_rotation: bool,   // usually hold resets rotation
-    pub spawn_drop: bool, // "Immediately drop one space if no existing Block is in its path"
 
     // @Maybe these are just related to spawning before entry delay
     pub has_initial_rotation_system: bool, // IRS
     pub has_initial_hold_system: bool,     // IHS
+    pub spawn_drop: bool, // "Immediately drop one space if no existing Block is in its path"
 
     // https://tetris.fandom.com/wiki/Infinity
     //pub has_lock_delay_infinity: bool,

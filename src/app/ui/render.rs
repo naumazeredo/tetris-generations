@@ -68,6 +68,22 @@ impl Ui {
             self.style.background_color,
         );
 
+        // Draw line
+        if let Some(line) = self.focused_line {
+            let layout = self.lines[line as usize].layout;
+            queue_draw_solid(
+                &mut app.renderer,
+                &Transform {
+                    pos: layout.pos.into(),
+                    scale: Vec2 { x: 1.0, y: 1.0 },
+                    rot: 0.0,
+                    layer: 905,
+                },
+                layout.size.into(),
+                self.style.line_focus_background_color,
+            );
+        }
+
         // Draw elements
         let padding = self.style.padding;
         push_clip(&mut app.renderer, self.layout.pos + padding, self.layout.size - 2 * padding);
@@ -451,8 +467,7 @@ impl Ui {
 
                 // Fix text position since it's rendered from the bottom
                 let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
-                let pos = layout.pos + padding +
-                    Vec2i { x: 0, y: self.style.text_size as i32 };
+                //let pos = layout.pos + padding + Vec2i { x: 0, y: self.style.text_size as i32 };
 
                 let text_color;
                 if state.disabled {
@@ -464,6 +479,19 @@ impl Ui {
                 push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
+                let text_draw_size: Vec2i = calculate_draw_text_size(
+                    &app.font_system,
+                    text,
+                    app.font_system.default_font_id,
+                    self.style.text_size as f32,
+                ).into();
+
+                let pos = layout.pos +
+                    Vec2i {
+                        x: (layout.size.x - text_draw_size.x) / 2,
+                        y: self.style.box_padding + self.style.text_size as i32
+                    };
+
                 queue_draw_text(
                     &mut app.renderer,
                     &app.font_system,
@@ -512,8 +540,7 @@ impl Ui {
 
                 // Fix text position since it's rendered from the bottom
                 let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
-                let pos = layout.pos + padding +
-                    Vec2i { x: 0, y: self.style.text_size as i32 };
+                //let pos = layout.pos + padding + Vec2i { x: 0, y: self.style.text_size as i32 };
 
                 let text_color;
                 if state.disabled {
@@ -525,6 +552,19 @@ impl Ui {
                 push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
+                let text_draw_size: Vec2i = calculate_draw_text_size(
+                    &app.font_system,
+                    text,
+                    app.font_system.default_font_id,
+                    self.style.text_size as f32,
+                ).into();
+
+                let pos = layout.pos +
+                    Vec2i {
+                        x: (layout.size.x - text_draw_size.x) / 2,
+                        y: self.style.box_padding + self.style.text_size as i32
+                    };
+
                 queue_draw_text(
                     &mut app.renderer,
                     &app.font_system,

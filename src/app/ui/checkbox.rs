@@ -1,11 +1,13 @@
+use std::panic::Location;
 use crate::app::App;
 use super::*;
 
 pub struct CheckboxState {
-    pub pressed: bool,
-    pub down: bool,
+    pub pressed:  bool,
+    pub down:     bool,
     pub hovering: bool,
-    pub changed: bool, // == pressed
+    pub changed:  bool, // == pressed
+    pub focused:  bool,
 }
 
 pub struct Checkbox<'a> {
@@ -14,6 +16,7 @@ pub struct Checkbox<'a> {
 }
 
 impl<'a> Checkbox<'a> {
+    #[track_caller]
     pub fn new(label: &str, value: &mut bool, app: &mut App) -> CheckboxState {
         Checkbox::builder(label).build(value, app)
     }
@@ -32,6 +35,7 @@ impl<'a> Checkbox<'a> {
         }
     }
 
+    #[track_caller]
     #[inline(always)] pub fn build(
         self,
         value: &mut bool,
@@ -40,18 +44,21 @@ impl<'a> Checkbox<'a> {
         self.build_with_placer(value, &mut app.ui_system.top_ui().index(), app)
     }
 
-    #[inline(always)] pub fn build_with_placer<P: Placer>(
+    #[track_caller]
+    pub fn build_with_placer<P: Placer>(
         self,
         value: &mut bool,
         placer: &mut P,
         app: &mut App
     ) -> CheckboxState {
-        if let Some(state) = checkbox_internal(value, self, placer, app) {
+        let id = Id::new(Location::caller());
+        if let Some(state) = checkbox_internal(value, id, self, placer, app) {
             CheckboxState {
                 pressed:  state.pressed,
                 down:     state.down,
                 hovering: state.hovering,
                 changed:  state.pressed,
+                focused:  state.focused,
             }
         } else {
             CheckboxState {
@@ -59,6 +66,7 @@ impl<'a> Checkbox<'a> {
                 down:     false,
                 hovering: false,
                 changed:  false,
+                focused:  false,
             }
         }
     }
@@ -73,12 +81,14 @@ fn new_checkbox(value: bool, disabled: bool) -> State {
         down:     false,
         hovering: false,
         scroll:   0,
+        focused: false,
         variant: ElementVariant::Checkbox { value },
     }
 }
 
 fn checkbox_internal<'a, P: Placer>(
     value: &mut bool,
+    id: Id,
     checkbox: Checkbox,
     placer: &mut P,
     app: &'a mut App,
@@ -86,8 +96,12 @@ fn checkbox_internal<'a, P: Placer>(
     let ui = placer.ui(app);
     let spacing = ui.style.spacing;
     let line_padding = ui.style.line_padding;
+    let line_height = ui.style.line_height;
 
     let checkbox_box_size = ui.line_draw_height();
+
+    let line_size = Vec2i { x: placer.draw_width(app), y: line_height };
+    let line_pos  = placer.cursor(app);
 
     placer.add_padding(line_padding, app);
 
@@ -95,6 +109,7 @@ fn checkbox_internal<'a, P: Placer>(
 
     // Add label
     text_internal(
+        id.add("#__text"),
         Text::builder(checkbox.label)
             .disabled(checkbox.disabled)
             .max_width(text_width as u32),
@@ -106,8 +121,6 @@ fn checkbox_internal<'a, P: Placer>(
     placer.add_spacing(app);
 
     // Update/create box state
-    let id = Id::new(checkbox.label).add("#__checkbox");
-
     let size = Vec2i { x: checkbox_box_size as i32, y: checkbox_box_size as i32 };
     let layout = placer.place_element(id, size, app);
 
@@ -129,6 +142,14 @@ fn checkbox_internal<'a, P: Placer>(
         .or_insert_with(|| new_checkbox(*value, checkbox.disabled));
 
     if !checkbox.disabled {
+        // Add line. Must come before updat
+        let ui = placer.ui(app);
+        let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+        let ui_index = ui.index().0;
+        app.update_line_state_interaction(ui_index, line_index);
+
+        // Update widget state
         let state = app.update_state_interaction(id, layout);
         if state.pressed {
             *value = !*value;

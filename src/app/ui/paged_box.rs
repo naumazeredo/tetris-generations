@@ -1,21 +1,21 @@
+use std::panic::Location;
 use crate::app::App;
 use super::*;
 
 #[derive(Copy, Clone, Debug)]
 pub struct PagedBox {
-    id: Id,
     lines_per_page: u32,
 }
 
 // @Refactor this is not matching the other widgets methods...
 impl PagedBox {
-    pub fn builder(name: &str, lines_per_page: u32) -> Self {
+    pub fn builder(lines_per_page: u32) -> Self {
         Self {
-            id: Id::new(name).add("#__pagedbox"),
             lines_per_page,
         }
     }
 
+    #[track_caller]
     #[inline(always)] pub fn build(
         self,
         app: &mut App
@@ -23,16 +23,18 @@ impl PagedBox {
         self.build_with_placer(&mut app.ui_system.top_ui().index(), app)
     }
 
-    #[inline(always)] pub fn build_with_placer<P: Placer>(
+    // @Refactor this should return PagedBoxState to match other widgets
+    #[track_caller]
+    pub fn build_with_placer<P: Placer>(
         self,
         placer: &mut P,
         app: &mut App
     ) -> Option<PagedBoxPlacer> {
-        paged_box_internal(self, placer, app)
+        let id = Id::new(Location::caller());
+        paged_box_internal(id, self, placer, app)
     }
 }
 
-// @Refactor this should be PagedBoxState to match other widgets
 #[derive(Copy, Clone, Debug)]
 pub struct PagedBoxPlacer {
     ui_index: UiIndex,
@@ -45,7 +47,7 @@ pub struct PagedBoxPlacer {
 
     // @Hack this is a workaround. Widgets should return when the first element can't be placed and
     //       leave the placer in the original state no elements can be placed
-    spacing_count: u32,
+    spacing: i32,
     next_on_same_line: bool,
 }
 
@@ -72,9 +74,8 @@ impl Placer for PagedBoxPlacer {
         }
 
         if !is_visible {
-            let ui = self.ui(app);
-            self.cursor.x -= self.spacing_count as i32 * ui.style.spacing;
-            self.spacing_count = 0;
+            self.cursor.x -= self.spacing;
+            self.spacing = 0;
 
             self.next_on_same_line = false;
             return None;
@@ -91,7 +92,7 @@ impl Placer for PagedBoxPlacer {
 
         ui.elements.push(Element { id, layout });
 
-        self.spacing_count = 0;
+        self.spacing = 0;
         self.next_on_same_line = false;
 
         self.same_line_cursor.x = self.cursor.x + layout.size.x;
@@ -108,6 +109,8 @@ impl Placer for PagedBoxPlacer {
     }
 
     fn ui<'a>(&mut self, app: &'a mut App) -> &'a mut Ui { self.ui_index.ui(app) }
+
+    fn cursor(&mut self, _app: &mut App) -> Vec2i { self.cursor }
 
     fn same_line(&mut self, _app: &mut App) {
         self.cursor = self.same_line_cursor;
@@ -126,9 +129,9 @@ impl Placer for PagedBoxPlacer {
         self.padding = Vec2i::new();
     }
 
-    fn add_spacing(&mut self, app: &mut App) {
+    fn add_custom_spacing(&mut self, spacing: i32, app: &mut App) {
         let ui = self.ui(app);
-        self.spacing_count += 1;
+        self.spacing += spacing;
         self.cursor.x += ui.style.spacing;
     }
 }
@@ -142,6 +145,7 @@ fn new_paged_box(paged_box: PagedBox) -> State {
         down:     false,
         hovering: false,
         scroll:   0,
+        focused: false,
         variant: ElementVariant::PagedBox {
             lines_per_page: paged_box.lines_per_page,
             current_page: 0,
@@ -151,16 +155,16 @@ fn new_paged_box(paged_box: PagedBox) -> State {
 }
 
 fn paged_box_internal<P: Placer>(
+    id: Id,
     paged_box: PagedBox,
     placer: &mut P,
     app: &mut App,
 ) -> Option<PagedBoxPlacer> {
-    let id = paged_box.id;
-
     let ui = placer.ui(app);
     let size = Vec2i {
         x: ui.layout.size.x,
         y: ui.style.line_height * (paged_box.lines_per_page + 1) as i32 +
+        //y: ui.style.line_height * paged_box.lines_per_page as i32 +
             2 * ui.style.paged_box_border as i32, // Colored border on top and a spacing bottom
     };
 
@@ -172,17 +176,65 @@ fn paged_box_internal<P: Placer>(
     app.ui_system.states.entry(id).or_insert_with(|| new_paged_box(paged_box));
 
     let state = app.update_state_interaction(id, layout);
+    let scroll = -state.scroll;
+
+    /*
+    // @TODO move ui layout to be done just before rendering. Centering the index line is very
+    //       annoying we need the whole information about paged box (current lines, num lines, etc)
+    //       and it just seems as a waste of time
+    // Index line
+
+    // get this information while we have the state to avoid doing it again inside the if
+    let index_text;
+    if let ElementVariant::PagedBox {
+        lines_per_page,
+        current_page,
+        num_lines,
+    } = &mut state.variant {
+        index_text = format!("{}/{}",
+            *current_page + 1,
+            (num_lines.saturating_sub(1) / *lines_per_page) + 1,
+        );
+    } else {
+        unreachable!();
+    }
+
+    let ui = placer.ui(app);
+    let size = Vec2i {
+        x: ui.layout.size.x,
+        y: ui.style.line_height,
+    };
+
+    let index_layout = placer.place_element(id, size, app);
+    if let Some(index_layout) = index_layout {
+        let prev_arrow_size = app.calculate_text_size("<");
+        let next_arrow_size = app.calculate_text_size(">");
+        let index_size = app.calculate_text_size(&index_text);
+
+        let ui = placer.ui(app);
+
+        let index_text_size = prev_arrow_size.x + index_size.x + next_arrow_size.x +
+            2 * ui.style.spacing;
+
+        let line_padding = ui.style.line_padding; // @TODO (add_custom_padding) add_padding should use line_padding by default
+        placer.add_padding(line_padding, app);
+        let draw_width = placer.draw_width(app);
+        placer.add_custom_spacing((draw_width - index_text_size) / 2, app);
+    }
+    */
 
     // @Refactor scroll can be consumed by a nested widgets, so using it here is a problem.
     //           This can only be fixed when we move layout and interaction to the state and update
     //           it on rendering
-    if state.scroll != 0 {
+    if scroll != 0 {
+        let state = app.ui_system.states.get_mut(&id).unwrap();
+
         if let ElementVariant::PagedBox {
             lines_per_page,
             current_page,
             num_lines,
         } = &mut state.variant {
-            if state.scroll > 0 {
+            if scroll < 0 {
                 *current_page = current_page.saturating_sub(1);
             } else if *current_page < (num_lines.saturating_sub(1) / *lines_per_page) {
                 *current_page += 1;
@@ -216,7 +268,7 @@ fn paged_box_internal<P: Placer>(
         cursor,
         same_line_cursor: cursor,
         padding: Vec2i::new(),
-        spacing_count: 0,
+        spacing: 0,
         next_on_same_line: false,
     })
 }

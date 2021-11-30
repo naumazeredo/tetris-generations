@@ -16,6 +16,7 @@ use crate::app::{
     App,
     ImDraw,
     font_system::calculate_draw_text_size,
+    renderer::Sprite,
     utils::fnv_hasher::FNVHasher,
 };
 
@@ -113,22 +114,16 @@ impl UiSystem {
     }
 }
 
-pub struct UiBuilder<'a> {
+pub struct UiBuilder {
     //id: Id,
     layout: Layout,
     style: Option<Style>,
-    header: Option<&'a str>,
     adjust_height: bool, // @TODO this should be part of Layout
 }
 
-impl<'a> UiBuilder<'a> {
+impl UiBuilder {
     pub fn style(&mut self, style: Style) -> &mut Self {
         self.style = Some(style);
-        self
-    }
-
-    pub fn header<'b: 'a>(&mut self, header: &'b str) -> &mut Self {
-        self.header = Some(header);
         self
     }
 
@@ -148,11 +143,15 @@ impl<'a> UiBuilder<'a> {
 
         let ui = Ui {
             index,
+
             style,
             layout: self.layout,
             elements: Vec::new(),
             modal_elements: Vec::new(),
             adjust_height: self.adjust_height,
+
+            lines: Vec::new(),
+            focused_line: None,
 
             cursor,
             same_line_cursor: cursor,
@@ -161,10 +160,6 @@ impl<'a> UiBuilder<'a> {
 
         app.ui_system.uis.push(ui);
         // ---
-
-        if let Some(header) = self.header {
-            Text::builder(header).build_with_placer(&mut UiIndex(index), app);
-        }
     }
 }
 
@@ -173,14 +168,21 @@ pub trait Placer: Copy + Clone {
 
     fn ui<'a>(&mut self, app: &'a mut App) -> &'a mut Ui;
     fn draw_width(&mut self, app: &mut App) -> i32;
+    fn cursor(&mut self, app: &mut App) -> Vec2i;
+
     fn same_line(&mut self, app: &mut App);
 
     // @Refactor this seems so bad...
     fn add_padding(&mut self, padding: Vec2i, app: &mut App);
     fn remove_padding(&mut self, app: &mut App);
 
-    fn add_spacing(&mut self, app: &mut App);
+    #[inline(always)] fn add_spacing(&mut self, app: &mut App) {
+        let ui = self.ui(app);
+        let spacing = ui.style.spacing;
+        self.add_custom_spacing(spacing, app);
+    }
 
+    fn add_custom_spacing(&mut self, spacing: i32, app: &mut App);
 }
 
 #[derive(ImDraw)]
@@ -195,7 +197,8 @@ pub struct Ui {
     modal_elements: Vec<Element>,
     adjust_height: bool,
 
-    //focused_line: Option<u32>,
+    lines: Vec<Line>,
+    focused_line: Option<u32>,
 
     // @Refactor move these to UiPlacer?
     // Placer
@@ -204,12 +207,11 @@ pub struct Ui {
     padding: Vec2i,
 }
 
-impl<'a> Ui {
-    pub fn builder(layout: Layout) -> UiBuilder<'a> {
+impl Ui {
+    pub fn builder(layout: Layout) -> UiBuilder {
         UiBuilder {
             layout,
             style: None,
-            header: None,
             adjust_height: true,
         }
     }
@@ -220,6 +222,12 @@ impl<'a> Ui {
 
     fn add_modal_element(&mut self, id: Id, layout: Layout) {
         self.modal_elements.push(Element { id, layout });
+    }
+
+    fn add_line(&mut self, widget_id: Id, layout: Layout) -> u32 {
+        let index = self.lines.len() as u32;
+        self.lines.push(Line { layout, widget_id });
+        index
     }
 }
 
@@ -258,6 +266,8 @@ impl Placer for UiIndex {
 
     fn ui<'a>(&mut self, app: &'a mut App) -> &'a mut Ui { app.ui_system.get_ui(self.0) }
 
+    fn cursor(&mut self, app: &mut App) -> Vec2i { self.ui(app).cursor }
+
     #[inline(always)] fn same_line(&mut self, app: &mut App) {
         let ui = self.ui(app);
         ui.cursor = ui.same_line_cursor;
@@ -278,9 +288,9 @@ impl Placer for UiIndex {
         ui.padding = Vec2i::new();
     }
 
-    fn add_spacing(&mut self, app: &mut App) {
+    fn add_custom_spacing(&mut self, spacing: i32, app: &mut App) {
         let ui = self.ui(app);
-        ui.cursor.x += ui.style.spacing;
+        ui.cursor.x += spacing;
     }
 }
 
@@ -289,13 +299,13 @@ pub struct Id(u64);
 
 // @TODO macro this
 impl Id {
-    fn new(s: &str) -> Self {
+    fn new<H: Hash + ?Sized>(s: &H) -> Self {
         let mut hasher = FNVHasher::new();
         s.hash(&mut hasher);
         Self(hasher.finish())
     }
 
-    fn add(self, s: &str) -> Self {
+    fn add<H: Hash + ?Sized>(self, s: &H) -> Self {
         let mut hasher = FNVHasher::cont(self.0);
         s.hash(&mut hasher);
         Self(hasher.finish())
@@ -327,6 +337,8 @@ struct State {
     down: bool,
     hovering: bool,
     scroll: i32,
+
+    focused: bool,
 
     // Some if element is focusable, Some(true) if it's currently the focus, Some(false) otherwise
     //focus: Option<bool>,
@@ -372,11 +384,27 @@ enum ElementVariant {
         num_lines: u32,
     },
 
+    /*
+    Sprite {
+        sprite: Sprite,
+    }
+    */
+
+    // @TODO Framebuffer
+
     Separator,
 }
 
-impl App<'_> {
+#[derive(Copy, Clone, ImDraw)]
+struct Line {
+    //id: Id,
+    layout: Layout,
+    widget_id: Id,
+    // next/prev_line: Option<Id>,
+    // left/right_line? interaction with left/right paged box
+}
 
+impl App<'_> {
     // -----------------
     // private functions
     // -----------------
@@ -496,6 +524,31 @@ impl App<'_> {
         }
 
         state
+    }
+
+    // @TODO UI controller support
+    fn update_line_state_interaction(&mut self, ui_index: u32, line_index: u32) {
+        // @TODO only update if mouse is inside the element container (we will need to propagate
+        //       the container size)
+
+        // Get mouse state
+        let line = self.ui_system.get_ui(ui_index).lines[line_index as usize];
+        let mouse_hovering = self.is_mouse_hovering_clipped_layout(line.layout);
+
+        // Check modal opened
+        if self.ui_system.modal_open.is_some() {
+            return;
+        }
+
+        // Get widget state
+        let mut state = self.ui_system.states.get_mut(&line.widget_id).unwrap();
+        state.focused = false;
+
+        // Handle mouse interactions
+        if mouse_hovering {
+            state.focused = true;
+            self.ui_system.get_ui(ui_index).focused_line = Some(line_index);
+        }
     }
 
     // @Refactor this function doesn't seem completely necessary. Maybe a new_frame would fit better

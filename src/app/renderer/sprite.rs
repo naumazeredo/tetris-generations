@@ -16,10 +16,18 @@ use super::{
 // @Maybe we need to remove some of these fields from Sprite
 
 #[derive(Copy, Clone, Debug, Default, ImDraw)]
-pub struct Sprite {
+pub struct Subtexture {
     pub texture: Texture,
-    pub texture_flip: TextureFlip,
     pub uvs: (Vec2i, Vec2i),
+}
+
+#[derive(Copy, Clone, Debug, Default, ImDraw)]
+pub struct Sprite {
+    // pub subtexture: Subtexture,
+    pub texture: Texture,
+    pub uvs: (Vec2i, Vec2i),
+
+    pub texture_flip: TextureFlip,
     pub pivot: Vec2,
     pub size: Vec2,
 }

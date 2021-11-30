@@ -98,6 +98,8 @@
   - [x] Stack of modifier commands
     - [x] Scissor/Clip
 - [ ] [ui]
+  - [x] Remove header? it doesn't make it better (doesn't deal with multiline texts or anything
+      special). Just adding a Text widget is good enough
   - [x] Render scissor
   - [x] Multipage window ("multiline" window)
       - Maybe scroll page? Should need to split header and footer elements to not scroll with the
@@ -107,9 +109,7 @@
     - [x] Text
       - [x] Basic functionality
       - [x] State+Build pattern
-      - [ ] Allow more sizes?
-      - [ ] Centered
-      - [ ] Header (maybe just centered text and custom text size?)
+      - [x] Header (maybe just centered text and custom text size?)
     - [x] Button
       - [x] Basic functionality
       - [x] State+Build pattern
@@ -126,8 +126,7 @@
     - [ ] Combobox
       - [x] Basic functionality
       - [x] State+Build pattern (changed, changing?)
-      - [ ] Center text to match slider
-      - [ ] Left/right control (seems to be the simplest and better control)
+      - [x] Center text to match slider
       - [ ] Enum
         - [ ] Macro to generate list of strings from enum
         - [ ] Enum as generics (get list of strings as trait and receive the value as enum type
@@ -138,6 +137,10 @@
       - [x] State+Build pattern
       - [ ] Value step
       - [ ] Scroll interaction
+    - [ ] Paged Box
+      - [x] Basic functionality
+      - [x] State+Build pattern
+      - [ ] Click arrow to change pages
     - [ ] Input float range
     - [ ] Input color
     - [ ] Input key
@@ -147,6 +150,9 @@
     - [ ] Styling colors for text/widgets (or colored background of the line)
 - [x] [input]
   - [x] Use real time and somehow manage game system
+- [ ] [render]
+  - [ ] Batch rendering
+  - [ ] Render to framebuffer
 
 ## v0.0.1: The start of the journey
 
@@ -319,6 +325,9 @@
         playfield centers, the classic music starts playing. Then the game goes on each generation
         of Tetris, changing the rules, rotation, music, sounds, effects, graphics, etc.
   - [ ] Nintendo code?
+- [ ] Tetris Tutor
+  - [ ] Tutorials explaining the mechanics, strategies and META for Classic and Modern (maybe
+      variations: no rotation, time attack, 40 lines, perfect clears, battle)
 
 ### Engine
 
@@ -339,13 +348,13 @@
       matching rendering order. Maybe just order everything by the z order (more draw calls might be
       needed and the state function changes should be stored in the post processed draw call
       somehow)
+  - [ ] Subtexture structure: currently we only have Sprite, but a sprite is subtexture with more
+      info
   - [ ] Pixel perfect rendering
   - [ ] Stack commands
     - [ ] Blending
     - [ ] Matrix transformation
-  - [ ] Batch rendering
   - [ ] Shader struct
-  - [ ] Render to framebuffer + post render effects
   - [ ] Check GL errors
   - [ ] More backend supports (Vulkan, DirectX)
   - [ ] Multithreading
@@ -434,6 +443,9 @@
   - [ ] get_ui_sprite: Change sprite depending on most recent input type (keyboard/mouse, Xbox
       controller, PS controller, etc)
 - [ ] [font]
+  - [ ] Change from sdl-ttf to ttf-parser (https://github.com/RazrFalcon/ttf-parser) + render.
+      It's not that easy to just change to stb-truetype since translating a C lib is not so direct
+      and the crate that does this is not maintained anymore).
   - [ ] Store multiple font sizes or a chosen value that has a lot of divisors, to avoid conversion
       issues
 - [ ] [time]
@@ -476,8 +488,13 @@
         two passes: calculate position/size, render)
     - [ ] Animations
   - [ ] Widgets
+    - [x] Text
+      - [ ] Allow more sizes?
+      - [ ] Centered
+      - [ ] Clickable (hover style, down style, etc)
     - [ ] Combobox
       - [ ] Combowheel?
+      - [ ] Left/right control (seems to be the simplest and better control)
     - [ ] Separator
   - [ ] Keyboard/Controller support
     - [ ] Styling colors for text/widgets (or colored background of the line)

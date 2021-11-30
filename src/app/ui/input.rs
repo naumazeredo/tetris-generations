@@ -6,6 +6,7 @@ use super::*;
 
 use core::str::FromStr;
 use std::fmt::Display;
+use std::panic::Location;
 
 // String input
 
@@ -52,6 +53,7 @@ impl<'a> Input<'a> {
         }
     }
 
+    #[track_caller]
     #[inline(always)] pub fn build(
         self,
         value: &mut String,
@@ -60,13 +62,15 @@ impl<'a> Input<'a> {
         self.build_with_placer(value, &mut app.ui_system.top_ui().index(), app)
     }
 
-    #[inline(always)] pub fn build_with_placer<P: Placer>(
+    #[track_caller]
+    pub fn build_with_placer<P: Placer>(
         self,
         value: &mut String,
         placer: &mut P,
         app: &mut App
     ) -> InputState {
-        if let Some(state) = input_str_internal(value, self, placer, app) {
+        let id = Id::new(Location::caller()).add("#__input");
+        if let Some(state) = input_str_internal(value, id, self, placer, app) {
             if let ElementVariant::Input {
                 is_input_focus,
                 changed,
@@ -192,6 +196,7 @@ impl State {
             down:     false,
             hovering: false,
             scroll:   0,
+            focused: false,
             variant: ElementVariant::Input {
                 is_input_focus: false,
                 changed: false,
@@ -307,6 +312,7 @@ impl App<'_> {
 
 fn input_str_internal<'a, P: Placer>(
     value: &mut String,
+    id: Id,
     input: Input,
     placer: &mut P,
     app: &'a mut App,
@@ -314,13 +320,18 @@ fn input_str_internal<'a, P: Placer>(
     let ui = placer.ui(app);
     let spacing = ui.style.spacing;
     let line_padding = ui.style.line_padding;
+    let line_height = ui.style.line_height;
 
     let col_width = (placer.draw_width(app) - spacing) / 2;
+
+    let line_size = Vec2i { x: placer.draw_width(app), y: line_height };
+    let line_pos  = placer.cursor(app);
 
     placer.add_padding(line_padding, app);
 
     // Add label
     text_internal(
+        id.add("#__text"),
         Text::builder(input.label)
             .disabled(input.disabled)
             .max_width(col_width as u32),
@@ -330,8 +341,6 @@ fn input_str_internal<'a, P: Placer>(
 
     placer.same_line(app);
     placer.add_spacing(app);
-
-    let id = Id::new(input.label).add("#__input");
 
     let ui = placer.ui(app);
     let size = Vec2i {
@@ -361,6 +370,14 @@ fn input_str_internal<'a, P: Placer>(
         .or_insert_with(|| State::new_input_str(&value, input.max_length, input.disabled));
 
     if !input.disabled {
+        // Add line. Must come before updat
+        let ui = placer.ui(app);
+        let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+        let ui_index = ui.index().0;
+        app.update_line_state_interaction(ui_index, line_index);
+
+        // Update widget state
         let state = app.update_input_state_interaction(id, layout);
         if let ElementVariant::Input {
             changed: true,
@@ -396,6 +413,7 @@ macro_rules! input_variant_integer_impl {
                 down:     false,
                 hovering: false,
                 scroll:   0,
+                focused: false,
                 variant: ElementVariant::Input {
                     is_input_focus: false,
                     changed: false,

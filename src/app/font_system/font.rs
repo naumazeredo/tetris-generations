@@ -138,6 +138,56 @@ pub(in crate::app) fn calculate_draw_text_size(
     max_size
 }
 
+pub(in crate::app) fn calculate_draw_text_size_with_max_width(
+    font_system: &FontSystem,
+    text: &str,
+    font_id: FontId,
+    font_size: f32,
+    max_width: u32,
+    //line_spacing: i32,
+) -> Vec2 {
+    let scale = font_size / FONT_SCALE as f32;
+
+    let font = font_system.fonts.get(&font_id).unwrap();
+
+    let mut pos = Vec2::new();
+    let mut max_size = Vec2 { x: max_width as f32, y: 0.0 };
+
+    //let mut last_word_size = Vec2::new();
+
+    for ch in text.chars() {
+        if let Some(char_data) = font.get_char_data(ch) {
+            let char_top_left = Vec2 {
+                x:  char_data.metrics.minx as f32 * scale,
+                y: -char_data.metrics.maxy as f32 * scale
+            };
+            let size = Vec2 {
+                x: char_data.metrics.w as f32 * scale,
+                y: char_data.metrics.h as f32 * scale
+            };
+
+            let advance = char_data.metrics.advance as f32 * scale;
+
+            if !ch.is_whitespace() {
+                if pos.x + char_top_left.x + size.x > max_width as f32 {
+                    pos.x = 0.0;
+                    pos.y += font_size;
+                }
+            }
+
+            pos.x += advance;
+            if pos.x + advance > max_width as f32 {
+                pos.x = 0.0;
+                pos.y += font_size;
+            }
+
+            max_size.y = max_size.y.max(pos.y + font_size);
+        }
+    }
+
+    max_size
+}
+
 impl App<'_>{
     // @TODO return Result
     pub fn bake_font<P: AsRef<Path>>(&mut self, path: P) -> Option<FontId> {
