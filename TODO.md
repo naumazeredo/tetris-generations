@@ -97,6 +97,15 @@
   - [x] Axis-aligned (+ scissor) rendering
   - [x] Stack of modifier commands
     - [x] Scissor/Clip
+  - [x] Batch rendering
+  - [x] Render to framebuffer
+  - [x] Subtexture structure: currently we only have Sprite, but a sprite is subtexture with more
+      info
+  - [ ] Text rendering
+    - [ ] Multiline line spacing
+    - [ ] Multiline \n
+    - [ ] Multiline break on strings
+    - [ ] Escape commands (change color, change font size?, add texture?)
 - [ ] [ui]
   - [x] Remove header? it doesn't make it better (doesn't deal with multiline texts or anything
       special). Just adding a Text widget is good enough
@@ -106,10 +115,14 @@
           page
   - [ ] Line focus?
   - [ ] Widgets
-    - [x] Text
+    - [ ] Text
       - [x] Basic functionality
       - [x] State+Build pattern
       - [x] Header (maybe just centered text and custom text size?)
+      - [ ] Multiline
+        - [x] Multiline text widget
+        - [ ] Line spacing
+        - [ ] Alignment options
     - [x] Button
       - [x] Basic functionality
       - [x] State+Build pattern
@@ -150,9 +163,6 @@
     - [ ] Styling colors for text/widgets (or colored background of the line)
 - [x] [input]
   - [x] Use real time and somehow manage game system
-- [ ] [render]
-  - [ ] Batch rendering
-  - [ ] Render to framebuffer
 
 ## v0.0.1: The start of the journey
 
@@ -348,13 +358,18 @@
       matching rendering order. Maybe just order everything by the z order (more draw calls might be
       needed and the state function changes should be stored in the post processed draw call
       somehow)
-  - [ ] Subtexture structure: currently we only have Sprite, but a sprite is subtexture with more
-      info
+  - [ ] [fix] Framebuffer rendered textures have inverted y. Maybe we should fix by flipping the
+      viewport (or maybe it's just broken, we have to test with subtextures not containing the whole
+      height!). queue_draw_texture should also accept flip as a parameter to give full control.
+  - [ ] Have a way to delete allocated textures: this depends on AssetManager design decisions
   - [ ] Pixel perfect rendering
-  - [ ] Stack commands
-    - [ ] Blending
-    - [ ] Matrix transformation
+  - [ ] Batch rendering
+    - [ ] Stack commands
+      - [ ] Blending
+      - [ ] Matrix transformation
   - [ ] Shader struct
+    - [ ] Store all uniforms (glGetProgramiv) (do we need to store the attributes also?)
+    - [ ] Set attribute values during execution
   - [ ] Check GL errors
   - [ ] More backend supports (Vulkan, DirectX)
   - [ ] Multithreading
@@ -448,6 +463,8 @@
       and the crate that does this is not maintained anymore).
   - [ ] Store multiple font sizes or a chosen value that has a lot of divisors, to avoid conversion
       issues
+  - [ ] [render] Make a builder for calculate_draw_size
+  - [ ] [render] Fix text rendering at y = -text_size instead of y = 0
 - [ ] [time]
   - [ ] Make game run in frames instead of continuous time
   - [ ] Timer data structure (and dt in update functions)

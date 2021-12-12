@@ -1,3 +1,4 @@
+use std::str;
 use std::ptr;
 use gl::types::*;
 

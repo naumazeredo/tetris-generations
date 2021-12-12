@@ -7,6 +7,7 @@ mod render;
 mod slider;
 mod style;
 mod text;
+mod texture;
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -15,8 +16,10 @@ use crate::linalg::Vec2i;
 use crate::app::{
     App,
     ImDraw,
-    font_system::calculate_draw_text_size,
-    renderer::Sprite,
+    renderer::{
+        self,
+        text::calculate_draw_text_size,
+    },
     utils::fnv_hasher::FNVHasher,
 };
 
@@ -28,6 +31,7 @@ pub use paged_box::*;
 pub use slider::*;
 use style::*;
 pub use text::*;
+pub use texture::*;
 
 #[derive(ImDraw)]
 pub(in crate::app) struct UiSystem {
@@ -350,7 +354,10 @@ struct State {
 
 #[derive(Debug, ImDraw)]
 enum ElementVariant {
-    Text     { text: String, },
+    Text     {
+        text: String,
+        multiline: bool,
+    },
     Button   { text: String, },
     Checkbox { value: bool, },
     Input    {
@@ -384,13 +391,9 @@ enum ElementVariant {
         num_lines: u32,
     },
 
-    /*
-    Sprite {
-        sprite: Sprite,
-    }
-    */
-
-    // @TODO Framebuffer
+    Texture {
+        texture: renderer::Texture,
+    },
 
     Separator,
 }
@@ -414,8 +417,9 @@ impl App<'_> {
         let size = calculate_draw_text_size(
             &self.font_system,
             text,
-            self.font_system.default_font_id,
             ui.style.text_size as f32,
+            None,
+            None,
         );
 
         Vec2i {

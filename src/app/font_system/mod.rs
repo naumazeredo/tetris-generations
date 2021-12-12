@@ -22,10 +22,8 @@ app.queue_draw_text(
 mod char_data;
 mod font;
 mod packing;
-mod render;
 
 pub use font::*;
-pub use render::*;
 
 use std::collections::BTreeMap;
 

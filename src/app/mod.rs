@@ -11,7 +11,7 @@ pub mod id_manager;
 #[macro_use] pub mod imgui_wrapper;
 pub mod input;
 pub mod network;
-pub mod renderer;
+#[macro_use] pub mod renderer;
 pub mod sdl;
 pub mod transform;
 pub mod time_system;
@@ -30,7 +30,6 @@ pub use {
     network::*,
     renderer::*,
     transform::*,
-    ui::*,
     utils::*,
     video_system::*,
 };
@@ -41,6 +40,7 @@ use sdl2::event::WindowEvent;
 
 use asset_system::*;
 use debug::*;
+use ui::*; // We don't give public access to ui structs since it has too many name conflicts
 use sdl::*;
 use time_system::*;
 
@@ -135,12 +135,9 @@ impl App<'_> {
             state.update(self);
 
             // Render
-            self.renderer.prepare_render();
+            Renderer::prepare_render();
             state.render(self);
-
             self.queue_draw_uis();
-
-            // Rendering
             self.render_queued();
 
             if self.show_debug_window {
@@ -171,12 +168,6 @@ impl App<'_> {
             Event::Window { win_event: WindowEvent::Resized(w, h), .. } => {
                 self.renderer.window_resize_callback((*w as u32, *h as u32));
             }
-
-            /*
-            Event::Window { win_event, .. } => {
-                println!("win event: {:?}", win_event);
-            }
-            */
 
             _ => {}
         }

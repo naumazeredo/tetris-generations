@@ -95,7 +95,7 @@ impl Default for Style {
             text_color: color::WHITE,
             text_disabled_color: Color { r: 0.6, g: 0.6, b: 0.6, a: 1.0 },
             //text_indent_size: 12,
-            text_size: 16,
+            text_size: 16, // @Maybe font_size?
 
             box_color:          Color { r: 0.15, g: 0.15, b: 0.15, a: 1.0 },
             box_hover_color:    Color { r: 0.25, g: 0.25, b: 0.25, a: 1.0 },

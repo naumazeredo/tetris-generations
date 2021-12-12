@@ -2,19 +2,10 @@ use super::*;
 use crate::app::{
     App,
     Transform,
-    renderer::text::queue_draw_text,
     renderer::{
+        batch::Batch,
         color::WHITE,
-        draw_command::{
-            queue_draw_solid,
-            push_clip,
-            pop_clip,
-        },
-        sprite::{
-            Sprite,
-            queue_draw_sprite,
-        },
-        texture::TextureFlip,
+        sprite::Sprite,
     },
 };
 use crate::linalg::{Vec2, Vec2i};
@@ -55,9 +46,10 @@ impl App<'_> {
 
 impl Ui {
     pub fn queue_draw(&mut self, app: &mut App) {
+        let mut batch = Batch::new();
+
         // Draw ui window background
-        queue_draw_solid(
-            &mut app.renderer,
+        batch.queue_draw_solid(
             &Transform {
                 pos: self.layout.pos.into(),
                 scale: Vec2 { x: 1.0, y: 1.0 },
@@ -71,8 +63,7 @@ impl Ui {
         // Draw line
         if let Some(line) = self.focused_line {
             let layout = self.lines[line as usize].layout;
-            queue_draw_solid(
-                &mut app.renderer,
+            batch.queue_draw_solid(
                 &Transform {
                     pos: layout.pos.into(),
                     scale: Vec2 { x: 1.0, y: 1.0 },
@@ -86,33 +77,37 @@ impl Ui {
 
         // Draw elements
         let padding = self.style.padding;
-        push_clip(&mut app.renderer, self.layout.pos + padding, self.layout.size - 2 * padding);
+
+        batch.push_clip(self.layout.pos + padding, self.layout.size - 2 * padding);
 
         let elements = std::mem::take(&mut self.elements);
-
-        // @XXX how to consume the iterator???
-        for element in elements.into_iter() {
-            self.queue_draw_element(element, app);
+        for element in elements {
+            self.queue_draw_element(element, &mut batch, app);
         }
 
-        pop_clip(&mut app.renderer);
+        batch.pop_clip();
 
         // Draw modal separately (without clipping)
         let modal_elements = std::mem::take(&mut self.modal_elements);
-        for element in modal_elements.into_iter() {
-            self.queue_draw_element(element, app);
+        for element in modal_elements {
+            self.queue_draw_element(element, &mut batch, app);
         }
+
+        app.render_batch(batch, None);
     }
 
-    fn queue_draw_element(&mut self, element: Element, app: &mut App) {
+    fn queue_draw_element(&mut self, element: Element, batch: &mut Batch, app: &mut App) {
         let state = app.ui_system.states.get(&element.id).unwrap();
         let layout = element.layout;
 
         match &state.variant {
-            ElementVariant::Text { text } => {
-                // 
-                let pos = layout.pos +
-                    Vec2i { x: 0, y: (layout.size.y + self.style.text_size as i32) / 2 };
+            ElementVariant::Text { text, multiline } => {
+                // @Refactor allow custom alignments
+                let pos = layout.pos + if *multiline {
+                    Vec2i::new()
+                } else {
+                    Vec2i { x: 0, y: (layout.size.y - self.style.text_size as i32) / 2 }
+                };
 
                 let text_color;
                 if state.disabled {
@@ -121,14 +116,12 @@ impl Ui {
                     text_color = self.style.text_color;
                 }
 
-                push_clip(&mut app.renderer, layout.pos, layout.size);
+                let max_width = if *multiline { Some(layout.size.x as u32) } else { None };
 
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
+                batch.push_clip(layout.pos, layout.size);
 
+                batch.queue_draw_text(
                     text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -137,9 +130,12 @@ impl Ui {
                     },
                     self.style.text_size as f32,
                     text_color,
+                    None,
+                    max_width,
+                    &app,
                 );
 
-                pop_clip(&mut app.renderer);
+                batch.pop_clip();
             }
 
             ElementVariant::Button { text } => {
@@ -155,8 +151,7 @@ impl Ui {
                     box_color = self.style.box_color;
                 }
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -170,7 +165,7 @@ impl Ui {
                 // Draw text
                 // Fix text position since it's rendered from the bottom
                 let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
-                let pos = layout.pos + Vec2i { x: 0, y: self.style.text_size as i32 } + padding;
+                let pos = layout.pos + padding;
 
                 let text_color;
                 if state.disabled {
@@ -179,14 +174,10 @@ impl Ui {
                     text_color = self.style.text_color;
                 }
 
-                push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
+                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
-
+                batch.queue_draw_text(
                     text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -195,9 +186,12 @@ impl Ui {
                     },
                     self.style.text_size as f32,
                     text_color,
+                    None,
+                    None,
+                    &app,
                 );
 
-                pop_clip(&mut app.renderer);
+                batch.pop_clip();
             }
 
             ElementVariant::Checkbox { value } => {
@@ -224,8 +218,7 @@ impl Ui {
                     }
                 }
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -252,8 +245,7 @@ impl Ui {
                     color = self.style.box_color;
                 }
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -266,7 +258,7 @@ impl Ui {
 
                 // Draw input text
                 let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
-                let pos = layout.pos + padding + Vec2i { x: 0, y: self.style.text_size as i32 };
+                let pos = layout.pos + padding;
 
                 let text;
                 let text_color;
@@ -282,14 +274,10 @@ impl Ui {
                     }
                 }
 
-                push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
+                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
-
+                batch.queue_draw_text(
                     text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -298,6 +286,9 @@ impl Ui {
                     },
                     self.style.text_size as f32,
                     text_color,
+                    None,
+                    None,
+                    &app,
                 );
 
                 // Draw cursor
@@ -312,8 +303,9 @@ impl Ui {
                             let text_draw_size: Vec2i = calculate_draw_text_size(
                                 &app.font_system,
                                 text,
-                                app.font_system.default_font_id,
                                 self.style.text_size as f32,
+                                None,
+                                None,
                             ).into();
 
                             let pos = layout.pos + padding;
@@ -324,11 +316,10 @@ impl Ui {
 
                             let size = Vec2i {
                                 x: self.style.input_cursor_size as i32,
-                                y: self.style.text_size as i32 + 2 * self.style.input_cursor_padding,
+                                y: 2 * self.style.input_cursor_padding,
                             };
 
-                            queue_draw_solid(
-                                &mut app.renderer,
+                            batch.queue_draw_solid(
                                 &Transform {
                                     pos: pos.into(),
                                     scale: Vec2 { x: 1.0, y: 1.0 },
@@ -341,7 +332,7 @@ impl Ui {
                     }
                 }
 
-                pop_clip(&mut app.renderer);
+                batch.pop_clip();
             }
 
             ElementVariant::Slider { percent, variant, .. } => {
@@ -351,8 +342,7 @@ impl Ui {
                     self.style.box_color
                 };
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -389,8 +379,7 @@ impl Ui {
                     y: layout.size.y - 2 * self.style.slider_box_padding,
                 };
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -413,22 +402,19 @@ impl Ui {
                 let text_draw_size: Vec2i = calculate_draw_text_size(
                     &app.font_system,
                     text,
-                    app.font_system.default_font_id,
                     self.style.text_size as f32,
+                    None,
+                    None,
                 ).into();
 
                 let pos = layout.pos +
                     Vec2i {
                         x: (layout.size.x - text_draw_size.x) / 2,
-                        y: self.style.box_padding + self.style.text_size as i32
+                        y: self.style.box_padding
                     };
 
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
-
+                batch.queue_draw_text(
                     text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -437,6 +423,9 @@ impl Ui {
                     },
                     self.style.text_size as f32,
                     text_color,
+                    None,
+                    None,
+                    &app,
                 );
             }
 
@@ -453,8 +442,7 @@ impl Ui {
                     color = self.style.box_color;
                 }
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -476,28 +464,25 @@ impl Ui {
                     text_color = self.style.text_color;
                 }
 
-                push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
+                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
                 let text_draw_size: Vec2i = calculate_draw_text_size(
                     &app.font_system,
                     text,
-                    app.font_system.default_font_id,
                     self.style.text_size as f32,
+                    None,
+                    None,
                 ).into();
 
                 let pos = layout.pos +
                     Vec2i {
                         x: (layout.size.x - text_draw_size.x) / 2,
-                        y: self.style.box_padding + self.style.text_size as i32
+                        y: self.style.box_padding
                     };
 
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
-
+                batch.queue_draw_text(
                     text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -506,9 +491,12 @@ impl Ui {
                     },
                     self.style.text_size as f32,
                     text_color,
+                    None,
+                    None,
+                    &app,
                 );
 
-                pop_clip(&mut app.renderer);
+                batch.pop_clip();
             }
 
             ElementVariant::ComboboxOption { selected, text } => {
@@ -526,8 +514,7 @@ impl Ui {
                     color = self.style.combobox_option_background_color;
                 }
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -549,28 +536,25 @@ impl Ui {
                     text_color = self.style.text_color;
                 }
 
-                push_clip(&mut app.renderer, layout.pos + padding, layout.size - 2 * padding);
+                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
                 let text_draw_size: Vec2i = calculate_draw_text_size(
                     &app.font_system,
                     text,
-                    app.font_system.default_font_id,
                     self.style.text_size as f32,
+                    None,
+                    None,
                 ).into();
 
                 let pos = layout.pos +
                     Vec2i {
                         x: (layout.size.x - text_draw_size.x) / 2,
-                        y: self.style.box_padding + self.style.text_size as i32
+                        y: self.style.box_padding
                     };
 
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
-
+                batch.queue_draw_text(
                     text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -579,14 +563,16 @@ impl Ui {
                     },
                     self.style.text_size as f32,
                     text_color,
+                    None,
+                    None,
+                    &app,
                 );
 
-                pop_clip(&mut app.renderer);
+                batch.pop_clip();
             }
 
             ElementVariant::Scrollbar => {
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -598,7 +584,6 @@ impl Ui {
                 );
             }
 
-            // @Temporary
             ElementVariant::PagedBox { lines_per_page, current_page, num_lines } => {
                 // Top border
 
@@ -609,8 +594,7 @@ impl Ui {
                     y: self.style.paged_box_border as i32,
                 };
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -628,8 +612,7 @@ impl Ui {
                     y: layout.size.y - self.style.line_height,
                 };
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -642,15 +625,14 @@ impl Ui {
 
                 // Page index
                 let pos = pos +
-                    Vec2i { x: 0, y: self.style.line_height * *lines_per_page as i32 };
+                    Vec2i { x: 0, y: self.style.line_height * (*lines_per_page) as i32 };
 
                 let size = Vec2i {
                     x: layout.size.x,
                     y: self.style.line_height,
                 };
 
-                queue_draw_solid(
-                    &mut app.renderer,
+                batch.queue_draw_solid(
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -670,15 +652,17 @@ impl Ui {
                 let left_text_draw_size: Vec2i = calculate_draw_text_size(
                     &app.font_system,
                     left_text,
-                    app.font_system.default_font_id,
                     self.style.text_size as f32,
+                    None,
+                    None,
                 ).into();
 
                 let right_text_draw_size: Vec2i = calculate_draw_text_size(
                     &app.font_system,
                     right_text,
-                    app.font_system.default_font_id,
                     self.style.text_size as f32,
+                    None,
+                    None,
                 ).into();
 
                 let index_draw_size = Vec2i {
@@ -689,15 +673,11 @@ impl Ui {
                 let pos = pos +
                     Vec2i {
                         x: (layout.size.x - index_draw_size.x) / 2,
-                        y: (size.y + index_draw_size.y) / 2,
+                        y: (size.y - index_draw_size.y) / 2,
                     };
 
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
-
+                batch.queue_draw_text(
                     left_text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -705,28 +685,20 @@ impl Ui {
                         layer: 910,
                     },
                     self.style.text_size as f32,
-                    self.style.text_color
+                    self.style.text_color,
+                    None,
+                    None,
+                    &app
                 );
 
-                let build_sprite = |tex, x, y, w, h| {
-                    Sprite {
-                        texture: tex,
-                        texture_flip: TextureFlip::NO,
-                        uvs: (Vec2i { x, y }, Vec2i { x: w + x, y: h + y }),
-                        pivot: Vec2 { x: 0.0, y: 0.0 },
-                        size: Vec2 { x:  w as f32, y: h as f32 },
-                    }
-                };
-
                 // @TODO this should be using the Asset system
-                //let mouse_texture = app.get_texture("assets/gfx/inputs/tile_0082.png");
-                let mouse_texture = app.get_texture("assets/gfx/inputs/tile_0116.png");
-                //let mouse_texture = app.get_texture("assets/gfx/inputs/tile_0277.png");
-                let mouse_sprite = build_sprite(mouse_texture, 0, 0, 16, 16);
+                //let mouse_texture = app.get_texture_or_load("assets/gfx/inputs/tile_0082.png");
+                let mouse_texture = app.get_texture_or_load("assets/gfx/inputs/tile_0116.png");
+                //let mouse_texture = app.get_texture_or_load("assets/gfx/inputs/tile_0277.png");
+                let mouse_sprite = Sprite::new(mouse_texture, 0, 0, 16, 16);
 
-                let mouse_pos = pos + Vec2i { x: left_text_draw_size.x, y: -(self.style.text_size as i32) };
-                queue_draw_sprite(
-                    &mut app.renderer,
+                let mouse_pos = pos + Vec2i { x: left_text_draw_size.x, y: 0 };
+                batch.queue_draw_sprite(
                     &Transform {
                         pos: mouse_pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -738,12 +710,8 @@ impl Ui {
                 );
 
                 let pos = pos + Vec2i { x: left_text_draw_size.x + 16, y: 0 };
-                queue_draw_text(
-                    &mut app.renderer,
-                    &app.font_system,
-
+                batch.queue_draw_text(
                     right_text,
-                    app.font_system.default_font_id,
                     &Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
@@ -751,7 +719,36 @@ impl Ui {
                         layer: 910,
                     },
                     self.style.text_size as f32,
-                    self.style.text_color
+                    self.style.text_color,
+                    None,
+                    None,
+                    &app,
+                );
+            }
+
+            ElementVariant::Texture { texture } => {
+                let texture = *texture;
+                let pos = layout.pos +
+                    Vec2i {
+                        x: (layout.size.x - texture.w as i32) / 2,
+                        y: 0,
+                    };
+
+                let size = Vec2i {
+                    x: texture.w as i32,
+                    y: texture.h as i32,
+                };
+
+                batch.queue_draw_texture(
+                    &Transform {
+                        pos: pos.into(),
+                        scale: Vec2 { x: 1.0, y: 1.0 },
+                        rot: 0.0,
+                        layer: 920,
+                    },
+                    texture.into(),
+                    size.into(),
+                    WHITE,
                 );
             }
 

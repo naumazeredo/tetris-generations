@@ -134,17 +134,17 @@ impl SceneTrait for MainMenuScene {
         match self.state {
             State::Main => self.show_main(app, persistent),
 
-            State::Classic       => self.show_classic(app, persistent),
-            State::ClassicOnline => self.show_classic_online(app, persistent),
+            State::Classic         => self.show_classic(app, persistent),
+            State::ClassicOnline   => self.show_classic_online(app, persistent),
 
-            State::Modern       => self.show_modern(app, persistent),
-            State::ModernOnline => self.show_modern_online(app, persistent),
+            State::Modern          => self.show_modern(app, persistent),
+            State::ModernOnline    => self.show_modern_online(app, persistent),
 
-            State::CustomRules  => self.show_custom_rules(app, persistent),
+            State::CustomRules     => self.show_custom_rules(app, persistent),
 
-            State::Options => self.show_options(app, persistent),
-            State::OptionsVideo => self.show_options_video(app, persistent),
-            State::OptionsAudio => self.show_options_audio(app, persistent),
+            State::Options         => self.show_options(app, persistent),
+            State::OptionsVideo    => self.show_options_video(app, persistent),
+            State::OptionsAudio    => self.show_options_audio(app, persistent),
             State::OptionsControls => self.show_options_controls(app, persistent),
 
             // @Remove
@@ -231,14 +231,14 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
+        ui::Ui::builder(window_layout).build(app); // @TODO ui::builder(...
 
         if ui::Button::new("CLASSIC", app).pressed {
             self.state = State::Classic;
@@ -271,15 +271,15 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
-        Text::builder("CLASSIC").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("CLASSIC").build(app);
 
         if ui::Button::new("LOCAL", app).pressed {
             self.state = State::ClassicLocal;
@@ -304,15 +304,15 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
-        Text::builder("MODERN").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("MODERN").build(app);
 
         if ui::Button::new("LOCAL", app).pressed {
             self.state = State::ModernLocal;
@@ -337,15 +337,15 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
-        Text::builder("OPTIONS").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("OPTIONS").build(app);
 
         if ui::Button::new("VIDEO", app).pressed {
             self.state = State::OptionsVideo;
@@ -380,7 +380,7 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
@@ -388,8 +388,8 @@ impl MainMenuScene {
             size: menu_size
         };
 
-        Ui::builder(window_layout).build(app);
-        Text::builder("OPTIONS - VIDEO").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("OPTIONS - VIDEO").build(app);
 
         //Text::new("OPTIONS - VIDEO", app);
 
@@ -404,7 +404,7 @@ impl MainMenuScene {
         };
 
         let screen_mode_combobox =
-            Combobox::builder("SCREEN MODE", &SCREEN_MODES).build(&mut screen_mode_index, app);
+            ui::Combobox::builder("SCREEN MODE", &SCREEN_MODES).build(&mut screen_mode_index, app);
 
         if screen_mode_combobox.changed {
             self.video_info.screen_mode = match screen_mode_index {
@@ -419,7 +419,7 @@ impl MainMenuScene {
         // Display
         let num_displays = app.num_displays();
         let mut display_index = self.video_info.display_index as usize;
-        let display_state = Combobox::builder("DISPLAY", &DISPLAY_NAMES[..num_displays])
+        let display_state = ui::Combobox::builder("DISPLAY", &DISPLAY_NAMES[..num_displays])
             .build(&mut display_index, app);
 
         if display_state.changed {
@@ -447,7 +447,7 @@ impl MainMenuScene {
                 window_sizes_strs.len()-1
             });
 
-        let window_size_state = Combobox::builder("RESOLUTION", &window_sizes_strs)
+        let window_size_state = ui::Combobox::builder("RESOLUTION", &window_sizes_strs)
             .disabled(is_desktop)
             .build(&mut size_index, app);
 
@@ -488,7 +488,7 @@ impl MainMenuScene {
             refresh_rates_strs = vec![format!("{} Hz", self.video_info.display_mode.refresh_rate)];
         }
 
-        let refresh_rates_state = Combobox::builder("REFRESH RATE", &refresh_rates_strs)
+        let refresh_rates_state = ui::Combobox::builder("REFRESH RATE", &refresh_rates_strs)
             .disabled(!is_fullscreen)
             .build(&mut rate_index, app);
 
@@ -503,11 +503,11 @@ impl MainMenuScene {
         let mut adaptative_vsync = self.video_info.vsync == SwapInterval::LateSwapTearing;
 
         let vsync_checkbox =
-            Checkbox::builder("VSYNC")
+            ui::Checkbox::builder("VSYNC")
             .build(&mut vsync, app);
 
         let adaptative_vsync_checkbox =
-            Checkbox::builder("  ADAPTATIVE")
+            ui::Checkbox::builder("  ADAPTATIVE")
             .disabled(!vsync)
             .build(&mut adaptative_vsync, app);
 
@@ -545,20 +545,20 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
-        Text::builder("OPTIONS - AUDIO").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("OPTIONS - AUDIO").build(app);
 
         // Music volume
         let mut music_volume = (app.music_volume() * 255.0) as i32;
         let music_volume_slider =
-            SliderI32::builder("MUSIC", 0, 255)
+            ui::SliderI32::builder("MUSIC", 0, 255)
             .build(&mut music_volume, app);
 
         if music_volume_slider.changed {
@@ -568,7 +568,7 @@ impl MainMenuScene {
         // SFX volume
         let mut sfx_volume = (app.sfx_volume() * 255.0) as i32;
         let sfx_volume_slider =
-            SliderI32::builder("SFX", 0, 255)
+            ui::SliderI32::builder("SFX", 0, 255)
                 .build(&mut sfx_volume, app);
 
         if sfx_volume_slider.changed {
@@ -590,15 +590,15 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
-        Text::builder("OPTIONS - CONTROLS").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("OPTIONS - CONTROLS").build(app);
 
         if ui::Button::new("BACK", app).pressed {
             self.state = State::Options;
@@ -615,15 +615,15 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
-        Text::builder("CLASSIC ONLINE").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("CLASSIC ONLINE").build(app);
 
         if ui::Button::new("SOLO", app).pressed {
             self.state = State::ClassicOnlineSolo;
@@ -652,15 +652,15 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: 40,
                 y: (window_size.y - menu_size.y) / 2
             },
             size: menu_size
         };
-        Ui::builder(window_layout).build(app);
-        Text::builder("MODERN ONLINE").build(app);
+        ui::Ui::builder(window_layout).build(app);
+        ui::Text::builder("MODERN ONLINE").build(app);
 
         if ui::Button::new("SOLO", app).pressed {
             self.state = State::ModernOnlineSolo;
@@ -689,20 +689,20 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 880 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i { x: 40, y: 40, },
             size: menu_size
         };
-        Ui::builder(window_layout)
+        ui::Ui::builder(window_layout)
             .fixed_height()
             .build(app);
-        Text::builder("CUSTOM GAME").build(app);
+        ui::Text::builder("CUSTOM GAME").build(app);
 
-        let mut rules_box_placer = PagedBox::builder(26).build(app).unwrap();
+        let mut rules_box_placer = ui::PagedBox::builder(26).build(app).unwrap();
         {
             // @TODO combobox for presets
             let mut preset_index = 0;
-            Combobox::builder("PRESET", &["(CUSTOM)"])
+            ui::Combobox::builder("PRESET", &["(CUSTOM)"])
                 .build_with_placer(&mut preset_index, &mut rules_box_placer, app);
 
             // Rotation Systems
@@ -716,7 +716,7 @@ impl MainMenuScene {
                 RotationSystem::SRS      => 5,
                 RotationSystem::DTET     => 6,
             };
-            let state = Combobox::builder("ROTATION SYSTEM", ROTATION_SYSTEM_NAMES)
+            let state = ui::Combobox::builder("ROTATION SYSTEM", ROTATION_SYSTEM_NAMES)
                 .build_with_placer(&mut rotation_system, &mut rules_box_placer, app);
             self.custom_rules.rotation_system = match rotation_system {
                 0 => RotationSystem::Original,
@@ -732,49 +732,49 @@ impl MainMenuScene {
 
             // Hard drop
 
-            let state = Checkbox::builder("HARD DROP")
+            let state = ui::Checkbox::builder("HARD DROP")
                 .build_with_placer(&mut self.custom_rules.has_hard_drop, &mut rules_box_placer, app);
 
             if state.focused { self.focused_rule = Some(FocusedRule::HardDrop); }
 
-            Checkbox::builder("  HARD DROP LOCK")
+            ui::Checkbox::builder("  HARD DROP LOCK")
                 .disabled(!self.custom_rules.has_hard_drop)
                 .build_with_placer(&mut self.custom_rules.has_hard_drop_lock, &mut rules_box_placer, app);
 
             // Soft drop
 
-            let state = Checkbox::builder("SOFT DROP")
+            let state = ui::Checkbox::builder("SOFT DROP")
                 .build_with_placer(&mut self.custom_rules.has_soft_drop, &mut rules_box_placer, app);
 
             if state.focused { self.focused_rule = Some(FocusedRule::SoftDrop); }
 
-            Checkbox::builder("  SOFT DROP LOCK")
+            ui::Checkbox::builder("  SOFT DROP LOCK")
                 .disabled(!self.custom_rules.has_soft_drop)
                 .build_with_placer(&mut self.custom_rules.has_soft_drop_lock, &mut rules_box_placer, app);
 
-            SliderU64::builder("  INTERVAL", 0, 500_000)
+            ui::SliderU64::builder("  INTERVAL", 0, 500_000)
                 .build_with_placer(&mut self.custom_rules.soft_drop_interval, &mut rules_box_placer, app);
 
-            Checkbox::builder("HOLD PIECE")
+            ui::Checkbox::builder("HOLD PIECE")
                 .build_with_placer(&mut self.custom_rules.has_hold_piece, &mut rules_box_placer, app);
-            Checkbox::builder("  RESET ROTATION")
+            ui::Checkbox::builder("  RESET ROTATION")
                 .disabled(!self.custom_rules.has_hold_piece)
                 .build_with_placer(&mut self.custom_rules.hold_piece_reset_rotation, &mut rules_box_placer, app);
 
-            Checkbox::builder("GHOST PIECE")
+            ui::Checkbox::builder("GHOST PIECE")
                 .build_with_placer(&mut self.custom_rules.has_ghost_piece, &mut rules_box_placer, app);
 
-            Checkbox::builder("SPAWN DROP")
+            ui::Checkbox::builder("SPAWN DROP")
                 .build_with_placer(&mut self.custom_rules.spawn_drop, &mut rules_box_placer, app);
 
-            Checkbox::builder("IRS")
+            ui::Checkbox::builder("IRS")
                 .build_with_placer(&mut self.custom_rules.has_initial_rotation_system, &mut rules_box_placer, app);
-            Checkbox::builder("IHS")
+            ui::Checkbox::builder("IHS")
                 .build_with_placer(&mut self.custom_rules.has_initial_hold_system, &mut rules_box_placer, app);
 
-            SliderU8::builder("SPAWN ROW", 0, 24)
+            ui::SliderU8::builder("SPAWN ROW", 0, 24)
                 .build_with_placer(&mut self.custom_rules.spawn_row, &mut rules_box_placer, app);
-            SliderU8::builder("NEXT PIECES", 0, 8)
+            ui::SliderU8::builder("NEXT PIECES", 0, 8)
                 .build_with_placer(&mut self.custom_rules.next_pieces_preview_count, &mut rules_box_placer, app);
 
             // @TODO ComboboxEnum
@@ -783,7 +783,7 @@ impl MainMenuScene {
                 LineClearRule::Sticky  => 1,
                 LineClearRule::Cascade => 2,
             };
-            Combobox::builder("LINE CLEAR", LINE_CLEAR_RULE_NAMES)
+            ui::Combobox::builder("LINE CLEAR", LINE_CLEAR_RULE_NAMES)
                 .build_with_placer(&mut line_clear, &mut rules_box_placer, app);
             self.custom_rules.line_clear_rule = match line_clear {
                 0 => LineClearRule::Naive,
@@ -791,14 +791,14 @@ impl MainMenuScene {
                 _ => LineClearRule::Cascade,
             };
 
-            SliderU64::builder("  DELAY", 0, 1_000_000)
+            ui::SliderU64::builder("  DELAY", 0, 1_000_000)
                 .build_with_placer(&mut self.custom_rules.line_clear_delay, &mut rules_box_placer, app);
 
-            Text::builder("TOP OUT RULE")
+            ui::Text::builder("TOP OUT RULE")
                 .build_with_placer(&mut rules_box_placer, app);
 
             let mut block_out = self.custom_rules.top_out_rule.contains(TopOutRule::BLOCK_OUT);
-            let block_out_state = Checkbox::builder("  BLOCK OUT")
+            let block_out_state = ui::Checkbox::builder("  BLOCK OUT")
                 .build_with_placer(&mut block_out, &mut rules_box_placer, app);
             if block_out_state.changed {
                 self.custom_rules.top_out_rule.toggle(TopOutRule::BLOCK_OUT);
@@ -808,7 +808,7 @@ impl MainMenuScene {
             }
 
             let mut lock_out = self.custom_rules.top_out_rule.contains(TopOutRule::LOCK_OUT);
-            let lock_out_state = Checkbox::builder("  LOCK OUT").
+            let lock_out_state = ui::Checkbox::builder("  LOCK OUT").
                 build_with_placer(&mut lock_out, &mut rules_box_placer, app);
             if lock_out_state.changed {
                 self.custom_rules.top_out_rule.toggle(TopOutRule::LOCK_OUT);
@@ -818,7 +818,7 @@ impl MainMenuScene {
             }
 
             let mut partial_lock_out = self.custom_rules.top_out_rule.contains(TopOutRule::PARTIAL_LOCK_OUT);
-            let partial_lock_out_state = Checkbox::builder("  PARTIAL LOCK OUT")
+            let partial_lock_out_state = ui::Checkbox::builder("  PARTIAL LOCK OUT")
                 .build_with_placer(&mut partial_lock_out, &mut rules_box_placer, app);
             if partial_lock_out_state.changed {
                 self.custom_rules.top_out_rule.toggle(TopOutRule::PARTIAL_LOCK_OUT);
@@ -828,7 +828,7 @@ impl MainMenuScene {
             }
 
             let mut garbage_out = self.custom_rules.top_out_rule.contains(TopOutRule::GARBAGE_OUT);
-            let garbage_out_state = Checkbox::builder("  GARBAGE OUT")
+            let garbage_out_state = ui::Checkbox::builder("  GARBAGE OUT")
                 .build_with_placer(&mut garbage_out, &mut rules_box_placer, app);
             if garbage_out_state.changed {
                 self.custom_rules.top_out_rule.toggle(TopOutRule::GARBAGE_OUT);
@@ -839,19 +839,19 @@ impl MainMenuScene {
 
             // @TODO ui for time values (in frames?)
             // @TODO slider float
-            SliderU64::builder("DAS", 0, 500_000)
+            ui::SliderU64::builder("DAS", 0, 500_000)
                 .build_with_placer(&mut self.custom_rules.das_repeat_delay, &mut rules_box_placer, app);
-            SliderU64::builder("ARR", 0, 500_000)
+            ui::SliderU64::builder("ARR", 0, 500_000)
                 .build_with_placer(&mut self.custom_rules.das_repeat_interval, &mut rules_box_placer, app);
 
             //pub gravity_curve: GravityCurve,
             //pub scoring_curve: ScoringRule,
             //pub level_curve: LevelCurve, // @Maybe rename to difficulty curve
 
-            SliderU64::builder("ENTRY DELAY", 0, 2_000_000)
+            ui::SliderU64::builder("ENTRY DELAY", 0, 2_000_000)
                 .build_with_placer(&mut self.custom_rules.entry_delay, &mut rules_box_placer, app);
 
-            SliderU8::builder("START LEVEL", self.custom_rules.minimum_level, 50)
+            ui::SliderU8::builder("START LEVEL", self.custom_rules.minimum_level, 50)
                 .build_with_placer(&mut self.custom_rules.minimum_level, &mut rules_box_placer, app);
 
             //pub lock_delay: LockDelayRule,
@@ -939,25 +939,12 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 880 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i { x: 660, y: 40, },
             size: menu_size
         };
-        Ui::builder(window_layout).fixed_height().build(app);
-        Text::builder("RULE DESCRIPTION").build(app);
-
-        app.queue_draw_text_with_max_width(
-            "Test test 1 Test test 2 Test test 3 Test test 4 Test test 5 Test test 6 Test test 7 Test test 8",
-            &Transform {
-                pos: Vec2 { x: 680.0, y: 100.0 },
-                scale: Vec2 { x: 1.0, y: 1.0 },
-                rot: 0.0,
-                layer: 950,
-            },
-            16.0,
-            540,
-            color::WHITE,
-        );
+        ui::Ui::builder(window_layout).fixed_height().build(app);
+        ui::Text::builder("RULE DESCRIPTION").build(app);
     }
 
     fn show_custom_rules_info_rotation_system(
@@ -968,13 +955,13 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 880 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i { x: 660, y: 40, },
             size: menu_size
         };
-        Ui::builder(window_layout).fixed_height().build(app);
-        Text::builder("ROTATION SYSTEM").build(app);
-        Text::builder("NINTENDO ROTATION SYSTEM RIGHTHAND").build(app);
+        ui::Ui::builder(window_layout).fixed_height().build(app);
+        ui::Text::builder("ROTATION SYSTEM").build(app);
+        ui::Text::builder("NINTENDO ROTATION SYSTEM RIGHTHAND").build(app);
     }
 
     fn show_custom_rules_info_hard_drop(
@@ -985,11 +972,41 @@ impl MainMenuScene {
         let menu_size = Vec2i { x: 580, y: 880 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i { x: 660, y: 40, },
             size: menu_size
         };
-        Ui::builder(window_layout).fixed_height().build(app);
-        Text::builder("HARD DROP").build(app);
+        ui::Ui::builder(window_layout).fixed_height().build(app);
+        ui::Text::builder("HARD DROP").build(app);
+
+        let text =
+            "A hard drop is a move in which a Tetromino drops \
+            instantly drop directly below. It can't be moved or \
+            rotated afterwards. It is a higher scoring move than a soft drop.";
+        ui::Text::builder(text).multiline(true).build(app);
+
+        /*
+        // Render example playfield
+        let mut batch = Batch::new();
+
+        //let playfield = Playfield::new(Vec2i::new(), Vec2i { x: 6, y: 6 }, false);
+
+
+        let texture = app.get_texture_or_create(
+            "main_menu/custom/hard_drop/playfield",
+            text_draw_size.x.ceil() as u32,
+            text_draw_size.y.ceil() as u32,
+            None
+        );
+
+        let framebuffer = app.get_framebuffer_or_create(
+            "main_menu/custom/hard_drop/playfield",
+            texture
+        );
+        framebuffer.clear(BufferClear::new().color(color::TRANSPARENT));
+
+        app.render_batch(batch, Some(framebuffer));
+        ui::Texture::new(texture, app);
+        */
     }
 }

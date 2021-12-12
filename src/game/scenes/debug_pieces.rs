@@ -42,14 +42,18 @@ impl SceneTrait for DebugPiecesScene {
             &format!("{:?}", self.rotation_system),
             &TransformBuilder::new().pos_xy(10.0, 42.0).layer(1000).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         app.queue_draw_text(
             &format!("rot: {}", self.rot),
             &TransformBuilder::new().pos_xy(10.0, 84.0).layer(1000).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         let x = 100.0;
@@ -154,8 +158,6 @@ impl SceneTrait for DebugPiecesScene {
             app,
             persistent
         );
-
-        app.render_queued();
     }
 
     fn handle_input(

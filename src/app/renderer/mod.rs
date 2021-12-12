@@ -1,22 +1,13 @@
-// @TODO Render features
-//
-// [ ] batch rendering
-// [ ] render to framebuffer
-// [ ] post processing effects
-// [ ] struct Shader
-//     [ ] store all uniforms (glGetProgramiv) (do we need to store the attributes also?)
-//     [ ] be able to change attribute values during execution
-// [ ] Add error checking for gl functions
-//
-
+#[macro_use] pub mod batch;
 pub mod color;
 pub mod draw_command;
+pub mod framebuffer;
+pub mod subtexture;
 mod shader;
 pub mod sprite;
 pub mod text;
 pub mod texture;
 
-use std::str;
 use std::mem;
 use std::ffi::CString;
 use std::path::Path;
@@ -24,17 +15,20 @@ use gl::types::*;
 use crate::linalg::*;
 use crate::app::{App, ImDraw};
 
+pub use batch::*;
 pub use color::*;
 use draw_command::*;
+pub use framebuffer::*;
+pub use subtexture::*;
 use shader::*;
 pub use sprite::*;
 pub use texture::*;
 
-pub type VertexArray    = GLuint;
-pub type BufferObject   = GLuint;
-pub type ShaderProgram  = GLuint;
-pub type Shader         = GLuint;
-pub type ShaderLocation = GLuint;
+pub(in crate::app) type VertexArray    = GLuint;
+pub(in crate::app) type BufferObject   = GLuint;
+pub(in crate::app) type ShaderProgram  = GLuint;
+pub(in crate::app) type Shader         = GLuint;
+pub(in crate::app) type ShaderLocation = GLuint;
 
 #[derive(Debug, ImDraw)]
 pub(in crate::app) struct Renderer {
@@ -60,7 +54,7 @@ pub(in crate::app) struct Renderer {
     uv_buffer:      Vec<f32>,
     element_buffer: Vec<u32>,
 
-    world_cmds: Vec<Command>,
+    batch: Batch,
 
     // ----
     model_mat_buffer_object: BufferObject,
@@ -90,7 +84,7 @@ impl Renderer {
         // Create default shader program and texture.
         // These are used when no shader program or texture is passed to a draw command.
         let default_program = create_shader_program("assets/shaders/default.vert", "assets/shaders/default.frag");
-        let default_texture = create_texture(&[0xff, 0xff, 0xff, 0xff], 1, 1);
+        let default_texture = Texture::new(1, 1, Some(&[0xff, 0xff, 0xff, 0xff]));
 
         // Reserve a lot of space -> 2000 quads
         // @TODO use a frame allocator to avoid extra allocations
@@ -127,7 +121,7 @@ impl Renderer {
             uv_buffer,
             element_buffer,
 
-            world_cmds: vec![],
+            batch: Batch::new(),
 
             // ----
             model_mat_buffer_object: bo[4],
@@ -137,29 +131,28 @@ impl Renderer {
         }
     }
 
-    // @Refactor create methods in App to remap this
-    pub(in crate::app) fn prepare_render(&mut self) {
+    pub(in crate::app) fn prepare_render() {
         unsafe {
-            gl::Disable(gl::SCISSOR_TEST);
-
-            gl::ClearColor(0.3, 0.3, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
             gl::Enable(gl::BLEND);
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
             gl::Enable(gl::DEPTH_TEST);
             gl::DepthFunc(gl::LEQUAL);
+
+            gl::Disable(gl::SCISSOR_TEST);
+
+            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
     }
 
-    // @Refactor create methods in App to remap this
-    // @Refactor use a framebuffer to be able to do post processing or custom stuff
+    fn render_batch(&mut self, batch: Batch, framebuffer: Option<Framebuffer>) {
+        self.flush_cmds(batch, framebuffer);
+    }
+
     fn render_queued(&mut self) {
-        if self.world_cmds.len() > 0 {
-            //self.bind_arrays();
-            self.flush_cmds();
-        }
+        let batch = std::mem::take(&mut self.batch);
+        self.render_batch(batch, None);
     }
 
     fn bind_arrays(&mut self) {
@@ -280,6 +273,8 @@ impl Renderer {
     }
 
     fn handle_draw_command(&mut self, cmd: DrawCommand, draw_call: &mut DrawCall) {
+        let texture = cmd.texture.unwrap_or(self.default_texture);
+
         let w;
         let h;
         let pivot;
@@ -304,8 +299,8 @@ impl Renderer {
                 w = size.x * cmd.scale.x;
                 h = size.y * cmd.scale.y;
 
-                let u_scale = if cmd.texture.w != 0 { cmd.texture.w as f32 } else { 1. };
-                let v_scale = if cmd.texture.h != 0 { cmd.texture.h as f32 } else { 1. };
+                let u_scale = if texture.w != 0 { texture.w as f32 } else { 1. };
+                let v_scale = if texture.h != 0 { texture.h as f32 } else { 1. };
 
                 us = vec![
                     uvs.0.x as f32 / u_scale, uvs.1.x as f32 / u_scale,
@@ -393,8 +388,8 @@ impl Renderer {
         draw_call.count += 6;
     }
 
-    fn flush_cmds(&mut self) {
-        if self.world_cmds.is_empty() {
+    fn flush_cmds(&mut self, batch: Batch, framebuffer: Option<Framebuffer>) {
+        if batch.cmds.is_empty() {
             return;
         }
 
@@ -410,16 +405,18 @@ impl Renderer {
 
         let mut clip_stack: Vec<(Vec2i, Vec2i)> = Vec::new();
 
-        let cmds = std::mem::take(&mut self.world_cmds);
-        for cmd in cmds {
+        for cmd in batch.cmds {
             match cmd {
                 Command::Draw(cmd) => {
                     // @TODO remove the zero check after we have access to programs outside render
-                    if cmd.program != draw_call.program || cmd.texture.obj != draw_call.texture_object {
+                    let program = cmd.program.unwrap_or(self.default_program);
+                    let texture = cmd.texture.unwrap_or(self.default_texture);
+
+                    if program != draw_call.program || texture.obj != draw_call.texture_object {
                         add_draw_call(&mut draw_call, &mut draw_calls);
 
-                        draw_call.program = cmd.program;
-                        draw_call.texture_object = cmd.texture.obj;
+                        draw_call.program = program;
+                        draw_call.texture_object = texture.obj;
                     }
 
                     self.handle_draw_command(cmd, &mut draw_call);
@@ -451,11 +448,25 @@ impl Renderer {
         }
 
         add_draw_call(&mut draw_call, &mut draw_calls);
-        self.render_draw_calls(draw_calls);
+        self.render_draw_calls(draw_calls, framebuffer);
     }
 
-    fn render_draw_calls(&mut self, draw_calls: Vec<DrawCall>) {
+    fn render_draw_calls(&mut self, draw_calls: Vec<DrawCall>, framebuffer: Option<Framebuffer>) {
         if draw_calls.is_empty() { return; }
+
+        // @TODO improve this whole framebuffer logic
+        if let Some(Framebuffer { framebuffer_object, width, height, .. }) = framebuffer {
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer_object);
+                gl::Disable(gl::DEPTH_TEST);
+            }
+            self.change_viewport((width, height));
+        } else {
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            }
+            self.change_viewport(self.window_size);
+        }
 
         self.change_shader_program(draw_calls[0].program);
         self.change_texture(draw_calls[0].texture_object);
@@ -613,17 +624,21 @@ impl Renderer {
         }
     }
 
-    pub(in crate::app) fn window_resize_callback(&mut self, window_size: (u32, u32)) {
+    fn change_viewport(&mut self, size: (u32, u32)) {
         self.proj_mat = mat4::ortho(
-            0., window_size.0 as f32,
-            window_size.1 as f32, 0.0,
+            0., size.0 as f32,
+            size.1 as f32, 0.0,
             0.01, 1000.
         );
-        self.window_size = window_size;
 
         unsafe {
-            gl::Viewport(0, 0, window_size.0 as _, window_size.1 as _);
+            gl::Viewport(0, 0, size.0 as _, size.1 as _);
         }
+    }
+
+    pub(in crate::app) fn window_resize_callback(&mut self, window_size: (u32, u32)) {
+        self.window_size = window_size;
+        self.change_viewport(window_size);
     }
 }
 
@@ -640,7 +655,11 @@ impl Drop for Renderer {
 }
 
 impl App<'_> {
-    pub fn render_queued(&mut self) {
+    pub fn render_batch(&mut self, batch: Batch, framebuffer: Option<Framebuffer>) {
+        self.renderer.render_batch(batch, framebuffer);
+    }
+
+    pub(in crate::app) fn render_queued(&mut self) {
         self.renderer.render_queued();
     }
 }
@@ -654,7 +673,6 @@ struct DrawCall {
     start: usize,
     count: usize,
 }
-
 
 fn add_draw_call(draw_call: &mut DrawCall, draw_calls: &mut Vec<DrawCall>) {
     if draw_call.count != 0 {
