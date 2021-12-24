@@ -3,14 +3,14 @@ use crate::app::*;
 use crate::linalg::*;
 
 use crate::game::{
-    pieces::{get_piece_type_color, Piece, PieceType },
-    playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
+    input::*,
+    pieces::{get_piece_variant_color, Piece, PieceVariant},
+    playfield::{PLAYFIELD_VISIBLE_HEIGHT, Playfield},
     randomizer::*,
     render::*,
     rules::{
         LockDelayRule,
         Rules,
-        line_clear::*,
         lock::*,
         movement::*,
         rotation::*,
@@ -25,6 +25,8 @@ pub const NEXT_PIECES_COUNT: usize = 8;
 #[derive(Clone, Debug, ImDraw)]
 // @Rename
 pub struct RulesInstance {
+    timestamp: u64, // @TODO Time
+
     // @Maybe add which topout rule was the cause
     has_topped_out: bool, // per game
 
@@ -36,7 +38,7 @@ pub struct RulesInstance {
     total_lines_cleared: u32, // per game
 
     current_piece: Option<(Piece, Vec2i)>,
-    next_piece_types: [PieceType; NEXT_PIECES_COUNT], // per game
+    next_piece_types: [PieceVariant; NEXT_PIECES_COUNT], // per game
 
     lock_piece_timestamp: u64,
     last_locked_piece: Option<LockedPiece>, // per piece
@@ -47,7 +49,7 @@ pub struct RulesInstance {
     has_used_hold: bool, // per piece
 
     is_locking: bool, // per piece
-    remaining_lock_delay: LockDelayRule, // per piece
+    remaining_lock_delay: LockDelayRule, // per piece // @Maybe we should make this count up to not copy on construction
 
     has_moved: bool,   // per frame
     has_rotated: bool, // per frame
@@ -58,32 +60,20 @@ pub struct RulesInstance {
     movement_last_timestamp_x: u64,
     movement_last_timestamp_y: u64,
 
-    // Render info
-    // @Refactor render positions should be in the scene
-    preview_window_delta_pos: Vec2,
-    hold_window_delta_pos: Vec2,
-
     // @Maybe split animation data into another struct. This will for sure be modified when styles
     //        are implemented
     // Animations
-    has_movement_animation: bool,
-    movement_animation_show_ghost: bool,
-    movement_animation_duration: u64,
     movement_animation_delta_grid_x: f32,
     movement_animation_delta_grid_y: f32,
     movement_animation_current_delta_grid: Vec2,
 
-    has_line_clear_animation: bool,
-    line_clear_animation_type: LineClearAnimationType,
-
-    has_locking_animation: bool,
-    locking_animation_duration: u64,
     locking_animation_timestamp: u64,
 }
 
 impl RulesInstance {
-    pub fn rules(&self) -> &Rules           { &self.rules }
-    pub fn playfield(&self) -> &Playfield   { &self.playfield }
+    pub fn timestamp(&self)  -> u64         { self.timestamp }
+    pub fn rules(&self)      -> &Rules      { &self.rules }
+    pub fn playfield(&self)  -> &Playfield  { &self.playfield }
     pub fn randomizer(&self) -> &Randomizer { &self.randomizer }
 }
 
@@ -91,61 +81,25 @@ impl RulesInstance {
     pub fn new(
         rules: Rules,
         seed: u64,
-        app: &mut App,
-        persistent: &mut PersistentData
     ) -> Self {
-        let pixel_scale = persistent.pixel_scale;
-
-        let window_size = app.video_system.window.size();
-
-        // playfield positioning
         let playfield_grid_size = Vec2i { x: 10, y: 40 };
-
-        // @Refactor render positions should be in the scene
-        let playfield_pixel_size = Vec2i {
-            x: (pixel_scale as f32 * BLOCK_SCALE * playfield_grid_size.x as f32) as i32,
-            y: (pixel_scale as f32 * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32) as i32,
-        };
-
-        // @Refactor render positions should be in the scene
-        let playfield_pos = Vec2i {
-            x: (window_size.0 as i32 - playfield_pixel_size.x) / 2,
-            y: (window_size.1 as i32 - playfield_pixel_size.y) / 2,
-        };
-
-        let playfield = Playfield::new(playfield_pos, playfield_grid_size, true);
+        let playfield = Playfield::new(playfield_grid_size, PLAYFIELD_VISIBLE_HEIGHT);
 
         // rng
-        let mut randomizer: Randomizer = RandomizerType::Random7Bag.build(seed);
+        let mut randomizer: Randomizer = rules.randomizer_type.build(seed);
 
         // next pieces preview window
-        let mut next_piece_types = [PieceType::I; NEXT_PIECES_COUNT];
+        let mut next_piece_types = [PieceVariant::I; NEXT_PIECES_COUNT];
         for i in 0..NEXT_PIECES_COUNT {
             next_piece_types[i] = randomizer.next_piece();
         }
 
-        // @Refactor render positions should be in the scene
-        let preview_window_delta_pos = Vec2 { x: 20.0, y: 0.0 };
-
-        // hold window
-        // @Refactor render positions should be in the scene
-        let hold_window_delta_pos = Vec2 { x: -20.0, y: 0.0 };
-
         // lock delay
         let remaining_lock_delay = rules.lock_delay;
 
-        //
-        let has_movement_animation = rules.has_movement_animation;
-        let movement_animation_show_ghost = rules.movement_animation_show_ghost;
-        let movement_animation_duration = rules.movement_animation_duration;
-
-        let has_line_clear_animation = rules.has_line_clear_animation;
-        let line_clear_animation_type = rules.line_clear_animation_type;
-
-        let has_locking_animation = rules.has_locking_animation;
-        let locking_animation_duration = rules.locking_animation_duration;
-
         Self {
+            timestamp: 0,
+
             has_topped_out: false,
 
             playfield,
@@ -174,34 +128,84 @@ impl RulesInstance {
             has_stepped: false,
             last_piece_action: LastPieceAction::Movement,
 
-            preview_window_delta_pos,
-            hold_window_delta_pos,
+            movement_last_timestamp_x: 0,
+            movement_last_timestamp_y: 0,
 
-            movement_last_timestamp_x: app.game_timestamp(),
-            movement_last_timestamp_y: app.game_timestamp(),
-
-            has_movement_animation,
-            movement_animation_show_ghost,
-            movement_animation_duration,
             movement_animation_delta_grid_x: 0.0,
             movement_animation_delta_grid_y: 0.0,
             movement_animation_current_delta_grid: Vec2::new(),
 
-            has_line_clear_animation,
-            line_clear_animation_type,
-
-            has_locking_animation,
-            locking_animation_duration,
             locking_animation_timestamp: 0,
         }
     }
 
-    pub fn update(
+    pub fn new_preview(
+        rules: Rules,
+        playfield: Playfield,
+        mut randomizer: Randomizer,
+    ) -> Self {
+        // next pieces preview window
+        let mut next_piece_types = [PieceVariant::I; NEXT_PIECES_COUNT];
+        for i in 0..NEXT_PIECES_COUNT {
+            next_piece_types[i] = randomizer.next_piece();
+        }
+
+        // lock delay
+        let remaining_lock_delay = rules.lock_delay;
+
+        //
+
+        Self {
+            timestamp: 0,
+
+            has_topped_out: false,
+
+            playfield,
+            rules,
+            randomizer,
+
+            current_score: 0,
+            total_lines_cleared: 0,
+
+            current_piece: None,
+            next_piece_types,
+
+            lock_piece_timestamp: 0,
+            last_locked_piece: None,
+            soft_drop_steps: 0,
+            hard_drop_steps: 0,
+
+            hold_piece: None,
+            has_used_hold: false,
+
+            is_locking: false,
+            remaining_lock_delay,
+
+            has_moved: false,
+            has_rotated: false,
+            has_stepped: false,
+            last_piece_action: LastPieceAction::Movement,
+
+            movement_last_timestamp_x: 0,
+            movement_last_timestamp_y: 0,
+
+            movement_animation_delta_grid_x: 0.0,
+            movement_animation_delta_grid_y: 0.0,
+            movement_animation_current_delta_grid: Vec2::new(),
+
+            locking_animation_timestamp: 0,
+        }
+    }
+
+    pub fn update<M: InputMapping>(
         &mut self,
-        app: &mut App,
-        input_mapping: &InputMapping,
+        dt: u64, // @TODO Duration
+        input_mapping: &M,
+        app: &mut App, // @Remove only used to check input repeated over time, which should be improved to not need the whole app
     ) -> bool {
         if self.has_topped_out { return false; }
+
+        self.timestamp += dt;
 
         let mut has_updated = false;
 
@@ -221,7 +225,7 @@ impl RulesInstance {
                 // Locking duration resets when a new piece enters
                 LockDelayRule::EntryReset(ref mut duration) => {
                     if was_locking && self.is_locking {
-                        *duration = duration.saturating_sub(app.last_frame_timestamp());
+                        *duration = duration.saturating_sub(dt);
                     }
 
                     *duration == 0
@@ -239,7 +243,7 @@ impl RulesInstance {
                     }
 
                     if self.is_locking {
-                        *duration = duration.saturating_sub(app.last_frame_timestamp());
+                        *duration = duration.saturating_sub(dt);
                         *duration == 0
                     } else {
                         false
@@ -266,7 +270,7 @@ impl RulesInstance {
 
                     if self.is_locking {
                         if !self.has_moved && !self.has_rotated {
-                            *duration = duration.saturating_sub(app.last_frame_timestamp());
+                            *duration = duration.saturating_sub(dt);
                         }
 
                         if self.has_moved   { *movements = movements.saturating_sub(1); }
@@ -282,13 +286,13 @@ impl RulesInstance {
             };
 
             if has_locked {
-                self.lock_piece(app);
+                self.lock_piece();
                 has_updated = true;
             }
 
             // animation
             if !was_locking && self.is_locking {
-                self.locking_animation_timestamp = app.game_timestamp();
+                self.locking_animation_timestamp = self.timestamp;
                 has_updated = true;
             }
         } else {
@@ -305,7 +309,7 @@ impl RulesInstance {
             // Horizontal movement logic
             let mut horizontal_movement = 0;
 
-            let left_button = input_mapping.button("left".to_string());
+            let left_button = input_mapping.button(KEY_LEFT.to_string());
             if left_button.pressed_repeat_with_delay(
                 self.rules.das_repeat_delay,
                 self.rules.das_repeat_interval,
@@ -314,7 +318,7 @@ impl RulesInstance {
                 horizontal_movement -= 1;
             }
 
-            let right_button = input_mapping.button("right".to_string());
+            let right_button = input_mapping.button(KEY_RIGHT.to_string());
             if right_button.pressed_repeat_with_delay(
                 self.rules.das_repeat_delay,
                 self.rules.das_repeat_interval,
@@ -331,7 +335,7 @@ impl RulesInstance {
                 horizontal_movement,
                 0,
             ) {
-                self.movement_last_timestamp_x = app.game_timestamp();
+                self.movement_last_timestamp_x = self.timestamp;
                 self.movement_animation_delta_grid_x =
                     self.movement_animation_current_delta_grid.x - horizontal_movement as f32;
 
@@ -342,9 +346,9 @@ impl RulesInstance {
             }
 
             // Soft drop
-            let down_button = input_mapping.button("down".to_string());
+            let down_button = input_mapping.button(KEY_DOWN.to_string());
             if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
-                if self.try_soft_drop_piece(app) {
+                if self.try_soft_drop_piece() {
                     has_updated = true;
                 }
             }
@@ -352,10 +356,10 @@ impl RulesInstance {
             // Rotate
             let mut rotation = 0;
 
-            let ccw_button = input_mapping.button("rotate_ccw".to_string());
+            let ccw_button = input_mapping.button(KEY_ROTATE_CCW.to_string());
             if ccw_button.pressed() { rotation -= 1; }
 
-            let cw_button = input_mapping.button("rotate_cw".to_string());
+            let cw_button = input_mapping.button(KEY_ROTATE_CW.to_string());
             if cw_button.pressed() { rotation += 1; }
 
             if rotation != 0 {
@@ -384,9 +388,9 @@ impl RulesInstance {
 
         // Hard drop
         if self.current_piece.is_some() {
-            let up_button = input_mapping.button("hard_drop".to_string());
-            if up_button.pressed() {
-                if self.try_hard_drop_piece(app) {
+            let hard_drop_button = input_mapping.button(KEY_HARD_DROP.to_string());
+            if hard_drop_button.pressed() { // @TODO DAS
+                if self.try_hard_drop_piece() {
                     has_updated = true;
                 }
             }
@@ -394,7 +398,7 @@ impl RulesInstance {
 
         // Hold piece
         if self.rules.has_hold_piece && self.current_piece.is_some() {
-            let hold_button = input_mapping.button("hold".to_string());
+            let hold_button = input_mapping.button(KEY_HOLD.to_string());
             if hold_button.pressed() {
                 if !self.has_used_hold {
                     match self.hold_piece.take() {
@@ -416,8 +420,8 @@ impl RulesInstance {
                             self.has_used_hold = true;
 
                             // update movement timestamps
-                            self.movement_last_timestamp_x = app.game_timestamp();
-                            self.movement_last_timestamp_y = app.game_timestamp();
+                            self.movement_last_timestamp_x = self.timestamp;
+                            self.movement_last_timestamp_y = self.timestamp;
                         }
 
                         None => {
@@ -442,7 +446,7 @@ impl RulesInstance {
         if self.current_piece.is_some() {
             // @TODO move this to Rules (or something)
             let gravity_interval = self.rules.get_gravity_interval(self.level());
-            if app.game_timestamp() >= self.movement_last_timestamp_y + gravity_interval {
+            if self.timestamp >= self.movement_last_timestamp_y + gravity_interval {
                 let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
                 if try_apply_gravity(
                     piece,
@@ -453,7 +457,7 @@ impl RulesInstance {
 
                     self.has_stepped = true;
 
-                    self.movement_last_timestamp_y = app.game_timestamp();
+                    self.movement_last_timestamp_y = self.timestamp;
                     self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
 
                     has_updated = true;
@@ -462,7 +466,7 @@ impl RulesInstance {
 
                     // Only lock on gravity movement if there's no lock delay
                     if self.rules.lock_delay == LockDelayRule::NoDelay {
-                        self.lock_piece(app);
+                        self.lock_piece();
                         has_updated = true;
                     }
                 }
@@ -471,25 +475,34 @@ impl RulesInstance {
 
         // Line clear
         let can_spawn_new_piece;
-        if app.game_timestamp() >= self.lock_piece_timestamp + self.rules.line_clear_delay {
-            if self.rules.try_clear_lines(&mut self.playfield) {
-                self.update_score_and_line_cleared();
-                has_updated = true;
+        if let Some(LockedPiece { lock_piece_result, .. }) = self.last_locked_piece {
+            if let LockedPieceResult::Nothing = lock_piece_result {
+                // No lines to clear, so don't wait the line_clear_delay
+                can_spawn_new_piece = true;
+            } else {
+                // check if line_clear_delay time has passed
+                if self.timestamp >= self.lock_piece_timestamp + self.rules.line_clear_delay {
+                    self.update_score_and_line_cleared();
+                    if self.rules.try_clear_lines(&mut self.playfield) { has_updated = true; }
+                    can_spawn_new_piece = true;
+                } else {
+                    can_spawn_new_piece = false;
+                }
             }
-            can_spawn_new_piece = true;
         } else {
-            can_spawn_new_piece = false;
+            can_spawn_new_piece = true;
         }
 
         // New piece
         if self.current_piece.is_none() &&
             can_spawn_new_piece &&
-            app.game_timestamp() >= self.lock_piece_timestamp + self.rules.entry_delay
+            // @Fix entry_delay should be added after line_clear_delay
+            self.timestamp >= self.lock_piece_timestamp + self.rules.entry_delay
         {
             self.new_piece();
 
-            self.movement_last_timestamp_x = app.game_timestamp();
-            self.movement_last_timestamp_y = app.game_timestamp();
+            self.movement_last_timestamp_x = self.timestamp;
+            self.movement_last_timestamp_y = self.timestamp;
 
             has_updated = true;
 
@@ -513,9 +526,10 @@ impl RulesInstance {
                 while blocks_out_of_playfield(
                     &self.current_piece.as_ref().unwrap().0,
                     self.current_piece.as_ref().unwrap().1,
+                    self.playfield.visible_height,
                 ) > 0 {
                     let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
-                    if try_apply_gravity(
+                    if !try_apply_gravity(
                         piece,
                         piece_pos,
                         &self.playfield,
@@ -529,17 +543,16 @@ impl RulesInstance {
         has_updated
     }
 
-    fn update_animations(
-        &mut self,
-        app: &mut App
-    ) {
+    // @TODO private
+    // @TODO timestamp instead of app
+    pub fn update_animations(&mut self) {
         // Movement animation
-        if self.has_movement_animation {
-            if app.game_timestamp() <= self.movement_last_timestamp_x + self.movement_animation_duration {
+        if self.rules.has_movement_animation {
+            if self.timestamp <= self.movement_last_timestamp_x + self.rules.movement_animation_duration {
                 let t = norm_u64(
-                    app.game_timestamp(),
+                    self.timestamp,
                     self.movement_last_timestamp_x,
-                    self.movement_last_timestamp_x  + self.movement_animation_duration
+                    self.movement_last_timestamp_x  + self.rules.movement_animation_duration
                 );
 
                 self.movement_animation_current_delta_grid.x = lerp_f32(
@@ -552,11 +565,11 @@ impl RulesInstance {
                 self.movement_animation_current_delta_grid.x = 0.0;
             }
 
-            if app.game_timestamp() <= self.movement_last_timestamp_y + self.movement_animation_duration {
+            if self.timestamp <= self.movement_last_timestamp_y + self.rules.movement_animation_duration {
                 let t = norm_u64(
-                    app.game_timestamp(),
+                    self.timestamp,
                     self.movement_last_timestamp_y,
-                    self.movement_last_timestamp_y  + self.movement_animation_duration
+                    self.movement_last_timestamp_y  + self.rules.movement_animation_duration
                 );
 
                 self.movement_animation_current_delta_grid.y = lerp_f32(
@@ -581,40 +594,22 @@ impl RulesInstance {
         }
     }
 
-    // @TODO split rendering parts
     pub fn render_playfield(
         &mut self,
-        //pos: Vec2i,
-        app: &mut App,
+        pos: Vec2i,
+        has_grid: bool,
+        batch: &mut Batch,
         persistent: &mut PersistentData
     ) {
-        let pixel_scale = persistent.pixel_scale;
-
-        // @Refactor render positions should be in the scene
-        let window_size = app.video_system.window.size();
-        let playfield_pixel_size = Vec2i {
-            x: (pixel_scale as f32 * BLOCK_SCALE * self.playfield.grid_size.x as f32) as i32,
-            y: (pixel_scale as f32 * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32) as i32,
-        };
-        self.playfield.pos = Vec2i {
-            x: (window_size.0 as i32 - playfield_pixel_size.x) / 2,
-            y: (window_size.1 as i32 - playfield_pixel_size.y) / 2,
-        };
-
         // playfield
-        let playfield_size = get_draw_playfield_size(&self.playfield, persistent.pixel_scale);
+        let playfield_size = get_draw_playfield_size(
+            &self.playfield,
+            persistent.pixel_scale,
+            has_grid,
+        );
 
-        // @Temporary recalculate playfield position since has_grid can change
-        let window_size = app.video_system.window.size();
-        self.playfield.pos = Vec2i {
-            x: (window_size.0 as f32 - playfield_size.x) as i32 / 2,
-            y: (window_size.1 as f32 - playfield_size.y) as i32 / 2,
-        };
-
-        // Update animations
-        self.update_animations(app);
-
-        if self.has_line_clear_animation {
+        // @TODO this should be calculated on update animations
+        if let Some(line_clear_animation_type) = self.rules.line_clear_animation_type {
             // Get line clear info
             let lines_to_clear = match self.last_locked_piece {
                 None => &[],
@@ -624,44 +619,47 @@ impl RulesInstance {
 
             draw_playfield(
                 &self.playfield,
+                pos,
+                has_grid,
                 Some((
                     self.lock_piece_timestamp,
                     self.rules.line_clear_delay,
-                    self.line_clear_animation_type,
+                    line_clear_animation_type,
                     lines_to_clear,
+                    self.timestamp,
                 )),
                 self.rules.rotation_system,
-                app,
+                batch,
                 persistent
             );
         } else {
             draw_playfield(
                 &self.playfield,
+                pos,
+                has_grid,
                 None,
                 self.rules.rotation_system,
-                app,
+                batch,
                 persistent
             );
         }
 
         // Clip
-        app.push_clip(
-            self.playfield.pos,
-            playfield_size.into()
-        );
-
+        batch.push_clip(pos, playfield_size.into());
 
         // ghost piece
         if let Some(piece) = self.current_piece {
             let (piece, piece_pos) = piece;
-            if self.movement_animation_show_ghost {
+            if self.rules.movement_animation_show_ghost {
                 draw_piece_in_playfield(
                     piece,
                     piece_pos,
                     Vec2::new(),
-                    Color { r: 1., g: 1., b: 1., a: 0.1 },
+                    Color { r: 1., g: 1., b: 1., a: 0.1 }, // @TODO create ghost color
                     &self.playfield,
-                    app,
+                    pos,
+                    has_grid,
+                    batch,
                     persistent
                 );
             }
@@ -685,9 +683,11 @@ impl RulesInstance {
                         ghost_piece,
                         ghost_piece_pos,
                         Vec2::new(),
-                        Color { r: 1., g: 1., b: 1., a: 0.1 },
+                        Color { r: 1., g: 1., b: 1., a: 0.1 }, // @TODO create ghost color
                         &self.playfield,
-                        app,
+                        pos,
+                        has_grid,
+                        batch,
                         persistent
                     );
                 }
@@ -695,17 +695,17 @@ impl RulesInstance {
 
             // render piece
             let movement_animation_delta_grid;
-            if self.has_movement_animation {
+            if self.rules.has_movement_animation {
                 movement_animation_delta_grid = self.movement_animation_current_delta_grid;
             } else {
                 movement_animation_delta_grid = Vec2::new();
             }
 
             let color;
-            if self.is_locking && self.has_locking_animation {
-                let delta_time = app.game_timestamp() - self.locking_animation_timestamp;
+            if self.is_locking && self.rules.has_locking_animation {
+                let delta_time = self.timestamp - self.locking_animation_timestamp;
                 let alpha = 2.0 * std::f32::consts::PI * delta_time as f32;
-                let alpha = alpha / (self.locking_animation_duration as f32);
+                let alpha = alpha / (self.rules.locking_animation_duration as f32);
                 let alpha = ((1.0 + alpha.sin()) / 2.0) / 2.0 + 0.5;
 
                 color = piece.color().alpha(alpha);
@@ -719,130 +719,164 @@ impl RulesInstance {
                 movement_animation_delta_grid,
                 color,
                 &self.playfield,
-                app,
+                pos,
+                has_grid,
+                batch,
                 persistent
             );
         }
 
         // Clip
-        app.pop_clip();
+        batch.pop_clip();
+    }
+
+    // @Refactor we have to be more versatile here to allow splitting the next pieces previews
+    //           in multiple windows (maybe have a (start, count), or render each one independently
+    //           and pass which window borders should be rendered, or have a "window frame"
+    //           rendering separate)
+    // @Fix this is not counting the window border
+    pub fn next_pieces_preview_window_size(
+        &mut self,
+        _index: u32,
+        has_grid: bool,
+        persistent: &mut PersistentData
+    ) -> Vec2i {
+        let size;
+        if has_grid {
+            size = persistent.pixel_scale as i32 * ((1 + BLOCK_SCALE as i32) * 4 + 1);
+        } else {
+            size = persistent.pixel_scale as i32 * BLOCK_SCALE as i32 * 4;
+        }
+
+        /*
+        let window_size = Vec2 {
+            x: size,
+            y: size * self.rules.next_pieces_preview_count as f32,
+        };
+        */
+
+        Vec2i { x: size, y: size }
     }
 
     pub fn render_next_pieces_preview(
         &mut self,
-        app: &mut App,
+        pos: Vec2i,
+        index: u32,
+        has_grid: bool,
+        batch: &mut Batch,
         persistent: &mut PersistentData
     ) {
         // render preview
         if self.rules.next_pieces_preview_count > 0 {
-            let size;
-            if self.playfield.has_grid {
-                size = persistent.pixel_scale as f32 * ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
-            } else {
-                size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
-            }
-            let window_size = Vec2 {
-                x: size,
-                y: size * self.rules.next_pieces_preview_count as f32,
-            };
-
-            let playfield_size = get_draw_playfield_size(&self.playfield, persistent.pixel_scale);
-
-            let window_pos =
-                Vec2::from(self.playfield.pos) + self.preview_window_delta_pos +
-                Vec2 { x: playfield_size.x, y: 0.0 };
+            let window_size = self.next_pieces_preview_window_size(
+                0,
+                has_grid,
+                persistent
+            );
 
             draw_rect_window(
-                window_pos,
-                window_size,
+                pos.into(),
+                window_size.into(),
                 persistent.pixel_scale,
-                app,
+                batch,
                 persistent
             );
 
             assert!(self.rules.next_pieces_preview_count <= 8);
+            assert!(index < 8);
+            draw_piece_centered(
+                Piece {
+                    variant: self.next_piece_types[index as usize],
+                    rot: 0,
+                    rotation_system: self.rules.rotation_system,
+                },
+                pos.into(),
+                get_piece_variant_color(self.next_piece_types[index as usize], self.rules.rotation_system),
+                has_grid,
+                batch,
+                persistent
+            );
+
+            /*
+            assert!(self.rules.next_pieces_preview_count <= 8);
             for i in 0..self.rules.next_pieces_preview_count {
                 draw_piece_centered(
                     Piece {
-                        type_: self.next_piece_types[i as usize],
+                        variant: self.next_piece_types[i as usize],
                         rot: 0,
                         rotation_system: self.rules.rotation_system,
                     },
                     Vec2 {
-                        x: window_pos.x,
-                        y: window_pos.y + i as f32 * size,
+                        x: pos.x,
+                        y: pos.y + i as f32 * size,
                     },
-                    get_piece_type_color(self.next_piece_types[i as usize], self.rules.rotation_system),
+                    get_piece_variant_color(self.next_piece_types[i as usize], self.rules.rotation_system),
                     self.playfield.has_grid,
-                    app,
                     persistent
                 );
             }
+            */
+        }
+    }
+
+    // @Fix this is not counting the window border
+    pub fn hold_piece_window_size(
+        &self,
+        has_grid: bool,
+        persistent: &mut PersistentData
+    ) -> Vec2i {
+        if has_grid {
+            let size = persistent.pixel_scale as i32 * ((1 + BLOCK_SCALE as i32) * 4 + 1);
+            Vec2i { x: size, y: size }
+        } else {
+            let size = persistent.pixel_scale as i32 * BLOCK_SCALE as i32 * 4;
+            Vec2i { x: size, y: size }
         }
     }
 
     pub fn render_hold_piece(
         &mut self,
-        app: &mut App,
+        pos: Vec2i,
+        has_grid: bool,
+        batch: &mut Batch,
         persistent: &mut PersistentData
     ) {
         // hold piece
         if self.rules.has_hold_piece {
-            let window_size;
-            if self.playfield.has_grid {
-                let size = persistent.pixel_scale as f32 * ((1.0 + BLOCK_SCALE) * 4.0 + 1.0);
-                window_size = Vec2 { x: size as f32, y: size as f32 };
-            } else {
-                let size = persistent.pixel_scale as f32 * BLOCK_SCALE * 4.0;
-                window_size = Vec2 { x: size as f32, y: size as f32 };
-            }
-
-            let window_pos =
-                Vec2::from(self.playfield.pos) + self.hold_window_delta_pos +
-                Vec2 { x: -window_size.x, y: 0.0 };
+            let window_size = self.hold_piece_window_size(has_grid, persistent);
 
             draw_rect_window(
-                window_pos,
+                pos,
                 window_size,
                 persistent.pixel_scale,
-                app,
+                batch,
                 persistent
             );
 
             if let Some(hold_piece) = self.hold_piece {
                 draw_piece_centered(
                     hold_piece,
-                    window_pos,
+                    pos,
                     hold_piece.color(),
-                    self.playfield.has_grid,
-                    app,
+                    has_grid,
+                    batch,
                     persistent
                 );
             }
         }
     }
 
-    pub fn render(
-        &mut self,
-        app: &mut App,
-        persistent: &mut PersistentData
-    ) {
-        self.render_playfield(app, persistent);
-        self.render_next_pieces_preview(app, persistent);
-        self.render_hold_piece(app, persistent);
-    }
-
     fn new_piece(&mut self) {
         // update piece position and type
 
         let new_piece = Piece {
-            type_: self.next_piece_types[0],
+            variant: self.next_piece_types[0],
             rot: 0,
             rotation_system: self.rules.rotation_system,
         };
 
         let new_piece_pos = Vec2i {
-            x: self.playfield.grid_size.x / 2 - 2,
+            x: (self.playfield.grid_size.x + 1) / 2 - 2,
             y: self.rules.spawn_row as i32 - 3,
         };
 
@@ -895,7 +929,7 @@ impl RulesInstance {
         }
     }
 
-    fn lock_piece(&mut self, app: &App) {
+    fn lock_piece(&mut self) {
         let (piece, piece_pos) = self.current_piece.as_ref().unwrap();
         lock_piece(
             piece,
@@ -904,7 +938,7 @@ impl RulesInstance {
         );
 
         // @Refactor this is repeated and any lock piece should check for this.
-        if locked_out(piece, *piece_pos, &self.rules) {
+        if locked_out(piece, *piece_pos, self.playfield.visible_height, &self.rules) {
             self.has_topped_out = true;
             println!("game over: locked out");
             return;
@@ -920,26 +954,26 @@ impl RulesInstance {
             lock_piece_result: self.get_lock_piece_result(),
         });
 
-        self.lock_piece_timestamp = app.game_timestamp();
+        self.lock_piece_timestamp = self.timestamp;
     }
 
-    fn try_hard_drop_piece(&mut self, app: &App) -> bool {
+    fn try_hard_drop_piece(&mut self) -> bool {
         if !self.rules.has_hard_drop { return false; }
 
         let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
         self.hard_drop_steps = full_drop_piece(piece, piece_pos, &mut self.playfield);
         self.last_piece_action = LastPieceAction::Movement;
 
-        self.lock_piece(app);
+        self.lock_piece();
         true
     }
 
-    fn try_soft_drop_piece(&mut self, app: &App) -> bool {
+    fn try_soft_drop_piece(&mut self) -> bool {
         if !self.rules.has_soft_drop { return false; }
 
         let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
         if try_move_piece(piece, piece_pos, &self.playfield, 0, -1) {
-            self.movement_last_timestamp_y = app.game_timestamp();
+            self.movement_last_timestamp_y = self.timestamp;
             self.movement_animation_delta_grid_y =
                 self.movement_animation_current_delta_grid.y + 1.0;
 
@@ -991,46 +1025,21 @@ impl RulesInstance {
         randomizer: Randomizer,
         net_timestamp: u64,
         app: &mut App,
-        persistent: &mut PersistentData
+        _persistent: &mut PersistentData
     ) -> Self {
-        let pixel_scale = persistent.pixel_scale;
-
-        let window_size = app.video_system.window.size();
-
-        // playfield positioning
-        let playfield_grid_size = net_instance.playfield.grid_size;
-
-        // @Refactor render positions should be in the scene
-        let playfield_pixel_size = Vec2i {
-            x: (pixel_scale as f32 * BLOCK_SCALE * playfield_grid_size.x as f32) as i32,
-            y: (pixel_scale as f32 * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32) as i32,
-        };
-
-        // @Refactor render positions should be in the scene
-        let playfield_pos = Vec2i {
-            x: (window_size.0 as i32 - playfield_pixel_size.x) / 2,
-            y: (window_size.1 as i32 - playfield_pixel_size.y) / 2,
-        };
-
-        let playfield = Playfield::from_network(net_instance.playfield, playfield_pos, true);
-
-        // @Refactor render positions should be in the scene
-        let preview_window_delta_pos = Vec2 { x: 20.0, y: 0.0 };
-
-        // hold window
-        // @Refactor render positions should be in the scene
-        let hold_window_delta_pos = Vec2 { x: -20.0, y: 0.0 };
-
         // lock delay
         let remaining_lock_delay = rules.lock_delay;
 
+        // @TODO do we need this?
         // Fix timestamps
         app.set_game_timestamp(net_timestamp);
 
         Self {
+            timestamp: net_instance.timestamp,
+
             has_topped_out: net_instance.has_topped_out,
 
-            playfield,
+            playfield: net_instance.playfield,
             rules,
             randomizer,
 
@@ -1056,32 +1065,23 @@ impl RulesInstance {
             has_stepped: false,
             last_piece_action: LastPieceAction::Movement,
 
-            preview_window_delta_pos,
-            hold_window_delta_pos,
-
             movement_last_timestamp_x: net_instance.movement_last_timestamp_x,
             movement_last_timestamp_y: net_instance.movement_last_timestamp_y,
 
-            has_movement_animation: true,
-            movement_animation_show_ghost: false,
-            movement_animation_duration: 50_000,
             movement_animation_delta_grid_x: 0.0,
             movement_animation_delta_grid_y: 0.0,
             movement_animation_current_delta_grid: Vec2::new(),
 
-            has_line_clear_animation: true,
-            line_clear_animation_type: LineClearAnimationType::Classic,
-
-            has_locking_animation: true,
             locking_animation_timestamp: 0,
-            locking_animation_duration: 250_000,
         }
     }
 
     pub fn to_network(&self) -> network::NetworkedRulesInstance {
         network::NetworkedRulesInstance {
+            timestamp: self.timestamp,
+
             has_topped_out: self.has_topped_out,
-            playfield: Playfield::to_network(&self.playfield),
+            playfield: self.playfield.clone(),
 
             current_score: self.current_score,
             total_lines_cleared: self.total_lines_cleared,
@@ -1105,11 +1105,13 @@ impl RulesInstance {
         net_timestamp: u64,
         app: &mut App,
     ) {
+        // @TODO do we need this?
         // Fix timestamps
         app.set_game_timestamp(net_timestamp);
 
         self.has_topped_out = net_instance.has_topped_out;
-        self.playfield.update_from_network(net_instance.playfield);
+        //self.playfield.update_from_network(net_instance.playfield);
+        self.playfield = net_instance.playfield;
 
         self.current_score = net_instance.current_score;
         self.total_lines_cleared = net_instance.total_lines_cleared;

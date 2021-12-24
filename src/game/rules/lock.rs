@@ -64,7 +64,7 @@ pub fn lock_piece(
         playfield.set_block(
             pos.x + block_pos.x,
             pos.y + block_pos.y,
-            piece.type_,
+            piece.variant,
         );
     }
 }

@@ -64,6 +64,10 @@ pub(in crate::app) struct Renderer {
     window_size: (u32, u32),
 }
 
+impl App<'_> {
+    pub fn batch(&mut self) -> &mut Batch { &mut self.renderer.batch }
+}
+
 impl Renderer {
     pub(in crate::app) fn new(window_size: (u32, u32)) -> Self {
         let mut vao = 0;
@@ -454,18 +458,28 @@ impl Renderer {
     fn render_draw_calls(&mut self, draw_calls: Vec<DrawCall>, framebuffer: Option<Framebuffer>) {
         if draw_calls.is_empty() { return; }
 
+        // @Hack
+        // @TODO store the correct value already on batch?
+        let framebuffer_height;
+
         // @TODO improve this whole framebuffer logic
         if let Some(Framebuffer { framebuffer_object, width, height, .. }) = framebuffer {
             unsafe {
                 gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer_object);
-                gl::Disable(gl::DEPTH_TEST);
+                gl::Disable(gl::DEPTH_TEST); // @Hack it should depend on framebuffer configuration
             }
             self.change_viewport((width, height));
+            framebuffer_height = height;
         } else {
             unsafe {
                 gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+
+                // @Hack we enable depth test for default. We should move the whole default
+                //       framebuffer rendering to a multi-pass rendering using Framebuffer
+                gl::Enable(gl::DEPTH_TEST);
             }
             self.change_viewport(self.window_size);
+            framebuffer_height = self.window_size.1;
         }
 
         self.change_shader_program(draw_calls[0].program);
@@ -493,7 +507,7 @@ impl Renderer {
 
             if let Some((min, max)) = call.clip {
                 let x = min.x;
-                let y = self.window_size.1 as i32 - max.y;
+                let y = framebuffer_height as i32 - max.y;
                 let w = max.x - min.x;
                 let h = max.y - min.y;
 

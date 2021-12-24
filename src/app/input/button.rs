@@ -1,18 +1,3 @@
-use std::cmp::max;
-use crate::app::{
-    App,
-    imdraw::ImDraw,
-    sdl2::{
-        keyboard::Scancode,
-        mouse::MouseButton,
-    },
-};
-
-use super::{
-    ControllerAxisThreshold,
-    system::InputSystem,
-};
-
 /*
     let mut button = Button::new();
     button.add_key(sdl2::keyboard::Scancode::W);
@@ -36,16 +21,79 @@ use super::{
     if long_press { println!("long_press"); }
 */
 
+use std::cmp::max;
+use crate::app::{
+    App,
+    imdraw::ImDraw,
+    sdl2::{
+        keyboard::Scancode,
+        mouse::MouseButton,
+    },
+};
+
+use super::{
+    ControllerAxisThreshold,
+    system::InputSystem,
+};
+
+pub trait Button {
+    fn timestamp(&self) -> u64;
+
+    fn down(&self) -> bool;
+    fn pressed(&self)  -> bool;
+    fn released(&self) -> bool; // @TODO return release duration?
+
+    fn pressed_for(&self, duration: u64, timestamp: u64)  -> bool { self.down() && timestamp - self.timestamp() >= duration }
+    fn released_for(&self, duration: u64, timestamp: u64) -> bool { !self.down() && timestamp - self.timestamp() >= duration }
+
+    fn pressed_repeat(&self, repeat_interval: u64, app: &App) -> bool {
+        self.pressed_repeat_with_delay(repeat_interval, repeat_interval, app)
+    }
+
+    fn pressed_repeat_with_delay(
+        &self,
+        repeat_delay: u64,
+        repeat_interval: u64,
+        app: &App
+    ) -> bool {
+        if !self.down()   { return false; }
+        if self.pressed() { return true;  }
+
+        let timestamp = self.timestamp();
+
+        let real_time = app.time_system.real_time;
+        let frame_duration = app.time_system.game_frame_duration;
+
+        // Check underflow cases
+        let prev_press_count;
+        if real_time < frame_duration + timestamp + repeat_delay {
+            prev_press_count = 0;
+        } else {
+            let total_time = real_time - frame_duration - timestamp - repeat_delay;
+            prev_press_count = 1 + total_time / repeat_interval;
+        }
+
+        let curr_press_count;
+        if real_time < timestamp + repeat_delay {
+            curr_press_count = 0;
+        } else {
+            curr_press_count = 1 + (real_time - timestamp - repeat_delay) / repeat_interval;
+        }
+
+        prev_press_count < curr_press_count
+    }
+}
+
 #[derive(ImDraw)]
-pub struct Button {
-    keys: Vec<KeyInput>,
-    mouse_buttons: Vec<MouseButtonInput>,
+pub struct RemappableButton {
+    keys:               Vec<KeyInput>,
+    mouse_buttons:      Vec<MouseButtonInput>,
     controller_buttons: Vec<ControllerButtonInput>,
-    controller_axes: Vec<ControllerAxisInput>,
+    controller_axes:    Vec<ControllerAxisInput>,
 
     // @TODO bitflags
-    down: bool,
-    pressed: bool,
+    down:     bool,
+    pressed:  bool,
     released: bool,
 
     // If game is paused, only checking for the timestamp will make the button seem always pressed.
@@ -56,8 +104,8 @@ pub struct Button {
     timestamp: u64,
 }
 
-impl Button {
-    // @XXX maybe create a succint way to initialize a button with a list of keys, buttons, etc
+impl RemappableButton {
+    // @TODO create Builder to configure keys/buttons
     pub fn new() -> Self {
         Self {
             keys: Vec::new(),
@@ -72,6 +120,8 @@ impl Button {
             timestamp: 0u64,
         }
     }
+
+    // Button configuration
 
     // Keyboard keys
     // @Maybe abstract Scancode
@@ -166,7 +216,7 @@ impl Button {
             let key_state = input_system.keyboard.button_state(key.0);
 
             total_down += key_state.down as i32;
-            last_pressed = max(last_pressed, (key_state.down as u64) * key_state.timestamp);
+            last_pressed  = max(last_pressed, (key_state.down as u64) * key_state.timestamp);
             last_released = max(last_released, (!key_state.down as u64) * key_state.timestamp);
         }
 
@@ -175,7 +225,7 @@ impl Button {
             let button_state = input_system.mouse.button_state(button.0);
 
             total_down += button_state.down as i32;
-            last_pressed = max(last_pressed, (button_state.down as u64) * button_state.timestamp);
+            last_pressed  = max(last_pressed, (button_state.down as u64) * button_state.timestamp);
             last_released = max(last_released, (!button_state.down as u64) * button_state.timestamp);
         }
 
@@ -187,7 +237,7 @@ impl Button {
                     let button_state = controller_state.button_state(button.button);
 
                     total_down += button_state.down as i32;
-                    last_pressed = max(last_pressed, (button_state.down as u64) * button_state.timestamp);
+                    last_pressed  = max(last_pressed, (button_state.down as u64) * button_state.timestamp);
                     last_released = max(last_released, (!button_state.down as u64) * button_state.timestamp);
                 },
                 None => {}
@@ -212,7 +262,7 @@ impl Button {
                     axis.last_update_value = axis_down;
 
                     total_down += axis_down as i32;
-                    last_pressed = max(last_pressed, (axis_down as u64) * axis.last_change_timestamp);
+                    last_pressed  = max(last_pressed, (axis_down as u64) * axis.last_change_timestamp);
                     last_released = max(last_released, (!axis_down as u64) * axis.last_change_timestamp);
                 },
                 None => {}
@@ -245,61 +295,26 @@ impl Button {
         } else {
             //released
 
-            self.timestamp = last_released;
-            self.down = false;
+            // If the button was up already, we don't update the timestamp to avoid false
+            // release states. It's only a problem when using multiple keys for the same button
+            if self.down {
+                self.timestamp = last_released;
+                self.down = false;
+            }
+
             self.pressed = false;
             self.released = (self.timestamp == timestamp) && self.last_state;
 
             self.last_state = false;
         }
     }
+}
 
-    pub fn down(&self)     -> bool { self.down }
-    pub fn pressed(&self)  -> bool { self.pressed }
-    pub fn released(&self) -> bool { self.released } // @TODO return release duration?
-
-    pub fn pressed_for(&self, duration: u64, timestamp: u64)  -> bool {
-        self.down && timestamp - self.timestamp >= duration
-    }
-
-    pub fn released_for(&self, duration: u64, timestamp: u64)  -> bool {
-        !self.down && timestamp - self.timestamp >= duration
-    }
-
-    pub fn pressed_repeat(&self, repeat_interval: u64, app: &App) -> bool {
-        self.pressed_repeat_with_delay(repeat_interval, repeat_interval, app)
-    }
-
-    pub fn pressed_repeat_with_delay(
-        &self,
-        repeat_delay: u64,
-        repeat_interval: u64,
-        app: &App
-    ) -> bool {
-        if !self.down { return false; }
-        if self.pressed { return true; }
-
-        let real_time = app.time_system.real_time;
-        let frame_duration = app.time_system.game_frame_duration;
-
-        // Check underflow cases
-        let prev_press_count;
-        if real_time < frame_duration + self.timestamp + repeat_delay {
-            prev_press_count = 0;
-        } else {
-            let total_time = real_time - frame_duration - self.timestamp - repeat_delay;
-            prev_press_count = 1 + total_time / repeat_interval;
-        }
-
-        let curr_press_count;
-        if real_time < self.timestamp + repeat_delay {
-            curr_press_count = 0;
-        } else {
-            curr_press_count = 1 + (real_time - self.timestamp - repeat_delay) / repeat_interval;
-        }
-
-        prev_press_count < curr_press_count
-    }
+impl Button for RemappableButton {
+    fn timestamp(&self) -> u64 { self.timestamp }
+    fn down(&self)     -> bool { self.down }
+    fn pressed(&self)  -> bool { self.pressed }
+    fn released(&self) -> bool { self.released }
 }
 
 #[derive(ImDraw)]
@@ -331,7 +346,7 @@ mod tests {
 
     #[test]
     fn test_button_keys() {
-        let mut button = Button::new();
+        let mut button = RemappableButton::new();
 
         assert_eq!(button.keys.len(), 0);
 
@@ -352,7 +367,7 @@ mod tests {
 
     #[test]
     fn test_button_mouse_buttons() {
-        let mut button = Button::new();
+        let mut button = RemappableButton::new();
 
         assert_eq!(button.mouse_buttons.len(), 0);
 

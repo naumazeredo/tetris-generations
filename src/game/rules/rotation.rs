@@ -1,6 +1,6 @@
 use crate::linalg::Vec2i;
 use crate::game::{
-    pieces::{ Piece, PieceType },
+    pieces::{ Piece, PieceVariant },
     playfield::Playfield,
 };
 
@@ -246,18 +246,18 @@ const I_TESTS: [[[Vec2i; 5]; 2]; 4] = [
 fn get_srs_rotation_tests(piece: &Piece, is_clockwise: bool) -> &'static [Vec2i] {
     let rot = (((piece.rot % 4) + 4) % 4) as usize;
     let dir = (!is_clockwise) as usize;
-    match piece.type_ {
-        | PieceType::J
-        | PieceType::L
-        | PieceType::S
-        | PieceType::T
-        | PieceType::Z
+    match piece.variant {
+        | PieceVariant::J
+        | PieceVariant::L
+        | PieceVariant::S
+        | PieceVariant::T
+        | PieceVariant::Z
         => {
             &JLSTZ_TESTS[rot][dir]
         }
 
-        PieceType::I => { &I_TESTS[rot][dir] }
-        PieceType::O => { &NO_TESTS }
+        PieceVariant::I => { &I_TESTS[rot][dir] }
+        PieceVariant::O => { &NO_TESTS }
     }
 }
 

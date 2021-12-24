@@ -3,7 +3,7 @@ use rand_core::RngCore;
 
 use crate::app::ImDraw;
 use crate::game::pieces::{
-    PieceType,
+    PieceVariant,
     PIECES
 };
 use super::RandomizerTrait;
@@ -32,7 +32,7 @@ impl RandomizerTrait for Randomizer7Bag {
         self.index = 7;
     }
 
-    fn next_piece(&mut self) -> PieceType {
+    fn next_piece(&mut self) -> PieceVariant {
         if self.index == 7 {
             for _ in 0..10 {
                 let i = (self.rng.next_u32() % 7) as usize;

@@ -78,11 +78,13 @@ impl App<'_> {
         time_system.scale = time_system.last_scale;
     }
 
+    /*
     pub fn last_frame_duration(&self) -> f32 {
         to_seconds(self.time_system.game_frame_duration)
     }
+    */
 
-    pub fn last_frame_timestamp(&self) -> u64 {
+    pub fn last_frame_duration(&self) -> u64 {
         self.time_system.game_frame_duration
     }
 
@@ -123,6 +125,6 @@ fn system_time(timer_subsystem: &sdl2::TimerSubsystem) -> u64 {
 }
 
 // @Refactor use types for time/duration
-fn to_seconds(usecs: u64) -> f32 {
+pub fn to_seconds(usecs: u64) -> f32 {
     usecs as f32 / 1_000_000.
 }

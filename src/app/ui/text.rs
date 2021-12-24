@@ -7,7 +7,6 @@ pub struct Text<'a> {
     max_width: Option<u32>,
     multiline: bool,
     disabled: bool,
-    //multiline: bool,
 }
 
 impl<'a> Text<'a> {
@@ -98,12 +97,13 @@ pub(super) fn text_internal<P: Placer>(
         let text_size = ui.style.text_size;
         let max_width = text.max_width.unwrap_or(placer.draw_width(app) as u32);
 
-        let size = calculate_draw_text_size(
+        let size = calculate_draw_text_size_with_callback(
             &app.font_system,
             &text.text,
             text_size as f32,
             None,
             Some(max_width),
+            |_,_,_| {}
         );
 
         Vec2i {

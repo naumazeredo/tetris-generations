@@ -1,45 +1,41 @@
 use crate::app::ImDraw;
 use crate::linalg::Vec2i;
-use super::pieces::PieceType;
+use super::pieces::PieceVariant;
 
-pub const PLAYFIELD_VISIBLE_HEIGHT : i32 = 20;
+pub const PLAYFIELD_VISIBLE_HEIGHT : u8 = 20;
 
 #[derive(Copy, Clone, Debug)]
 pub enum BlockType {
     Empty,
-    Piece(PieceType),
+    Piece(PieceVariant),
 }
 
 #[derive(Clone, Debug)]
 pub struct Playfield {
     pub grid_size: Vec2i, // @Refactor use Vec2<u8>
+    pub visible_height: u8,
     pub blocks: Vec<BlockType>, // @Refactor don't use Vec
-
-    // Render variables
-    // @Refactor rendering information struct
-    pub pos: Vec2i,
-    pub has_grid: bool, // @XXX this is probably better be where pixel_scale is
 }
 
 impl Playfield {
-    // @TODO remove pos
-    pub fn new(pos: Vec2i, grid_size: Vec2i, has_grid: bool) -> Self {
+    pub fn new(grid_size: Vec2i, visible_height: u8) -> Self {
+        assert!(grid_size.x > 0);
+        assert!(grid_size.y > 0);
+
         let mut blocks = Vec::new();
         blocks.resize((grid_size.x * grid_size.y) as usize, BlockType::Empty);
 
         Self {
             grid_size,
+            visible_height,
             blocks,
-
-            pos,
-            has_grid,
         }
     }
 
     // @TODO use row, col, instead of x, y
-    pub fn block(&self, x: i32, y: i32) -> Option<PieceType> {
-        if x < 0 || x >= self.grid_size.x { return Some(PieceType::S); }
-        if y < 0 || y >= self.grid_size.y { return Some(PieceType::S); }
+    pub fn block(&self, x: i32, y: i32) -> Option<PieceVariant> {
+        if x < 0 || x >= self.grid_size.x { return Some(PieceVariant::S); }
+        if y < 0 || y >= self.grid_size.y { return Some(PieceVariant::S); }
 
         let pos = y * self.grid_size.x + x;
         let pos = pos as usize;
@@ -51,7 +47,7 @@ impl Playfield {
         }
     }
 
-    pub fn set_block(&mut self, x: i32, y: i32, piece_type: PieceType) {
+    pub fn set_block(&mut self, x: i32, y: i32, piece_type: PieceVariant) {
         assert!(x >= 0 && x < self.grid_size.x);
         assert!(y >= 0 && y < self.grid_size.y);
 
@@ -137,10 +133,7 @@ impl ImDraw for Playfield {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
         imgui::TreeNode::new(im_str2!(label)).build(ui, || {
             let id = ui.push_id(label);
-
-            self.pos.imdraw("pos", ui);
             self.grid_size.imdraw("grid_size", ui);
-            self.has_grid.imdraw("has_grid", ui);
 
             /*
             imgui::TreeNode::new(im_str2!("blocks")).build(ui, || {
@@ -162,42 +155,5 @@ impl ImDraw for Playfield {
 
             id.pop(ui);
         });
-    }
-}
-
-// Network
-use crate::game::network;
-
-impl Playfield {
-    pub fn from_network(
-        net_instance: network::NetworkedPlayfield,
-        pos: Vec2i,
-        has_grid: bool
-    ) -> Self {
-        let network::NetworkedPlayfield { grid_size, blocks } = net_instance;
-
-        Self {
-            grid_size,
-            blocks,
-
-            pos,
-            has_grid,
-        }
-    }
-
-    pub fn to_network(&self) -> network::NetworkedPlayfield {
-        network::NetworkedPlayfield {
-            grid_size: self.grid_size,
-            blocks: self.blocks.clone(),
-        }
-    }
-
-    pub fn update_from_network(
-        &mut self,
-        net_instance: network::NetworkedPlayfield
-    ) {
-        let network::NetworkedPlayfield { grid_size, blocks } = net_instance;
-        self.grid_size = grid_size;
-        self.blocks = blocks;
     }
 }

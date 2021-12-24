@@ -3,7 +3,7 @@ use crate::app::ImDraw;
 use crate::linalg::Vec2i;
 use crate::game::{
     pieces::Piece,
-    playfield::{ Playfield, PLAYFIELD_VISIBLE_HEIGHT },
+    playfield::Playfield,
 };
 
 use super::{ Rules, movement::try_move_piece };
@@ -38,10 +38,11 @@ pub fn blocked_out(
 pub fn locked_out(
     piece: &Piece,
     pos: Vec2i,
+    playfield_visible_height: u8,
     rules: &Rules
 ) -> bool {
     if rules.top_out_rule.intersects(TopOutRule::LOCK_OUT | TopOutRule::PARTIAL_LOCK_OUT) {
-        let blocks_locked_out = blocks_out_of_playfield(piece, pos);
+        let blocks_locked_out = blocks_out_of_playfield(piece, pos, playfield_visible_height);
         if rules.top_out_rule.contains(TopOutRule::LOCK_OUT) {
             return blocks_locked_out == 4;
         } else {
@@ -55,9 +56,10 @@ pub fn locked_out(
 pub fn blocks_out_of_playfield(
     piece: &Piece,
     pos: Vec2i,
+    playfield_visible_height: u8,
 ) -> u8 {
     piece.blocks().iter()
         .fold(0, |acc, block_pos| {
-            acc + (pos.y + block_pos.y >= PLAYFIELD_VISIBLE_HEIGHT) as u8
+            acc + (pos.y + block_pos.y >= playfield_visible_height as i32) as u8
         })
 }

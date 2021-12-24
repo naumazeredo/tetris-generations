@@ -369,14 +369,14 @@ fn input_str_internal<'a, P: Placer>(
         })
         .or_insert_with(|| State::new_input_str(&value, input.max_length, input.disabled));
 
+    // Add line. Must come before updat
+    let ui = placer.ui(app);
+    let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+    let ui_index = ui.index().0;
+    app.update_line_state_interaction(ui_index, line_index);
+
     if !input.disabled {
-        // Add line. Must come before updat
-        let ui = placer.ui(app);
-        let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
-
-        let ui_index = ui.index().0;
-        app.update_line_state_interaction(ui_index, line_index);
-
         // Update widget state
         let state = app.update_input_state_interaction(id, layout);
         if let ElementVariant::Input {

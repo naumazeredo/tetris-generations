@@ -1,7 +1,7 @@
 // Remove console on Windows if not in debug build
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#![cfg_attr(not(debug_assertions), deny(dead_code))]
+//#![cfg_attr(not(debug_assertions), deny(dead_code))]
 #![cfg_attr(debug_assertions, allow(dead_code))]
 #![cfg_attr(debug_assertions, allow(incomplete_features))]
 
@@ -36,7 +36,7 @@ pub struct State {
     seed: u64,
 }
 
-const BLOCK_SCALE : f32 = 8.0;
+const BLOCK_SCALE : u32 = 8;
 
 impl GameState for State {
     fn new(app: &mut App) -> Self {
@@ -59,8 +59,7 @@ impl GameState for State {
     }
 
     fn update(&mut self, app: &mut App) {
-        app.update_input_mapping(&mut self.persistent.input_mapping);
-
+        self.persistent.input_mapping.update(app);
         self.scene_manager.update(app, &mut self.persistent);
     }
 

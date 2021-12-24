@@ -7,8 +7,8 @@ use crate::game::{
         instance::NEXT_PIECES_COUNT,
         lock::{LastPieceAction, LockedPiece, LockedPieceResult},
     },
-    pieces::{Piece, PieceType},
-    playfield::BlockType,
+    pieces::{Piece, PieceVariant},
+    playfield::{BlockType, Playfield},
 };
 
 pub enum MultiplayerMessages {
@@ -38,21 +38,17 @@ pub struct Update {
 // Rules Instance
 
 #[derive(Debug)]
-pub struct NetworkedPlayfield {
-    pub grid_size: Vec2i, // @Fix This doesn't need to be synced!
-    pub blocks: Vec<BlockType>,
-}
-
-#[derive(Debug)]
 pub struct NetworkedRulesInstance {
+    pub timestamp: u64, // per game
+
     pub has_topped_out: bool, // per game
-    pub playfield: NetworkedPlayfield,   // per game
+    pub playfield: Playfield,   // per game
 
     pub current_score: u32,       // per game
     pub total_lines_cleared: u32, // per game
 
     pub current_piece: Option<(Piece, Vec2i)>,
-    pub next_piece_types: [PieceType; NEXT_PIECES_COUNT], // per game
+    pub next_piece_types: [PieceVariant; NEXT_PIECES_COUNT], // per game
 
     pub lock_piece_timestamp: u64,
     pub last_locked_piece: Option<LockedPiece>, // per piece
@@ -138,24 +134,28 @@ impl Deserialize for MultiplayerMessages {
     }
 }
 
-impl Serialize for NetworkedPlayfield {
+impl Serialize for Playfield {
     fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
         self.grid_size.serialize(serializer)?;
+        self.visible_height.serialize(serializer)?;
         self.blocks.serialize(serializer)?;
         Ok(())
     }
 }
 
-impl Deserialize for NetworkedPlayfield {
+impl Deserialize for Playfield {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
         let grid_size = Vec2i::deserialize(deserializer)?;
+        let visible_height = u8::deserialize(deserializer)?;
         let blocks = Vec::<BlockType>::deserialize(deserializer)?;
-        Ok(Self { grid_size, blocks })
+        Ok(Self { grid_size, visible_height, blocks })
     }
 }
 
 impl Serialize for NetworkedRulesInstance {
     fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
+        self.timestamp.serialize(serializer)?;
+
         self.has_topped_out.serialize(serializer)?;
         self.playfield.serialize(serializer)?;
 
@@ -179,14 +179,16 @@ impl Serialize for NetworkedRulesInstance {
 
 impl Deserialize for NetworkedRulesInstance {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
+        let timestamp = u64::deserialize(deserializer)?;
+
         let has_topped_out = bool::deserialize(deserializer)?;
-        let playfield = NetworkedPlayfield::deserialize(deserializer)?;
+        let playfield = Playfield::deserialize(deserializer)?;
 
         let current_score = u32::deserialize(deserializer)?;
         let total_lines_cleared = u32::deserialize(deserializer)?;
 
         let current_piece = Option::<(Piece, Vec2i)>::deserialize(deserializer)?;
-        let next_piece_types = <[PieceType; NEXT_PIECES_COUNT]>::deserialize(deserializer)?;
+        let next_piece_types = <[PieceVariant; NEXT_PIECES_COUNT]>::deserialize(deserializer)?;
 
         let lock_piece_timestamp = u64::deserialize(deserializer)?;
         let last_locked_piece = Option::<LockedPiece>::deserialize(deserializer)?;
@@ -197,6 +199,8 @@ impl Deserialize for NetworkedRulesInstance {
         let movement_last_timestamp_y = u64::deserialize(deserializer)?;
 
         Ok(Self {
+            timestamp,
+
             has_topped_out,
             playfield,
 
@@ -275,31 +279,31 @@ impl Deserialize for Randomizer {
     }
 }
 
-impl Serialize for PieceType {
+impl Serialize for PieceVariant {
     fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
         match *self {
-            PieceType::S => serializer.serialize_packed_u8::<0, 6>(0)?,
-            PieceType::Z => serializer.serialize_packed_u8::<0, 6>(1)?,
-            PieceType::J => serializer.serialize_packed_u8::<0, 6>(2)?,
-            PieceType::L => serializer.serialize_packed_u8::<0, 6>(3)?,
-            PieceType::O => serializer.serialize_packed_u8::<0, 6>(4)?,
-            PieceType::I => serializer.serialize_packed_u8::<0, 6>(5)?,
-            PieceType::T => serializer.serialize_packed_u8::<0, 6>(6)?,
+            PieceVariant::S => serializer.serialize_packed_u8::<0, 6>(0)?,
+            PieceVariant::Z => serializer.serialize_packed_u8::<0, 6>(1)?,
+            PieceVariant::J => serializer.serialize_packed_u8::<0, 6>(2)?,
+            PieceVariant::L => serializer.serialize_packed_u8::<0, 6>(3)?,
+            PieceVariant::O => serializer.serialize_packed_u8::<0, 6>(4)?,
+            PieceVariant::I => serializer.serialize_packed_u8::<0, 6>(5)?,
+            PieceVariant::T => serializer.serialize_packed_u8::<0, 6>(6)?,
         }
         Ok(())
     }
 }
 
-impl Deserialize for PieceType {
+impl Deserialize for PieceVariant {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
         let t = match deserializer.deserialize_packed_u8::<0, 6>()? {
-            0 => PieceType::S,
-            1 => PieceType::Z,
-            2 => PieceType::J,
-            3 => PieceType::L,
-            4 => PieceType::O,
-            5 => PieceType::I,
-            _ => PieceType::T,
+            0 => PieceVariant::S,
+            1 => PieceVariant::Z,
+            2 => PieceVariant::J,
+            3 => PieceVariant::L,
+            4 => PieceVariant::O,
+            5 => PieceVariant::I,
+            _ => PieceVariant::T,
         };
         Ok(t)
     }
@@ -318,15 +322,15 @@ impl Serialize for BlockType {
 impl Deserialize for BlockType {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
         let t = match deserializer.deserialize_packed_u8::<0, 7>()? {
-            // @XXX: this is repeating the PieceType deserialization,
+            // @XXX: this is repeating the PieceVariant deserialization,
             //       any way to avoid this repetition?
-            0 => BlockType::Piece(PieceType::S),
-            1 => BlockType::Piece(PieceType::Z),
-            2 => BlockType::Piece(PieceType::J),
-            3 => BlockType::Piece(PieceType::L),
-            4 => BlockType::Piece(PieceType::O),
-            5 => BlockType::Piece(PieceType::I),
-            6 => BlockType::Piece(PieceType::T),
+            0 => BlockType::Piece(PieceVariant::S),
+            1 => BlockType::Piece(PieceVariant::Z),
+            2 => BlockType::Piece(PieceVariant::J),
+            3 => BlockType::Piece(PieceVariant::L),
+            4 => BlockType::Piece(PieceVariant::O),
+            5 => BlockType::Piece(PieceVariant::I),
+            6 => BlockType::Piece(PieceVariant::T),
 
             _ => BlockType::Empty,
         };
@@ -336,7 +340,7 @@ impl Deserialize for BlockType {
 
 impl Serialize for Piece {
     fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
-        self.type_.serialize(serializer)?;
+        self.variant.serialize(serializer)?;
         let rot = ((self.rot % 4) + 4) % 4;
         serializer.serialize_packed_i32::<0, 3>(rot)?;
         self.rotation_system.serialize(serializer)?;
@@ -346,10 +350,10 @@ impl Serialize for Piece {
 
 impl Deserialize for Piece {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
-        let type_ = PieceType::deserialize(deserializer)?;
+        let variant = PieceVariant::deserialize(deserializer)?;
         let rot = deserializer.deserialize_packed_i32::<0, 3>()?;
         let rotation_system = RotationSystem::deserialize(deserializer)?;
-        Ok(Self { type_, rot, rotation_system })
+        Ok(Self { variant, rot, rotation_system })
     }
 }
 

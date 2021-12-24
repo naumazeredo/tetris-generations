@@ -56,106 +56,106 @@ impl SceneTrait for DebugPiecesScene {
             None,
         );
 
-        let x = 100.0;
-        let y = 100.0;
+        let x = 100;
+        let y = 100;
 
         draw_piece_window(
-            Vec2 { x, y },
+            Vec2i { x, y },
             Piece {
-                type_: PIECES[0],
+                variant: PIECES[0],
                 rot: self.rot,
                 rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            app,
+            &mut app.batch(),
             persistent
         );
 
-        let pixel_scale = persistent.pixel_scale;
+        let pixel_scale = persistent.pixel_scale as i32;
 
-        let x = x + pixel_scale as f32 * BLOCK_SCALE * 6.0;
+        let x = x + pixel_scale * BLOCK_SCALE as i32 * 6;
         draw_piece_window(
-            Vec2 { x , y },
+            Vec2i { x , y },
             Piece {
-                type_: PIECES[1],
+                variant: PIECES[1],
                 rot: self.rot,
                 rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            app,
+            &mut app.batch(),
             persistent
         );
 
-        let x = x + pixel_scale as f32 * BLOCK_SCALE * 6.0;
+        let x = x + pixel_scale * BLOCK_SCALE as i32 * 6;
         draw_piece_window(
-            Vec2 { x , y },
+            Vec2i { x , y },
             Piece {
-                type_: PIECES[2],
+                variant: PIECES[2],
                 rot: self.rot,
                 rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            app,
+            &mut app.batch(),
             persistent
         );
 
-        let x = x + pixel_scale as f32 * BLOCK_SCALE * 6.0;
+        let x = x + pixel_scale * BLOCK_SCALE as i32 * 6;
         draw_piece_window(
-            Vec2 { x , y },
+            Vec2i { x , y },
             Piece {
-                type_: PIECES[3],
+                variant: PIECES[3],
                 rot: self.rot,
                 rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            app,
+            &mut app.batch(),
             persistent
         );
 
-        let x = 100.0;
-        let y = y + pixel_scale as f32 * BLOCK_SCALE * 6.0;
+        let x = 100;
+        let y = y + pixel_scale * BLOCK_SCALE as i32 * 6;
         draw_piece_window(
-            Vec2 { x , y },
+            Vec2i { x , y },
             Piece {
-                type_: PIECES[4],
+                variant: PIECES[4],
                 rot: self.rot,
                 rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            app,
+            &mut app.batch(),
             persistent
         );
 
-        let x = x + pixel_scale as f32 * BLOCK_SCALE * 6.0;
+        let x = x + pixel_scale * BLOCK_SCALE as i32 * 6;
         draw_piece_window(
-            Vec2 { x , y },
+            Vec2i { x , y },
             Piece {
-                type_: PIECES[5],
+                variant: PIECES[5],
                 rot: self.rot,
                 rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            app,
+            &mut app.batch(),
             persistent
         );
 
-        let x = x + pixel_scale as f32 * BLOCK_SCALE * 6.0;
+        let x = x + pixel_scale * BLOCK_SCALE as i32 * 6;
         draw_piece_window(
-            Vec2 { x , y },
+            Vec2i { x , y },
             Piece {
-                type_: PIECES[6],
+                variant: PIECES[6],
                 rot: self.rot,
                 rotation_system: self.rotation_system,
             },
             self.is_centered,
             self.has_grid,
-            app,
+            &mut app.batch(),
             persistent
         );
     }

@@ -30,6 +30,7 @@ pub use {
     network::*,
     renderer::*,
     transform::*,
+    time_system::*,
     utils::*,
     video_system::*,
 };
@@ -40,9 +41,9 @@ use sdl2::event::WindowEvent;
 
 use asset_system::*;
 use debug::*;
-use ui::*; // We don't give public access to ui structs since it has too many name conflicts
+use ui::UiSystem; // We don't give public access to ui structs since it has too many name conflicts
 use sdl::*;
-use time_system::*;
+//use time_system::*;
 
 #[derive(ImDraw)]
 pub struct App<'a> {

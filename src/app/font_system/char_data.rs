@@ -35,7 +35,7 @@ impl CharData {
         (
             Vec2i {
                 x: self.pos.0 as i32,
-                y: self.pos.1 as i32
+                y: self.pos.1 as i32,
             },
             Vec2i {
                 x: self.pos.0 as i32 + self.metrics.w,

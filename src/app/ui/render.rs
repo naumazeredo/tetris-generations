@@ -300,12 +300,13 @@ impl Ui {
                     if *is_input_focus &&
                         ((current_timestamp - cursor_timestamp) / cursor_duration) % 2 == 0 {
 
-                            let text_draw_size: Vec2i = calculate_draw_text_size(
+                            let text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
                                 &app.font_system,
                                 text,
                                 self.style.text_size as f32,
                                 None,
                                 None,
+                                |_,_,_| {}
                             ).into();
 
                             let pos = layout.pos + padding;
@@ -399,12 +400,13 @@ impl Ui {
 
                 let text = &variant.to_str();
 
-                let text_draw_size: Vec2i = calculate_draw_text_size(
+                let text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
                     &app.font_system,
                     text,
                     self.style.text_size as f32,
                     None,
                     None,
+                    |_,_,_| {}
                 ).into();
 
                 let pos = layout.pos +
@@ -467,12 +469,13 @@ impl Ui {
                 batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
-                let text_draw_size: Vec2i = calculate_draw_text_size(
+                let text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
                     &app.font_system,
                     text,
                     self.style.text_size as f32,
                     None,
                     None,
+                    |_,_,_| {}
                 ).into();
 
                 let pos = layout.pos +
@@ -539,12 +542,13 @@ impl Ui {
                 batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
-                let text_draw_size: Vec2i = calculate_draw_text_size(
+                let text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
                     &app.font_system,
                     text,
                     self.style.text_size as f32,
                     None,
                     None,
+                    |_,_,_| {}
                 ).into();
 
                 let pos = layout.pos +
@@ -649,20 +653,22 @@ impl Ui {
                     (num_lines.saturating_sub(1) / lines_per_page) + 1
                 );
 
-                let left_text_draw_size: Vec2i = calculate_draw_text_size(
+                let left_text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
                     &app.font_system,
                     left_text,
                     self.style.text_size as f32,
                     None,
                     None,
+                    |_,_,_| {}
                 ).into();
 
-                let right_text_draw_size: Vec2i = calculate_draw_text_size(
+                let right_text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
                     &app.font_system,
                     right_text,
                     self.style.text_size as f32,
                     None,
                     None,
+                    |_,_,_| {}
                 ).into();
 
                 let index_draw_size = Vec2i {

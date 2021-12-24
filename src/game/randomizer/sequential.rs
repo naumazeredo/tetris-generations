@@ -1,8 +1,5 @@
 use crate::app::ImDraw;
-use crate::game::pieces::{
-    PieceType,
-    PIECES
-};
+use crate::game::pieces::{PIECES, PieceVariant};
 use super::RandomizerTrait;
 
 #[derive(Clone, Debug, ImDraw)]
@@ -23,7 +20,7 @@ impl RandomizerTrait for RandomizerSequential {
         self.current = 7;
     }
 
-    fn next_piece(&mut self) -> PieceType {
+    fn next_piece(&mut self) -> PieceVariant{
         self.current += 1;
         if self.current >= 7 { self.current = 0; }
         PIECES[self.current as usize]

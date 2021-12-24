@@ -141,14 +141,14 @@ fn checkbox_internal<'a, P: Placer>(
         })
         .or_insert_with(|| new_checkbox(*value, checkbox.disabled));
 
+    // Add line. Must come before update
+    let ui = placer.ui(app);
+    let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+    let ui_index = ui.index().0;
+    app.update_line_state_interaction(ui_index, line_index);
+
     if !checkbox.disabled {
-        // Add line. Must come before updat
-        let ui = placer.ui(app);
-        let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
-
-        let ui_index = ui.index().0;
-        app.update_line_state_interaction(ui_index, line_index);
-
         // Update widget state
         let state = app.update_state_interaction(id, layout);
         if state.pressed {

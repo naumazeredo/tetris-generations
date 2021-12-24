@@ -1,7 +1,13 @@
 use std::collections::BTreeMap;
 
-use crate::app::imdraw::ImDraw;
-use super::button::Button;
+use crate::app::{
+    App,
+    imdraw::ImDraw,
+};
+use super::button::{
+    Button,
+    RemappableButton,
+};
 
 // @XXX Somehow we should be able to verify if the last key pressed was on the keyboard/mouse
 //      or gamepad
@@ -17,12 +23,12 @@ enum ControllerBind {
 
 // @TODO use hashed string
 #[derive(ImDraw)]
-pub struct InputMapping {
-    pub(super) button_mapping: BTreeMap<String, Button>,
+pub struct RegularMapping {
+    pub(super) button_mapping: BTreeMap<String, RemappableButton>,
     //controller_bind: ControllerBind,
 }
 
-impl InputMapping {
+impl RegularMapping {
     pub fn new() -> Self {
         Self {
             button_mapping: BTreeMap::new(),
@@ -30,7 +36,7 @@ impl InputMapping {
         }
     }
 
-    pub fn add_button_mapping(&mut self, name: String, button: Button) {
+    pub fn add_button_mapping(&mut self, name: String, button: RemappableButton) {
         // @XXX nightly
         //.expect_none("[input mapping] overwriting button mapping");
 
@@ -39,9 +45,25 @@ impl InputMapping {
             Some(_) => panic!("[input mapping] overwriting button mapping"),
         }
     }
+}
 
-    pub fn button(&self, name: String) -> &Button {
+impl InputMapping for RegularMapping {
+    type ButtonType = RemappableButton;
+
+    fn button(&self, name: String) -> &Self::ButtonType {
         self.button_mapping.get(&name)
             .expect(&format!("[input_system mapping] No mapping found for button: {}", name))
     }
+
+    fn update(&mut self, app: &App) {
+        for button in self.button_mapping.values_mut() {
+            button.update(&app.input_system, app.time_system.real_time);
+        }
+    }
+}
+
+pub trait InputMapping {
+    type ButtonType: Button;
+    fn button(&self, name: String) -> &Self::ButtonType;
+    fn update(&mut self, app: &App);
 }

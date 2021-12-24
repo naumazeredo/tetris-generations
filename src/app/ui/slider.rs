@@ -197,14 +197,14 @@ macro_rules! slider_variant_integer_impl {
                     })
                     .or_insert_with(|| [<new_slider_ $type>](*value, slider.min, slider.max, slider.disabled));
 
+                // Add line. Must come before updat
+                let ui = placer.ui(app);
+                let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
+
+                let ui_index = ui.index().0;
+                app.update_line_state_interaction(ui_index, line_index);
+
                 if !slider.disabled {
-                    // Add line. Must come before updat
-                    let ui = placer.ui(app);
-                    let line_index = ui.add_line(id, Layout { pos: line_pos, size: line_size });
-
-                    let ui_index = ui.index().0;
-                    app.update_line_state_interaction(ui_index, line_index);
-
                     // Update widget state
 
                     // Copy values since borrow-checker doesn't allow multiple references

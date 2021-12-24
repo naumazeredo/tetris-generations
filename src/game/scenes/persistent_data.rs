@@ -12,7 +12,7 @@ pub struct Sprites {
 
 #[derive(ImDraw)]
 pub struct PersistentData {
-    pub input_mapping: InputMapping,
+    pub input_mapping: RegularMapping,
     pub sprites: Sprites,
     pub pixel_scale: u8,
     pub rng: rand_pcg::Pcg64,

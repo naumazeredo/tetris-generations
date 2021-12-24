@@ -18,7 +18,7 @@ use crate::app::{
     ImDraw,
     renderer::{
         self,
-        text::calculate_draw_text_size,
+        text::calculate_draw_text_size_with_callback,
     },
     utils::fnv_hasher::FNVHasher,
 };
@@ -414,12 +414,13 @@ impl App<'_> {
 
     fn calculate_text_size(&self, text: &str) -> Vec2i {
         let ui = &self.ui_system.uis.last().unwrap();
-        let size = calculate_draw_text_size(
+        let size = calculate_draw_text_size_with_callback(
             &self.font_system,
             text,
             ui.style.text_size as f32,
             None,
             None,
+            |_,_,_| {}
         );
 
         Vec2i {

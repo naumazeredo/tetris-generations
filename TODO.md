@@ -18,10 +18,13 @@
 - [ ] General refactor/cleanup
   - [x] Refactor SinglePlayerScene into RulesInstance (maybe a better name)
   - [ ] Refactor orientation rule usage and rules functions
-  - [ ] [game render] Change all rendering to be pixel perfect
+  - [ ] [render] Change all rendering to be pixel perfect
     - [x] pixel_scale to u8
     - [ ] BLOCK_SCALE to u8
     - [ ] All render functions to receive Vec2i or integers instead of floats
+  - [ ] [render] move game/render.rs functions to their impls
+  - [ ] Rename rules to tetris (not the best name. rules should be part of the tetris module)
+  - [ ] Create instance draw style: position of windows, scales, color of pieces
 - [ ] Scenes
   - [x] Main menu
     - [ ] Background
@@ -39,10 +42,11 @@
     - [ ] Local
     - [ ] Multiplayer
   - [ ] Custom game
-    - [ ] Explaination for each rule
+    - [ ] Explanation for each rule
       - [ ] Times should show a realtime + slowdown near the action (or step by step explaination)
       - [ ] Rotation systems should show all pieces rotations and have multiple pages showing the
           kicks
+      - [ ] Abstract InputMapping into a trait to create SimulatedInputMapping
 - [x] [render] Clip render of blocks to playfield
   - [x] ~[bug] Piece movement animation makes the rendering be outside of the playfield. This should be
       fixed with rendering on a framebuffer instead of directly on the screen~
@@ -60,7 +64,7 @@
 ### Engine
 
 - [ ] Refactor projects: lib (engine), bins (game, server, etc)
-    linalg should be moved to the app
+- [ ] linalg should be moved to the app
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface (system/mod.rs should contain the pub
       interface) and avoid App self borrow:
@@ -97,7 +101,10 @@
   - [x] Axis-aligned (+ scissor) rendering
   - [x] Stack of modifier commands
     - [x] Scissor/Clip
-  - [x] Batch rendering
+  - [ ] Batch rendering
+    - [x] General functionality
+    - [ ] Trait it so we can easily pass the App itself (that will use the renderer batch) or a
+        custom Batch
   - [x] Render to framebuffer
   - [x] Subtexture structure: currently we only have Sprite, but a sprite is subtexture with more
       info
@@ -113,7 +120,9 @@
   - [x] Multipage window ("multiline" window)
       - Maybe scroll page? Should need to split header and footer elements to not scroll with the
           page
-  - [ ] Line focus?
+  - [ ] Line focus
+    - [x] Active line focus
+    - [ ] Inactive line focus: how to do it?
   - [ ] Widgets
     - [ ] Text
       - [x] Basic functionality
@@ -271,10 +280,15 @@
 
 ### Game
 
+- [ ] Name to "Tetris Generations" or "Tetris Journey"
 - [ ] Rules instance
   - [ ] Split render functions to each component: the scene should be responsible for the rendering
       positions and what should be rendered (playfield pos, windows positions, etc, should be passed
       to the rendner functions, not stored into RulesInstance)
+  - [ ] [bug] Sometimes the preview doesn't work as expected: right + right being too fast, or the
+      preview not even completing successfully (this seems to happen because we are not accumulating
+      the times properly and advancing to the next input instead directly instead of treating the
+      delta time)
 - [ ] Rules
   - [ ] Line clear
     - [ ] Sticky
@@ -298,6 +312,9 @@
   - [ ] Top out
     - [ ] Garbage out
   - [ ] Randomizer
+    - [ ] Rename RandomizerType to RandomizerVariant
+    - [ ] Redo the design: RandomizerVariant should have the necessary information to instantiate
+        the Randomizer since seed is not broad enough to cover all cases
     - [ ] TGMACE
     - [ ] TGM1
     - [ ] TGM
@@ -309,11 +326,14 @@
   - [ ] Twists/Spins (https://tetris.fandom.com/wiki/List_of_twists)
 - [ ] Improve animations
 - [ ] Game menu
-  - [ ] Select game rules and start game
   - [ ] Styling options
     - [ ] Draw grid option
     - [ ] Customize piece styles (maybe be able to add new styles)
     - [ ] [game render] Draw functions with different block textures and different pixel scales
+  - [ ] [bug] Sometimes the preview doesn't work as expected: right + right being too fast, or the
+      preview not even completing successfully (this seems to happen because we are not accumulating
+      the times properly and advancing to the next input instead directly instead of treating the
+      delta time)
 - [ ] 9-slicing texture for windows
 - [ ] Fix DAS/ARR -> DAS (Delayed Auto Shift) is verified only when the time has passed: it only stops
     the repeating movement if, when verified the next step, the key is not pressed.
@@ -330,14 +350,17 @@
 - [ ] Correct NES resolutions and scaling (PAL: 256x240, NTSC: 256x224 with bottom 8 scanlines not
     visible)
 - [ ] Easter eggs
-  - [ ] Main menu match
-    - [ ] Have a Tetris game (classic) in the main menu. After a Tetris, the menu disappears, the
-        playfield centers, the classic music starts playing. Then the game goes on each generation
-        of Tetris, changing the rules, rotation, music, sounds, effects, graphics, etc.
+  - [ ] ~Main menu match: Have a Tetris game (classic) in the main menu. After a Tetris, the menu
+      disappears, the playfield centers, the classic music starts playing. Then the game goes on
+      each generation of Tetris, changing the rules, rotation, music, sounds, effects, graphics,
+      etc.~ (Now it's the actual story mode)
   - [ ] Nintendo code?
 - [ ] Tetris Tutor
   - [ ] Tutorials explaining the mechanics, strategies and META for Classic and Modern (maybe
       variations: no rotation, time attack, 40 lines, perfect clears, battle)
+- [ ] Journey mode
+  - [ ] Play each version of Tetris in chronological order, having to clear 10 lines in each (maybe
+      adding some special games like Tetris Effect Zone battle, No Rotation Classical Tetris, etc)
 
 ### Engine
 
@@ -361,6 +384,8 @@
   - [ ] [fix] Framebuffer rendered textures have inverted y. Maybe we should fix by flipping the
       viewport (or maybe it's just broken, we have to test with subtextures not containing the whole
       height!). queue_draw_texture should also accept flip as a parameter to give full control.
+  - [ ] Change default rendering to use Framebuffer to allow multipass rendering (and to allow
+      proper rendering configuration on game side: depth test, stencil, etc)
   - [ ] Have a way to delete allocated textures: this depends on AssetManager design decisions
   - [ ] Pixel perfect rendering
   - [ ] Batch rendering
@@ -392,6 +417,7 @@
   - [ ] Mapping
     - [ ] Bind mapping to a controller and detect input change from keyboard to controller
   - [ ] Virtual button
+    - [ ] Builder to configure keys/buttons?
     - [ ] Accumulated time (instead of taking the time difference)
     - [ ] Joystick button
     - [ ] Joystick axis

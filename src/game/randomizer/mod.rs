@@ -1,11 +1,13 @@
-mod sequential;
-mod fullrandom;
-mod random7bag;
-
 use enum_dispatch::*;
 use crate::app::ImDraw;
-use super::pieces::PieceType;
+use super::pieces::PieceVariant;
 
+mod defined_sequence;
+mod fullrandom;
+mod random7bag;
+mod sequential;
+
+pub use defined_sequence::RandomizerDefinedSequence;
 pub use fullrandom::RandomizerFullRandom;
 pub use random7bag::Randomizer7Bag;
 pub use sequential::RandomizerSequential;
@@ -31,8 +33,9 @@ impl RandomizerType {
     pub fn build(self, seed: u64) -> Randomizer {
         match self {
             RandomizerType::FullRandom => Randomizer::RandomizerFullRandom(RandomizerFullRandom::new(seed)),
-            RandomizerType::Random7Bag => Randomizer::Randomizer7Bag(Randomizer7Bag::new(seed)),
             RandomizerType::Sequential => Randomizer::RandomizerSequential(RandomizerSequential::new()),
+            RandomizerType::Random7Bag => Randomizer::Randomizer7Bag(Randomizer7Bag::new(seed)),
+
             _ => unimplemented!("Randomizer type not yet supported"),
         }
     }
@@ -42,13 +45,14 @@ impl RandomizerType {
 #[enum_dispatch]
 pub trait RandomizerTrait {
     fn reset(&mut self);
-    fn next_piece(&mut self) -> PieceType;
+    fn next_piece(&mut self) -> PieceVariant;
     fn seed(&self) -> u64;
 }
 
 #[enum_dispatch(RandomizerTrait)]
 #[derive(Clone, Debug, ImDraw)]
 pub enum Randomizer {
+    RandomizerDefinedSequence,
     RandomizerSequential,
     RandomizerFullRandom,
     Randomizer7Bag,

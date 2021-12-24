@@ -13,7 +13,6 @@ use crate::app::sdl2::{
 use super::{
     ControllerAxisDirection,
     ControllerAxisThreshold,
-    mapping::InputMapping,
 };
 
 const MAX_KEYBOARD_KEYS      : usize = 512;
@@ -148,12 +147,6 @@ impl InputSystem {
         }
     }
 
-    fn update_input_mapping(&mut self, mapping: &mut InputMapping, timestamp: u64) {
-        for button in mapping.button_mapping.values_mut() {
-            button.update(self, timestamp);
-        }
-    }
-
     // @TODO refactor duration
     // frequencies go from 0 to 0xffff
     // duration in milliseconds
@@ -172,11 +165,6 @@ impl InputSystem {
 }
 
 impl App<'_> {
-    pub fn update_input_mapping(&mut self, mapping: &mut InputMapping) {
-        let timestamp = self.time_system.real_time;
-        self.input_system.update_input_mapping(mapping, timestamp);
-    }
-
     pub fn set_controller_rumble(
         &mut self,
         controller_index: usize,

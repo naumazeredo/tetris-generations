@@ -2,10 +2,7 @@
 use rand_core::RngCore;
 
 use crate::app::ImDraw;
-use crate::game::pieces::{
-    PieceType,
-    PIECES
-};
+use crate::game::pieces::{PIECES, PieceVariant};
 use super::RandomizerTrait;
 
 #[derive(Clone, Debug, ImDraw)]
@@ -26,7 +23,7 @@ impl RandomizerFullRandom {
 impl RandomizerTrait for RandomizerFullRandom {
     fn reset(&mut self) {}
 
-    fn next_piece(&mut self) -> PieceType {
+    fn next_piece(&mut self) -> PieceVariant {
         let piece_id = (self.rng.next_u32() % 7) as usize;
         PIECES[piece_id]
     }

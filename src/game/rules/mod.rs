@@ -89,8 +89,7 @@ pub struct Rules {
     movement_animation_show_ghost: bool, // @Remove this is debug only
     movement_animation_duration: u64,
 
-    has_line_clear_animation: bool,
-    line_clear_animation_type: LineClearAnimationType,
+    line_clear_animation_type: Option<LineClearAnimationType>,
 
     has_locking_animation: bool,
     locking_animation_duration: u64,
@@ -145,8 +144,7 @@ impl From<RotationSystem> for Rules {
                     movement_animation_show_ghost: false,
                     movement_animation_duration: 0,
 
-                    has_line_clear_animation: true,
-                    line_clear_animation_type: LineClearAnimationType::Classic,
+                    line_clear_animation_type: Some(LineClearAnimationType::Classic),
 
                     has_locking_animation: false,
                     locking_animation_duration: 0,
@@ -201,8 +199,7 @@ impl From<RotationSystem> for Rules {
                     movement_animation_show_ghost: false,
                     movement_animation_duration: 50_000,
 
-                    has_line_clear_animation: true,
-                    line_clear_animation_type: LineClearAnimationType::Classic,
+                    line_clear_animation_type: Some(LineClearAnimationType::Classic),
 
                     has_locking_animation: true,
                     locking_animation_duration: 250_000,
@@ -258,8 +255,7 @@ impl From<RotationSystem> for Rules {
                     movement_animation_show_ghost: true,
                     movement_animation_duration: 50_000,
 
-                    has_line_clear_animation: true,
-                    line_clear_animation_type: LineClearAnimationType::Classic,
+                    line_clear_animation_type: Some(LineClearAnimationType::Classic),
 
                     has_locking_animation: true,
                     locking_animation_duration: 250_000,
