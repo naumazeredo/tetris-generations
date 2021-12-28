@@ -61,8 +61,8 @@ pub struct App<'a> {
     // @Fix clicking on this bool in imgui window will make imgui consume all events
     show_debug_window: bool,
 
-    // @Maybe refactor? Giving public access to be able to mess with window freely
-    pub video_system: VideoSystem,
+    // @Maybe give public access to be able to mess with window freely
+    video_system: VideoSystem,
 }
 
 impl App<'_> {

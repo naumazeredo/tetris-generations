@@ -199,7 +199,7 @@ impl SingleplayerScene {
             true,
         );
 
-        let window_size = app.video_system.window.size();
+        let window_size = app.window_size();
         let playfield_pos = Vec2i {
             x: (window_size.0 as i32 - playfield_draw_size.x) / 2,
             y: (window_size.1 as i32 - playfield_draw_size.y) / 2,
