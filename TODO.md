@@ -4,16 +4,19 @@
 
 - we need tests!
 - matchmaking, please?
+- adding audio
 - all rules, finally
 - time to refactor time
+- player edit board positions
 - editor stuff
 - the real input support
-- adding audio
 
 ## v0.0.2: we have a game (roughly)
 
 ### Game
 
+- [ ] [bug] Changing scenes while paused stays in the same state
+  - [ ] Should we reset the time when changing scenes? Is this a rule?
 - [ ] Fix Classic style: NES Classic has blocks with sizes 7x7, not 8x8
 - [ ] General refactor/cleanup
   - [x] Refactor SinglePlayerScene into RulesInstance (maybe a better name)
@@ -44,9 +47,27 @@
   - [ ] Custom game
     - [ ] Explanation for each rule
       - [ ] Times should show a realtime + slowdown near the action (or step by step explaination)
-      - [ ] Rotation systems should show all pieces rotations and have multiple pages showing the
-          kicks
-      - [ ] Abstract InputMapping into a trait to create SimulatedInputMapping
+      - [ ] (maybe) Rotation systems should show all pieces rotations and have multiple pages
+          showing the kicks
+      - [x] Abstract InputMapping into a trait to create SimulatedInputMapping
+      - [ ] PlayfieldAnimation
+        - [x] Event sequence
+          - [x] Key input
+          - [x] Reset
+          - [x] New piece
+          - [x] Wait
+          - [ ] Time scaling
+          - [ ] Wait for piece drop
+        - [x] RulesInstance
+      - [ ] Show input buttons
+      - [ ] Text explanations
+        - [ ] Rotation system (rename to Rotation Rule)
+        - [x] Hard drop
+        - [ ] Firm drop
+        - [x] Soft drop
+        - [ ] Soft drop lock
+        - [ ] Soft drop interval
+        - [ ] Hold
 - [x] [render] Clip render of blocks to playfield
   - [x] ~[bug] Piece movement animation makes the rendering be outside of the playfield. This should be
       fixed with rendering on a framebuffer instead of directly on the screen~
@@ -60,11 +81,17 @@
   - [ ] Create a derive macro like enum_dispatch (can't use enum dispatch with associated type)
   - [ ] Use associate type in SceneTrait to be able to move SceneManager to App
   - [ ] Add generic type Scene to App to move SceneManager to App
+- [ ] Create shader for Tetris block rendering (depends on Shader struct being implemented)
+  - [ ] Engine: support loading an indexed image
+  - [ ] [Palette changing](https://www.khronos.org/opengl/wiki/Common_Mistakes#Paletted_textures)
+  - [ ] Send the whole playfield to the shader
+- [ ] [instance] Entry delay: the piece should spawn but stay on a waiting state, instead of only
+    spawning after the entry delay period
 
 ### Engine
 
 - [ ] Refactor projects: lib (engine), bins (game, server, etc)
-- [ ] linalg should be moved to the app
+  - [ ] linalg should be moved to the app
 - [ ] Refactor systems to be data and App interface to implement the logic
   - [ ] Refactor systems to have a uniform interface (system/mod.rs should contain the pub
       interface) and avoid App self borrow:
@@ -130,7 +157,7 @@
       - [x] Header (maybe just centered text and custom text size?)
       - [ ] Multiline
         - [x] Multiline text widget
-        - [ ] Line spacing
+        - [x] Line spacing
         - [ ] Alignment options
     - [x] Button
       - [x] Basic functionality
@@ -170,8 +197,16 @@
   - [ ] Keyboard/Controller support
     - [ ] Selected line
     - [ ] Styling colors for text/widgets (or colored background of the line)
-- [x] [input]
+- [ ] [input]
   - [x] Use real time and somehow manage game system
+    - [ ] [time] [fixed timestep] Input is being registered in the start of the frame, so any system
+        that queries the key presses on render (like UI) don't work as intended. If we introduce
+        input event handling mid frame, we need a better solution for this.
+  - [ ] Buffer events: fixed timestep breaks current input system
+    - [ ] Add input to a queue and handle them with inside fixed update. This will require getting
+        SDL timestamp of events and calculating when the event should happen. We can use a
+        millisecond precision, seems precise enough for this.
+- [ ] [time] refactor: real time, step time and game time (+ frame start real time)
 
 ## v0.0.1: The start of the journey
 
@@ -337,7 +372,7 @@
 - [ ] 9-slicing texture for windows
 - [ ] Fix DAS/ARR -> DAS (Delayed Auto Shift) is verified only when the time has passed: it only stops
     the repeating movement if, when verified the next step, the key is not pressed.
-    - [x] DAS charge
+  - [x] DAS charge
 - [ ] Rotation system tutorial/explanations
   - Show which rules and timings the system has
   - Show lock delay animation (show a progress bar indicating the duration, show when it keeps going
@@ -346,7 +381,8 @@
       positions it tested against)
   - Show all piece orientations (with spawn height indicator)
 - [ ] [test] Test all wall/floor kick rotations!
-- [ ] PAL vs NTSC framerates (update speeds to frames)
+- [ ] PAL vs NTSC (not only framerate differences!)
+  - [ ] https://tetrissuomi.wordpress.com/english/nes-tetris-pal-or-ntsc/
 - [ ] Correct NES resolutions and scaling (PAL: 256x240, NTSC: 256x224 with bottom 8 scanlines not
     visible)
 - [ ] Easter eggs
@@ -355,12 +391,15 @@
       each generation of Tetris, changing the rules, rotation, music, sounds, effects, graphics,
       etc.~ (Now it's the actual story mode)
   - [ ] Nintendo code?
+  - [ ] Deckhunter rules: "do jeito que tem infinitas regras, será que tem alguma em que 1 peça
+      selecionada cai sempre rápido e as outras caem normalmente"
 - [ ] Tetris Tutor
   - [ ] Tutorials explaining the mechanics, strategies and META for Classic and Modern (maybe
       variations: no rotation, time attack, 40 lines, perfect clears, battle)
 - [ ] Journey mode
   - [ ] Play each version of Tetris in chronological order, having to clear 10 lines in each (maybe
       adding some special games like Tetris Effect Zone battle, No Rotation Classical Tetris, etc)
+  - [ ] List of games: https://tetris.fandom.com/wiki/List_of_games
 
 ### Engine
 
@@ -371,6 +410,7 @@
 - [ ] Memory allocation
   - [ ] Have a custom allocator to remove most use cases of dynamic arrays (Vec)
   - [ ] Frame allocator
+- [ ] Fixed update
 - [ ] [animation system / task system] task system turned out to be a bad idea. We may need to find
     a better, more reliable solution to it.
     - Maybe a stackable task system could be a good solution to be able to add it to the scenes (and
@@ -386,6 +426,9 @@
       height!). queue_draw_texture should also accept flip as a parameter to give full control.
   - [ ] Change default rendering to use Framebuffer to allow multipass rendering (and to allow
       proper rendering configuration on game side: depth test, stencil, etc)
+    - [ ] [Multiple Render Targets (MRT)](https://learnopengl.com/Advanced-Lighting/Bloom)
+    - [ ] [High Dynamic Range (HDR)](https://learnopengl.com/Advanced-Lighting/HDR)
+    - [ ] [Bloom](https://learnopengl.com/Advanced-Lighting/Bloom)
   - [ ] Have a way to delete allocated textures: this depends on AssetManager design decisions
   - [ ] Pixel perfect rendering
   - [ ] Batch rendering
@@ -497,8 +540,7 @@
       - (always using game time makes it really hard to stack. Moving from one scene to another, game
       over action, etc)
       - (design: `app.update_timer(&mut timer); let elapsed_time = timer.elapsed_time();`)
-  - [ ] Duration/Time struct (mainly to better integrate with SDL times): maybe use
-      Instant/Duration?
+  - [ ] Duration/Time struct (mainly to better integrate with SDL times): use std::time!
 - [ ] [ui]
   - [ ] UI code seems quite bad on system side: placers seems like a good idea but it turned out to
       have a pretty bad code. We might need to redo the whole UI code design later
@@ -531,7 +573,9 @@
         two passes: calculate position/size, render)
     - [ ] Animations
   - [ ] Widgets
-    - [x] Text
+    - [ ] Input
+      - [ ] Allow writing from keyboard
+    - [ ] Text
       - [ ] Allow more sizes?
       - [ ] Centered
       - [ ] Clickable (hover style, down style, etc)
