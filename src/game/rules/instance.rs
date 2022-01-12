@@ -56,7 +56,7 @@ pub struct RulesInstance {
     has_stepped: bool, // per frame
     last_piece_action: LastPieceAction, // per frame
 
-    // Timestamps used for animations
+    // Movement timestamps. Used for gravity and animations
     movement_last_timestamp_x: u64,
     movement_last_timestamp_y: u64,
 
@@ -346,7 +346,7 @@ impl RulesInstance {
             }
 
             // Soft drop
-            let down_button = input_mapping.button(KEY_DOWN.to_string());
+            let down_button = input_mapping.button(KEY_SOFT_DROP.to_string());
             if down_button.pressed_repeat(self.rules.soft_drop_interval, app) {
                 if self.try_soft_drop_piece() {
                     has_updated = true;
@@ -445,29 +445,30 @@ impl RulesInstance {
         // Gravity
         if self.current_piece.is_some() {
             // @TODO move this to Rules (or something)
-            let gravity_interval = self.rules.get_gravity_interval(self.level());
-            if self.timestamp >= self.movement_last_timestamp_y + gravity_interval {
-                let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
-                if try_apply_gravity(
-                    piece,
-                    piece_pos,
-                    &self.playfield,
-                ) {
-                    // Gravity move successful
+            if let Some(gravity_interval) = self.rules.get_gravity_interval(self.level()) {
+                if self.timestamp >= self.movement_last_timestamp_y + gravity_interval {
+                    let (piece, piece_pos) = self.current_piece.as_mut().unwrap();
+                    if try_apply_gravity(
+                        piece,
+                        piece_pos,
+                        &self.playfield,
+                    ) {
+                        // Gravity move successful
 
-                    self.has_stepped = true;
+                        self.has_stepped = true;
 
-                    self.movement_last_timestamp_y = self.timestamp;
-                    self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
+                        self.movement_last_timestamp_y = self.timestamp;
+                        self.movement_animation_delta_grid_y = self.movement_animation_current_delta_grid.y + 1.0;
 
-                    has_updated = true;
-                } else {
-                    // Piece blocked: lock piece
-
-                    // Only lock on gravity movement if there's no lock delay
-                    if self.rules.lock_delay == LockDelayRule::NoDelay {
-                        self.lock_piece();
                         has_updated = true;
+                    } else {
+                        // Piece blocked: lock piece
+
+                        // Only lock on gravity movement if there's no lock delay
+                        if self.rules.lock_delay == LockDelayRule::NoDelay {
+                            self.lock_piece();
+                            has_updated = true;
+                        }
                     }
                 }
             }
@@ -496,13 +497,10 @@ impl RulesInstance {
         // New piece
         if self.current_piece.is_none() &&
             can_spawn_new_piece &&
-            // @Fix entry_delay should be added after line_clear_delay
-            self.timestamp >= self.lock_piece_timestamp + self.rules.entry_delay
+            // @Fix spawn_delay should be added after line_clear_delay
+            self.timestamp >= self.lock_piece_timestamp + self.rules.spawn_delay
         {
             self.new_piece();
-
-            self.movement_last_timestamp_x = self.timestamp;
-            self.movement_last_timestamp_y = self.timestamp;
 
             has_updated = true;
 
@@ -866,7 +864,8 @@ impl RulesInstance {
         }
     }
 
-    fn new_piece(&mut self) {
+    // Can be used externally to discard the current piece and spawn a new one
+    pub fn new_piece(&mut self) {
         // update piece position and type
 
         let new_piece = Piece {
@@ -892,6 +891,10 @@ impl RulesInstance {
         self.last_locked_piece = None;
         self.soft_drop_steps = 0;
         self.hard_drop_steps = 0;
+
+        // reset movement timestamps
+        self.movement_last_timestamp_x = self.timestamp;
+        self.movement_last_timestamp_y = self.timestamp;
 
         // Animations
         // reset movement animation

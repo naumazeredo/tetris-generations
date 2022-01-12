@@ -14,12 +14,12 @@ impl SimulatedInputMapping {
     pub fn new() -> Self {
         let mut button_mapping = BTreeMap::new();
 
-        button_mapping.insert(KEY_DOWN.to_owned(), SimulatedButton::new());
         button_mapping.insert(KEY_LEFT.to_owned(), SimulatedButton::new());
         button_mapping.insert(KEY_RIGHT.to_owned(), SimulatedButton::new());
         button_mapping.insert(KEY_ROTATE_CW.to_owned(), SimulatedButton::new());
         button_mapping.insert(KEY_ROTATE_CCW.to_owned(), SimulatedButton::new());
         button_mapping.insert(KEY_HOLD.to_owned(), SimulatedButton::new());
+        button_mapping.insert(KEY_SOFT_DROP.to_owned(), SimulatedButton::new());
         button_mapping.insert(KEY_HARD_DROP.to_owned(), SimulatedButton::new());
 
         Self {
@@ -103,81 +103,57 @@ impl Button for SimulatedButton {
 #[derive(Debug)]
 pub struct PlayfieldAnimation {
     pub(super) instance: RulesInstance,
-    input_sequence: InputSequence,
 
+    // Event sequence
+    duration: u64,
+    events: Vec<PlayfieldAnimationEvent>,
+
+    // Input mapping and current animation state
+    // @Maybe these should be in another struct and PlayfieldAnimation should only hold the sequence?
+    input_mapping: SimulatedInputMapping,
+    current_time: u64,
+    next_event: u32,
+
+    // Store initial randomizer state to be able to reset the whole animation
     randomizer_start: Randomizer,
 }
 
 impl_imdraw_todo!(PlayfieldAnimation);
 
 impl PlayfieldAnimation {
-    pub fn new(
-        rules: Rules,
-        playfield: Playfield,
-        randomizer: Randomizer,
-        input_sequence: InputSequence
-    ) -> Self {
-        let randomizer_start = randomizer.clone();
-        let instance = RulesInstance::new_preview(rules, playfield, randomizer);
-
-        Self {
-            randomizer_start,
-            instance,
-            input_sequence,
-        }
+    pub fn builder() -> PlayfieldAnimationBuilder {
+        PlayfieldAnimationBuilder::new()
     }
 
     pub fn update(&mut self, dt: u64, app: &mut App) -> bool {
-        self.input_sequence.update(dt);
-        let instance_updated = self.instance.update(dt, &self.input_sequence.input_mapping, app);
+        let events_updated   = self.update_events(dt);
+        let instance_updated = self.instance.update(dt, &self.input_mapping, app);
 
-        if self.input_sequence.has_finished() {
-            self.input_sequence.reset();
-
-            let playfield = Playfield::new(
-                self.instance.playfield().grid_size,
-                self.instance.playfield().visible_height,
-            );
-
-            self.instance = RulesInstance::new_preview(
-                self.instance.rules().clone(),
-                playfield,
-                self.randomizer_start.clone(),
-            );
-
-            true
-        } else {
-            instance_updated
-        }
+        instance_updated || events_updated
     }
-}
 
-#[derive(Debug)]
-struct Event {
-    timestamp: u64,
-    button_name: &'static str,
-    is_press: bool,
-}
-
-#[derive(Debug)]
-pub struct InputSequence {
-    duration: u64,
-    events: Vec<Event>,
-
-    // @Maybe these should be in another struct and InputSequence should only hold the sequence?
-    input_mapping: SimulatedInputMapping,
-    current_time: u64,
-    next_event: u32,
-}
-
-impl InputSequence {
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         self.current_time  = 0;
-        self.next_event = 0;
+        self.next_event    = 0;
         self.input_mapping = SimulatedInputMapping::new();
+
+        let playfield = Playfield::new(
+            self.instance.playfield().grid_size,
+            self.instance.playfield().visible_height,
+        );
+
+        self.instance = RulesInstance::new_preview(
+            self.instance.rules().clone(),
+            playfield,
+            self.randomizer_start.clone(),
+        );
     }
 
-    pub fn update(&mut self, dt: u64) -> bool {
+    fn has_finished(&self) -> bool {
+        self.current_time >= self.duration
+    }
+
+    pub fn update_events(&mut self, dt: u64) -> bool {
         self.current_time += dt;
 
         self.input_mapping.update(self.current_time);
@@ -187,32 +163,57 @@ impl InputSequence {
             self.events[self.next_event as usize].timestamp <= self.current_time
         {
             has_updated = true;
+            let timestamp = self.events[self.next_event as usize].timestamp;
 
-            let Event { button_name, is_press, .. } = self.events[self.next_event as usize];
-            let button = &mut self.input_mapping.button_mut(button_name.to_owned());
-            if is_press {
-                button.press(self.current_time);
-            } else {
-                button.release(self.current_time);
+            match self.events[self.next_event as usize].variant {
+                PlayfieldAnimationEventVariant::Reset    => self.reset(),
+                PlayfieldAnimationEventVariant::NewPiece => self.instance.new_piece(),
+
+                PlayfieldAnimationEventVariant::Button { button_name, is_press } => {
+                    let button = &mut self.input_mapping.button_mut(button_name.to_owned());
+                    if is_press {
+                        button.press(timestamp);
+                    } else {
+                        button.release(timestamp);
+                    }
+                },
             }
 
             self.next_event += 1;
         }
 
+        if self.current_time >= self.duration {
+            self.reset();
+            return true;
+        }
+
         has_updated
     }
-
-    pub fn has_finished(&self) -> bool {
-        self.current_time >= self.duration
-    }
 }
 
-pub struct InputSequenceBuilder {
+#[derive(Debug)]
+struct PlayfieldAnimationEvent {
+    timestamp: u64,
+    variant: PlayfieldAnimationEventVariant,
+}
+
+#[derive(Debug)]
+enum PlayfieldAnimationEventVariant {
+    Reset,
+    NewPiece,
+    Button {
+        button_name: &'static str,
+        is_press: bool,
+    },
+}
+
+#[derive(Debug)]
+pub struct PlayfieldAnimationBuilder {
     current_time: u64,
-    events: Vec<Event>,
+    events: Vec<PlayfieldAnimationEvent>,
 }
 
-impl InputSequenceBuilder {
+impl PlayfieldAnimationBuilder {
     pub fn new() -> Self {
         Self {
             current_time: 0,
@@ -221,21 +222,29 @@ impl InputSequenceBuilder {
     }
 
     pub fn press(mut self, button_name: &'static str) -> Self {
-        self.events.push(Event {
-            timestamp: self.current_time,
-            button_name,
-            is_press: true,
-        });
+        self.events.push(
+            PlayfieldAnimationEvent {
+                timestamp: self.current_time,
+                variant: PlayfieldAnimationEventVariant::Button {
+                    button_name,
+                    is_press: true,
+                }
+            }
+        );
 
         self
     }
 
     pub fn release(mut self, button_name: &'static str) -> Self {
-        self.events.push(Event {
-            timestamp: self.current_time,
-            button_name,
-            is_press: false,
-        });
+        self.events.push(
+            PlayfieldAnimationEvent {
+                timestamp: self.current_time,
+                variant: PlayfieldAnimationEventVariant::Button {
+                    button_name,
+                    is_press: false,
+                }
+            }
+        );
 
         self
     }
@@ -249,14 +258,46 @@ impl InputSequenceBuilder {
         self
     }
 
-    pub fn build(self) -> InputSequence {
-        InputSequence {
+    pub fn reset(mut self) -> Self {
+        self.events.push(
+            PlayfieldAnimationEvent {
+                timestamp: self.current_time,
+                variant: PlayfieldAnimationEventVariant::Reset,
+            }
+        );
+        self
+    }
+
+    pub fn new_piece(mut self) -> Self {
+        self.events.push(
+            PlayfieldAnimationEvent {
+                timestamp: self.current_time,
+                variant: PlayfieldAnimationEventVariant::NewPiece,
+            }
+        );
+        self
+    }
+
+    pub fn build(
+        self,
+        rules: Rules,
+        playfield: Playfield,
+        randomizer: Randomizer,
+    ) -> PlayfieldAnimation {
+        let randomizer_start = randomizer.clone();
+        let instance = RulesInstance::new_preview(rules, playfield, randomizer);
+
+        PlayfieldAnimation {
+            instance,
+
             duration: self.current_time,
             events:   self.events,
 
             input_mapping: SimulatedInputMapping::new(),
             current_time:  0,
             next_event: 0,
+
+            randomizer_start,
         }
     }
 }

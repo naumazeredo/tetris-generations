@@ -101,7 +101,7 @@ impl SceneTrait for MainMenuScene {
         persistent: &mut Self::PersistentData
     ) {
         match self.state {
-            State::Main => self.show_main(app, persistent),
+            State::Main            => self.show_main(app, persistent),
 
             State::Classic         => self.show_classic(app, persistent),
             State::ClassicOnline   => self.show_classic_online(app, persistent),

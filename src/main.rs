@@ -38,7 +38,7 @@ pub struct State {
     seed: u64,
 }
 
-const BLOCK_SCALE : u32 = 8;
+const BLOCK_SCALE : u32 = 7;
 
 impl GameState for State {
     fn new(app: &mut App) -> Self {

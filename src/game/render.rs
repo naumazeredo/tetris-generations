@@ -190,16 +190,30 @@ pub fn get_draw_playfield_size(
     pixel_scale: u8,
     has_grid: bool,
 ) -> Vec2i {
+    let visible_grid_size = Vec2i {
+        x: playfield.grid_size.x,
+        y: playfield.grid_size.y.min(playfield.visible_height as i32),
+    };
+
+    get_draw_playfield_grid_size(visible_grid_size, pixel_scale, has_grid)
+}
+
+pub fn get_draw_playfield_grid_size(
+    grid_size: Vec2i,
+    pixel_scale: u8,
+    has_grid: bool,
+) -> Vec2i {
     let x;
-    if has_grid { x = (1 + BLOCK_SCALE as i32) * playfield.grid_size.x + 1; }
-    else { x = BLOCK_SCALE as i32 * playfield.grid_size.x; }
+    if has_grid { x = (1 + BLOCK_SCALE as i32) * grid_size.x + 1; }
+    else { x = BLOCK_SCALE as i32 * grid_size.x; }
 
     let y;
-    if has_grid { y = (1 + BLOCK_SCALE as i32) * playfield.visible_height as i32 + 1; }
-    else { y = BLOCK_SCALE as i32 * playfield.visible_height as i32; }
+    if has_grid { y = (1 + BLOCK_SCALE as i32) * grid_size.y as i32 + 1; }
+    else { y = BLOCK_SCALE as i32 * grid_size.y as i32; }
 
     pixel_scale as i32 * Vec2i { x, y }
 }
+
 
 pub fn draw_playfield(
     playfield: &Playfield,

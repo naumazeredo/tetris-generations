@@ -2,18 +2,17 @@ use super::*;
 use crate::game::{
     input::*,
     pieces::PieceVariant,
-    rules::GravityCurve,
 };
 
-pub struct HardDropPreview;
+/*
+pub struct SpawnDelayPreview;
 
-impl HardDropPreview {
+impl SpawnDelayPreview {
     // @TODO copy current rules from the menu
     pub fn new() -> PlayfieldAnimation {
         // @Maybe using only SRS for previews for now, maybe we should show the rotation system the
         //        player has chosen?
         let mut rules: Rules = RotationSystem::SRS.into();
-        rules.gravity_curve = GravityCurve::NoGravity;
 
         let playfield = Playfield::new(Vec2i { x: 5, y: 40 }, 8);
 
@@ -27,7 +26,7 @@ impl HardDropPreview {
             ]
         );
 
-        PlayfieldAnimation::builder()
+        let sequence_builder = InputSequenceBuilder::new()
             // L
             .wait(300_000)
             .click(KEY_RIGHT)
@@ -72,14 +71,18 @@ impl HardDropPreview {
 
             .wait(rules.line_clear_delay)
 
-            .build(rules, playfield, randomizer)
+
+            .build();
+
+        PlayfieldAnimation::new(rules, playfield, randomizer, sequence_builder)
     }
 }
+*/
 
-pub fn show_custom_rules_info_hard_drop(
-    preview: &mut PlayfieldAnimation,
+pub fn show_custom_rules_info_spawn_delay(
+    //preview: &mut PlayfieldAnimation,
     app: &mut App,
-    persistent: &mut PersistentData
+    _persistent: &mut PersistentData
 ) {
     let menu_size = Vec2i { x: 580, y: 880 };
 
@@ -89,19 +92,26 @@ pub fn show_custom_rules_info_hard_drop(
         size: menu_size
     };
     ui::Ui::builder(window_layout).fixed_height().build(app);
-    ui::Text::builder("HARD DROP").build(app);
+    ui::Text::builder("SPAWN DELAY").build(app);
 
     let text =
-        "A hard drop is a move in which a Tetromino drops \
-        instantly drop directly below. It can't be moved or \
-        rotated afterwards. It is a higher scoring move than a soft drop.";
+        "ARE, also called entry delay, appearance delay, or spawn delay, is the period of time \
+        between the lockdown of one tetromino and the appearance of the next tetromino.";
     ui::Text::builder(text).multiline(true).build(app);
 
+    let text =
+        "Generally, during ARE, the player must wait for the next tetromino to appear, and cannot \
+        actively cause anything to happen. However, ARE can serve as a time for the player to \
+        input DAS, IRS and IHS actions which will be processed in the moment ARE finishes and the \
+        next tetromino appears.";
+    ui::Text::builder(text).multiline(true).build(app);
+
+    /*
     // Render example playfield
     let mut batch = Batch::new();
 
     // Playfield animation
-    let last_frame_duration = app.last_frame_real_duration();
+    let last_frame_duration = app.last_frame_duration();
     preview.update(last_frame_duration, app);
 
     preview.instance.update_animations();
@@ -134,4 +144,5 @@ pub fn show_custom_rules_info_hard_drop(
 
     app.render_batch(batch, Some(framebuffer));
     ui::Texture::new(texture, app);
+    */
 }

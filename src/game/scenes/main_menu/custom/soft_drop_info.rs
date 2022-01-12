@@ -5,9 +5,9 @@ use crate::game::{
     rules::GravityCurve,
 };
 
-pub struct HardDropPreview;
+pub struct SoftDropPreview;
 
-impl HardDropPreview {
+impl SoftDropPreview {
     // @TODO copy current rules from the menu
     pub fn new() -> PlayfieldAnimation {
         // @Maybe using only SRS for previews for now, maybe we should show the rotation system the
@@ -27,18 +27,34 @@ impl HardDropPreview {
             ]
         );
 
+        let lock_delay = 500_000;
+
+        // @TODO better example
+
         PlayfieldAnimation::builder()
             // L
             .wait(300_000)
             .click(KEY_RIGHT)
             .wait(300_000)
-            .click(KEY_HARD_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .wait(lock_delay)
 
             // S
             .wait(300_000)
             .click(KEY_LEFT)
             .wait(300_000)
-            .click(KEY_HARD_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .wait(lock_delay)
 
             .wait(rules.line_clear_delay)
 
@@ -50,7 +66,13 @@ impl HardDropPreview {
             .wait(300_000)
             .click(KEY_RIGHT)
             .wait(300_000)
-            .click(KEY_HARD_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .wait(lock_delay)
 
             // L
             .wait(300_000)
@@ -60,7 +82,13 @@ impl HardDropPreview {
             .wait(300_000)
             .click(KEY_LEFT)
             .wait(300_000)
-            .click(KEY_HARD_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .wait(lock_delay)
 
             .wait(rules.line_clear_delay)
 
@@ -68,7 +96,14 @@ impl HardDropPreview {
             .wait(300_000)
             .click(KEY_LEFT)
             .wait(300_000)
-            .click(KEY_HARD_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .click(KEY_SOFT_DROP)
+            .wait(lock_delay)
 
             .wait(rules.line_clear_delay)
 
@@ -76,7 +111,7 @@ impl HardDropPreview {
     }
 }
 
-pub fn show_custom_rules_info_hard_drop(
+pub fn show_custom_rules_info_soft_drop(
     preview: &mut PlayfieldAnimation,
     app: &mut App,
     persistent: &mut PersistentData
@@ -89,12 +124,12 @@ pub fn show_custom_rules_info_hard_drop(
         size: menu_size
     };
     ui::Ui::builder(window_layout).fixed_height().build(app);
-    ui::Text::builder("HARD DROP").build(app);
+    ui::Text::builder("SOFT DROP").build(app);
 
     let text =
-        "A hard drop is a move in which a Tetromino drops \
-        instantly drop directly below. It can't be moved or \
-        rotated afterwards. It is a higher scoring move than a soft drop.";
+        "A soft drop is a move in which a Tetromino speeds up its downwards motion. It is a higher \
+        scoring move than letting the Tetromino fall by itself, but lower scoring than a hard drop.";
+
     ui::Text::builder(text).multiline(true).build(app);
 
     // Render example playfield
@@ -120,14 +155,14 @@ pub fn show_custom_rules_info_hard_drop(
     );
 
     let texture = app.get_texture_or_create(
-        "main_menu/custom/hard_drop/playfield",
+        "main_menu/custom/soft_drop/playfield",
         playfield_draw_size.x as u32,
         playfield_draw_size.y as u32,
         None
     );
 
     let framebuffer = app.get_framebuffer_or_create(
-        "main_menu/custom/hard_drop/playfield",
+        "main_menu/custom/soft_drop/playfield",
         texture
     );
     framebuffer.clear(BufferClear::new().color(color::TRANSPARENT));

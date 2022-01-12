@@ -68,11 +68,14 @@ pub struct Rules {
     //                   pieces that lock in the bottom two rows are followed by 10 frames of entry
     //                   delay, and each group of 4 rows above that has an entry delay 2 frames
     //                   longer than the last;
-    pub entry_delay: u64, // aka ARE
+    pub spawn_delay: u64, // aka ARE
 
     pub lock_delay: LockDelayRule,
 
-    // piece positioning rules
+    // Piece positioning rules
+
+    // @Fix this is not the correct term. Rotation System defines spawn, rotation, wall kicks, etc.
+    //      We should change to RotationRule (maybe allow disabling wall kicks?)
     pub rotation_system: RotationSystem,
     //pub does_ceiling_prevents_rotation: bool, // Sega
     //pub double_rotation: bool, // DTET
@@ -132,7 +135,7 @@ impl From<RotationSystem> for Rules {
                     start_level: 0,
                     minimum_level: 0,
 
-                    entry_delay: 0,
+                    spawn_delay: 0,
                     lock_delay: LockDelayRule::NoDelay,
 
                     rotation_system: RotationSystem::NRSR,
@@ -183,7 +186,7 @@ impl From<RotationSystem> for Rules {
                     start_level: 1,
                     minimum_level: 1,
 
-                    entry_delay: 0,
+                    spawn_delay: 0,
                     lock_delay: LockDelayRule::MoveReset {
                         duration: 500_000,
                         rotations: 5,
@@ -239,7 +242,7 @@ impl From<RotationSystem> for Rules {
                     start_level: 1,
                     minimum_level: 1,
 
-                    entry_delay: 0,
+                    spawn_delay: 0,
                     lock_delay: LockDelayRule::MoveReset {
                         duration: 500_000,
                         rotations: 5,
@@ -296,6 +299,9 @@ pub enum RotationSystem {
     ARS,      // Arika Rotation System - TGM Rotation
     SRS,      // Super Rotation System
     DTET,
+
+    // TBRS, // https://tetris.fandom.com/wiki/Tetris_Best_rotation_system
+    // TRRS, // https://tetris.fandom.com/wiki/Tetris_Return_rotation_system
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ImDraw)]
@@ -313,6 +319,9 @@ pub enum GravityCurve {
     Classic,
     Guideline,
     //Tetris99,
+
+    NoGravity,
+    Fixed(u64),
 }
 
 #[derive(Copy, Clone, Debug, ImDraw)]
@@ -324,7 +333,7 @@ pub enum LevelCurve {
 
 impl Rules {
     // @TODO move to gravity.rs
-    pub fn get_gravity_interval(&self, level: u32) -> u64 {
+    pub fn get_gravity_interval(&self, level: u32) -> Option<u64> {
         match self.gravity_curve {
             GravityCurve::Classic => {
                 let gravity = match level {
@@ -346,10 +355,13 @@ impl Rules {
                 };
 
                 let frame_duration = (1_000_000.0 / 60.0988) as u64;
-                gravity * frame_duration
+                Some(gravity * frame_duration)
             },
 
-            _ => { 1_000_000 }
+            GravityCurve::NoGravity => None,
+            GravityCurve::Fixed(duration) => Some(duration),
+
+            _ => { Some(1_000_000) }
         }
     }
 

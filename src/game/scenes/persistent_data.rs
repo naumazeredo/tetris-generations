@@ -26,8 +26,8 @@ impl PersistentData {
         let blank_texture = app.get_texture_or_load("assets/gfx/blank.png");
         let blank = Sprite::new(blank_texture, 0, 0, 1, 1);
 
-        let block_texture = app.get_texture_or_load("assets/gfx/block-soft.png");
-        let block = Sprite::new(block_texture, 0, 0, 8, 8);
+        let block_texture = app.get_texture_or_load("assets/gfx/classic/block-0.png");
+        let block = Sprite::new(block_texture, 0, 0, 7, 7);
 
         // input
         let input_mapping = get_default_input_mapping();

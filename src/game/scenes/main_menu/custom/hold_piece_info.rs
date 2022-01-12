@@ -5,9 +5,9 @@ use crate::game::{
     rules::GravityCurve,
 };
 
-pub struct HardDropPreview;
+pub struct HoldPiecePreview;
 
-impl HardDropPreview {
+impl HoldPiecePreview {
     // @TODO copy current rules from the menu
     pub fn new() -> PlayfieldAnimation {
         // @Maybe using only SRS for previews for now, maybe we should show the rotation system the
@@ -28,43 +28,6 @@ impl HardDropPreview {
         );
 
         PlayfieldAnimation::builder()
-            // L
-            .wait(300_000)
-            .click(KEY_RIGHT)
-            .wait(300_000)
-            .click(KEY_HARD_DROP)
-
-            // S
-            .wait(300_000)
-            .click(KEY_LEFT)
-            .wait(300_000)
-            .click(KEY_HARD_DROP)
-
-            .wait(rules.line_clear_delay)
-
-            // Z
-            .wait(300_000)
-            .click(KEY_ROTATE_CCW)
-            .wait(300_000)
-            .click(KEY_RIGHT)
-            .wait(300_000)
-            .click(KEY_RIGHT)
-            .wait(300_000)
-            .click(KEY_HARD_DROP)
-
-            // L
-            .wait(300_000)
-            .click(KEY_ROTATE_CW)
-            .wait(300_000)
-            .click(KEY_ROTATE_CW)
-            .wait(300_000)
-            .click(KEY_LEFT)
-            .wait(300_000)
-            .click(KEY_HARD_DROP)
-
-            .wait(rules.line_clear_delay)
-
-            // I
             .wait(300_000)
             .click(KEY_LEFT)
             .wait(300_000)
@@ -76,7 +39,7 @@ impl HardDropPreview {
     }
 }
 
-pub fn show_custom_rules_info_hard_drop(
+pub fn show_custom_rules_info_hold_piece(
     preview: &mut PlayfieldAnimation,
     app: &mut App,
     persistent: &mut PersistentData
@@ -89,12 +52,15 @@ pub fn show_custom_rules_info_hard_drop(
         size: menu_size
     };
     ui::Ui::builder(window_layout).fixed_height().build(app);
-    ui::Text::builder("HARD DROP").build(app);
+    ui::Text::builder("HOLD PIECE").build(app);
 
+    // @TODO change this description, it's not good
     let text =
-        "A hard drop is a move in which a Tetromino drops \
-        instantly drop directly below. It can't be moved or \
-        rotated afterwards. It is a higher scoring move than a soft drop.";
+        "At any time starting when a tetromino enters the playfield until it locks, the single \
+        player can press the Hold button on the controller to move the active tetromino into the \
+        hold space and move the tetromino that was in the hold space to the top of the playfield. \
+        A tetromino moved into the hold space is unavailable for switching out until the tetromino \
+        that was moved out of the hold space locks.";
     ui::Text::builder(text).multiline(true).build(app);
 
     // Render example playfield
@@ -120,14 +86,14 @@ pub fn show_custom_rules_info_hard_drop(
     );
 
     let texture = app.get_texture_or_create(
-        "main_menu/custom/hard_drop/playfield",
+        "main_menu/custom/hold_piece/playfield",
         playfield_draw_size.x as u32,
         playfield_draw_size.y as u32,
         None
     );
 
     let framebuffer = app.get_framebuffer_or_create(
-        "main_menu/custom/hard_drop/playfield",
+        "main_menu/custom/hold_piece/playfield",
         texture
     );
     framebuffer.clear(BufferClear::new().color(color::TRANSPARENT));
