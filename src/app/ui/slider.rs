@@ -7,10 +7,11 @@ use crate::app::{
 use super::*;
 
 pub struct SliderState {
-    pub pressed: bool,
-    pub down: bool,
+    pub pressed:  bool,
+    pub down:     bool,
     pub hovering: bool,
-    pub changed: bool,
+    pub changed:  bool,
+    pub focused:  bool,
 }
 
 // ------------
@@ -97,6 +98,7 @@ macro_rules! slider_variant_integer_impl {
                                 down:     state.down,
                                 hovering: state.hovering,
                                 changed,
+                                focused:  state.focused,
                             }
                         } else {
                             unreachable!();
@@ -107,6 +109,7 @@ macro_rules! slider_variant_integer_impl {
                             down:     false,
                             hovering: false,
                             changed:  false,
+                            focused:  false,
                         }
                     }
                 }
