@@ -185,6 +185,10 @@ impl App<'_> {
         self.input_system.mouse.get_pos()
     }
 
+    // The next functions query the mouse state for the real frame, not fixed timestep frame.
+    // It should be used for UI and other systems that are not part of the gameplay logic.
+    // For gameplay logic, use input mappings.
+
     // @Refactor refactor to C-like to avoid references to App
     pub fn mouse_left_down(&self) -> bool {
         let button = sdl2::mouse::MouseButton::Left as usize;
@@ -193,20 +197,20 @@ impl App<'_> {
 
     // @Refactor refactor to C-like to avoid references to App
     pub fn mouse_left_pressed(&self) -> bool {
-        let timestamp = self.time_system.real_time;
+        let timestamp = self.time_system.frame_start_time;
         let button = sdl2::mouse::MouseButton::Left as usize;
         self.input_system.mouse.buttons[button].down_timestamp() == timestamp
     }
 
     // @Refactor refactor to C-like to avoid references to App
     pub fn mouse_left_released(&self) -> bool {
-        let timestamp = self.time_system.real_time;
+        let timestamp = self.time_system.frame_start_time;
         let button = sdl2::mouse::MouseButton::Left as usize;
         self.input_system.mouse.buttons[button].up_timestamp() == timestamp
     }
 
     pub fn mouse_scroll(&self) -> i32 {
-        let timestamp = self.time_system.real_time;
+        let timestamp = self.time_system.frame_start_time;
         self.input_system.mouse.wheel.scroll(timestamp)
     }
 }

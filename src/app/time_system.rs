@@ -1,25 +1,21 @@
 // Time System
 
-// [ ] rename to TimeSystem
-// [ ] maybe use std::time instead of SDL timer_subsystem
-// [ ] create newtype for duration intervals
-// [ ] clone timer_subsystem instead of referencing it
-
-// @Refactor maybe use std::time?
-// @Refactor create a type to hold the USec, MSec, Sec (different types to be type checked)
+// [x] rename to TimeSystem
+// [ ] use std::time instead of SDL timer_subsystem
 
 use crate::app::{ App, ImDraw };
 
 #[derive(ImDraw)]
 pub(in crate::app) struct TimeSystem {
     pub(in crate::app) frame_count: u32,
-    pub(in crate::app) real_time: u64,
+    pub(in crate::app) real_time: u64, // @Rename not actually the real time!
     pub(in crate::app) real_frame_duration: u64,
     pub(in crate::app) game_time: u64,
     pub(in crate::app) game_frame_duration: u64,
     pub(in crate::app) scale: f64,
+    pub(in crate::app) frame_start_time: u64,
 
-    last_time: u64,
+    current_time: u64,
     last_scale: f64,
 }
 
@@ -32,7 +28,8 @@ impl TimeSystem {
             game_time: 0,
             game_frame_duration: 0,
             scale: 1.0,
-            last_time: system_time(&timer_subsystem),
+            frame_start_time: 0,
+            current_time: system_time(&timer_subsystem),
             last_scale: 1.0,
         }
     }
@@ -43,14 +40,19 @@ impl App<'_> {
         let time_system = &mut self.time_system;
 
         time_system.frame_count += 1;
+        time_system.frame_start_time = time_system.real_time;
 
         let current_time = system_time(&self.sdl_context.timer_subsystem);
-        time_system.real_frame_duration = current_time - time_system.last_time;
-        time_system.real_time += time_system.real_frame_duration;
-        time_system.last_time = current_time;
+        time_system.real_frame_duration = current_time - time_system.current_time;
+        time_system.current_time = current_time;
+    }
 
-        time_system.game_frame_duration =
-            (time_system.scale * (time_system.real_frame_duration as f64)) as u64;
+    pub(in crate::app) fn advance_time(&mut self, real_time_delta: u64) {
+        let time_system = &mut self.time_system;
+
+        time_system.real_time += time_system.real_frame_duration;
+
+        time_system.game_frame_duration = (time_system.scale * (real_time_delta as f64)) as u64;
         time_system.game_time += time_system.game_frame_duration;
     }
 
@@ -84,8 +86,13 @@ impl App<'_> {
     }
     */
 
+    // @TODO remove this. User should either use dt or real duration
     pub fn last_frame_duration(&self) -> u64 {
         self.time_system.game_frame_duration
+    }
+
+    pub fn last_frame_real_duration(&self) -> u64 {
+        self.time_system.real_frame_duration
     }
 
     pub fn game_time(&self) -> f32 {

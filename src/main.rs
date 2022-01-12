@@ -23,6 +23,8 @@ fn main() {
         window_size: (1280, 960),
         window_position: None,
         window_resizable: false,
+
+        time_step_interval: 16_667,
     };
 
     app::run::<State>(config);
@@ -58,9 +60,9 @@ impl GameState for State {
         }
     }
 
-    fn update(&mut self, app: &mut App) {
+    fn update(&mut self, dt: u64, app: &mut App) {
         self.persistent.input_mapping.update(app);
-        self.scene_manager.update(app, &mut self.persistent);
+        self.scene_manager.update(dt, app, &mut self.persistent);
     }
 
     fn render(&mut self, app: &mut App) {

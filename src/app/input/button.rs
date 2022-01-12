@@ -61,8 +61,9 @@ pub trait Button {
 
         let timestamp = self.timestamp();
 
+        // @Fix these times should be in game time, which require timestamps being in game time
         let real_time = app.time_system.real_time;
-        let frame_duration = app.time_system.game_frame_duration;
+        let frame_duration = app.time_system.real_frame_duration;
 
         // Check underflow cases
         let prev_press_count;
