@@ -17,11 +17,11 @@ impl<S: SceneTrait<Scene = S>> SceneManager<S> {
         }
     }
 
-    pub fn update(&mut self, app: &mut App, persistent: &mut <S as SceneTrait>::PersistentData) {
+    pub fn update(&mut self, dt: u64, app: &mut App, persistent: &mut <S as SceneTrait>::PersistentData) {
         self.try_transition(app, persistent);
 
         if let Some(scene) = self.scenes.last_mut() {
-            scene.update(app, persistent);
+            scene.update(dt, app, persistent);
         } else {
             panic!("[scene_manager update] empty scene being updated!");
         }

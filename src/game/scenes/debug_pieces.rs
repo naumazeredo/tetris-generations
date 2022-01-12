@@ -27,6 +27,7 @@ impl SceneTrait for DebugPiecesScene {
 
     fn update(
         &mut self,
+        _dt: u64,
         _app: &mut App,
         _persistent: &mut Self::PersistentData
     ) {

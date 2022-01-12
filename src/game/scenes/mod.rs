@@ -26,7 +26,7 @@ pub trait SceneTrait: ImDraw {
     fn on_enter(&mut self, _app: &mut App, _persistent: &mut Self::PersistentData) {}
     fn on_exit (&mut self, _app: &mut App, _persistent: &mut Self::PersistentData) {}
 
-    fn update(&mut self, _app: &mut App, _persistent: &mut Self::PersistentData) {}
+    fn update(&mut self, _dt: u64, _app: &mut App, _persistent: &mut Self::PersistentData) {}
     fn render(&mut self, _app: &mut App, _persistent: &mut Self::PersistentData) {}
 
     fn handle_input(
@@ -61,14 +61,15 @@ impl SceneTrait for Scene {
 
     fn update(
         &mut self,
+        dt: u64,
         app: &mut App,
         persistent: &mut Self::PersistentData
     )
     {
         match self {
-            Self::MainMenuScene(scene)     => scene.update(app, persistent),
-            Self::SingleplayerScene(scene) => scene.update(app, persistent),
-            Self::DebugPiecesScene(scene)  => scene.update(app, persistent),
+            Self::MainMenuScene(scene)     => scene.update(dt, app, persistent),
+            Self::SingleplayerScene(scene) => scene.update(dt, app, persistent),
+            Self::DebugPiecesScene(scene)  => scene.update(dt, app, persistent),
         }
     }
 

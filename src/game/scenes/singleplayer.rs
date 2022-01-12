@@ -30,6 +30,7 @@ impl SceneTrait for SingleplayerScene {
 
     fn update(
         &mut self,
+        dt: u64,
         app: &mut App,
         persistent: &mut Self::PersistentData
     ) {
@@ -42,7 +43,7 @@ impl SceneTrait for SingleplayerScene {
 
         if app.is_paused() { return; }
 
-        self.rules_instance.update(app.last_frame_duration(), &persistent.input_mapping, app);
+        self.rules_instance.update(dt, &persistent.input_mapping, app);
     }
 
     fn render(

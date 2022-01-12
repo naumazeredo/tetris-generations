@@ -25,6 +25,7 @@ impl SceneTrait for MultiPlayerScene {
 
     fn update(
         &mut self,
+        dt: u64,
         app: &mut App,
         persistent: &mut Self::PersistentData
     ) {
