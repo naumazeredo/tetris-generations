@@ -1,23 +1,23 @@
 use crate::app::input::{
     ControllerAxisThreshold,
-    mapping::RegularMapping,
+    mapping::RegularInputMapping,
     button::RemappableButton,
 };
 
 // @TODO Tetris keys + UI keys
-pub const KEY_DOWN       : &str = "down";
 pub const KEY_LEFT       : &str = "left";
 pub const KEY_RIGHT      : &str = "right";
 pub const KEY_ROTATE_CW  : &str = "rotate_cw";
 pub const KEY_ROTATE_CCW : &str = "rotate_ccw";
 pub const KEY_HOLD       : &str = "hold";
+pub const KEY_SOFT_DROP  : &str = "soft_drop";
 pub const KEY_HARD_DROP  : &str = "hard_drop";
 
 pub const KEY_UP         : &str = "up"; // not used on Tetris
 pub const KEY_OPTIONS    : &str = "options";
 
-pub fn get_default_input_mapping() -> RegularMapping {
-    let mut input_mapping = RegularMapping::new();
+pub fn get_default_input_mapping() -> RegularInputMapping {
+    let mut input_mapping = RegularInputMapping::new();
 
     {
         let mut button = RemappableButton::new();
@@ -30,7 +30,7 @@ pub fn get_default_input_mapping() -> RegularMapping {
             ControllerAxisThreshold::greater_than(0.5)
         );
 
-        input_mapping.add_button_mapping(KEY_DOWN.to_string(), button);
+        input_mapping.add_button_mapping(KEY_SOFT_DROP.to_string(), button);
     }
 
     {

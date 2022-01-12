@@ -23,12 +23,12 @@ enum ControllerBind {
 
 // @TODO use hashed string
 #[derive(ImDraw)]
-pub struct RegularMapping {
+pub struct RegularInputMapping {
     pub(super) button_mapping: BTreeMap<String, RemappableButton>,
     //controller_bind: ControllerBind,
 }
 
-impl RegularMapping {
+impl RegularInputMapping {
     pub fn new() -> Self {
         Self {
             button_mapping: BTreeMap::new(),
@@ -47,7 +47,7 @@ impl RegularMapping {
     }
 }
 
-impl InputMapping for RegularMapping {
+impl InputMapping for RegularInputMapping {
     type ButtonType = RemappableButton;
 
     fn button(&self, name: String) -> &Self::ButtonType {
