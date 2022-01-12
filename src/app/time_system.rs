@@ -1,8 +1,5 @@
 // Time System
 
-// [x] rename to TimeSystem
-// [ ] use std::time instead of SDL timer_subsystem
-
 use crate::app::{ App, ImDraw };
 
 #[derive(ImDraw)]
