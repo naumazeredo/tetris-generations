@@ -24,6 +24,7 @@ pub struct Texture {
     pub(in crate::app) obj: TextureObject,
     pub w: u32,
     pub h: u32,
+    pub white_pixel: Option<(u32, u32)>,
 }
 
 impl Texture {
@@ -57,7 +58,7 @@ impl Texture {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
-        Texture { obj, w, h }
+        Texture { obj, w, h, white_pixel: None }
     }
 
     /*
@@ -86,6 +87,13 @@ impl Texture {
             });
 
         Self::load_from_surface(surface)
+    }
+
+    pub(in crate::app) fn with_white_pixel(self, white_pixel: (u32, u32)) -> Self {
+        Self {
+            white_pixel: Some(white_pixel),
+            ..self
+        }
     }
 }
 

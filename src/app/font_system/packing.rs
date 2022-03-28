@@ -74,7 +74,7 @@ pub(super) fn pack_font<'a>(
     let mut size = 256u32;
     loop {
         let mut cur_y = spacing;
-        let mut cur_x = spacing;
+        let mut cur_x = spacing + 1; // blit white pixel at (0, 0)
         let mut next_y;
 
         if reorder {
@@ -115,6 +115,13 @@ pub(super) fn pack_font<'a>(
         let mut packed_mapping = BTreeMap::new();
 
         let mut packed_surface = sdl2::surface::Surface::new(size, size, pixel_format).unwrap();
+
+        // Blit white pixel
+        packed_surface.fill_rect(
+            sdl2::rect::Rect::new(0, 0, 0, 0),
+            sdl2::pixels::Color::WHITE
+        ).unwrap();
+
         indexes.zip(pos).for_each(|(&index, (pos_x, pos_y))| {
             let metrics = metrics[index].clone();
             if let Some(surface) = surfaces[index].as_ref() {

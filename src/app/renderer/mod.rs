@@ -88,7 +88,8 @@ impl Renderer {
         // Create default shader program and texture.
         // These are used when no shader program or texture is passed to a draw command.
         let default_program = create_shader_program("assets/shaders/default.vert", "assets/shaders/default.frag");
-        let default_texture = Texture::new(1, 1, Some(&[0xff, 0xff, 0xff, 0xff]));
+        let default_texture = Texture::new(1, 1, Some(&[0xff, 0xff, 0xff, 0xff]))
+            .with_white_pixel((0, 0));
 
         // Reserve a lot of space -> 2000 quads
         // @TODO use a frame allocator to avoid extra allocations
@@ -277,14 +278,14 @@ impl Renderer {
     }
 
     fn handle_draw_command(&mut self, cmd: DrawCommand, draw_call: &mut DrawCall) {
-        let texture = cmd.texture.unwrap_or(self.default_texture);
+        let texture = draw_call.texture;
+        let u_scale_inv = if texture.w != 0 { 1. / texture.w as f32 } else { 1. };
+        let v_scale_inv = if texture.h != 0 { 1. / texture.h as f32 } else { 1. };
 
         let w;
         let h;
         let pivot;
 
-        //let mut us = vec![0., 1., 1., 0.];
-        //let mut vs = vec![0., 0., 1., 1.];
         let mut us;
         let mut vs;
 
@@ -294,8 +295,24 @@ impl Renderer {
                 w = size.x * cmd.scale.x;
                 h = size.y * cmd.scale.y;
 
-                us = vec![0.0, 1.0, 1.0, 0.0];
-                vs = vec![0.0, 0.0, 1.0, 1.0];
+                let white_pixel_pos = texture.white_pixel.unwrap();
+
+                //us = vec![0.0, 1.0, 1.0, 0.0];
+                //vs = vec![0.0, 0.0, 1.0, 1.0];
+
+                us = vec![
+                    white_pixel_pos.0 as f32 * u_scale_inv,
+                    (white_pixel_pos.0 + 1) as f32 * u_scale_inv,
+                    (white_pixel_pos.0 + 1) as f32 * u_scale_inv,
+                    white_pixel_pos.0 as f32 * u_scale_inv,
+                ];
+
+                vs = vec![
+                    white_pixel_pos.1 as f32 * u_scale_inv,
+                    white_pixel_pos.1 as f32 * u_scale_inv,
+                    (white_pixel_pos.1 + 1) as f32 * u_scale_inv,
+                    (white_pixel_pos.1 + 1) as f32 * u_scale_inv,
+                ];
             },
 
             DrawVariant::Sprite { texture_flip, uvs, pivot: piv, size } => {
@@ -303,17 +320,14 @@ impl Renderer {
                 w = size.x * cmd.scale.x;
                 h = size.y * cmd.scale.y;
 
-                let u_scale = if texture.w != 0 { texture.w as f32 } else { 1. };
-                let v_scale = if texture.h != 0 { texture.h as f32 } else { 1. };
-
                 us = vec![
-                    uvs.0.x as f32 / u_scale, uvs.1.x as f32 / u_scale,
-                    uvs.1.x as f32 / u_scale, uvs.0.x as f32 / u_scale,
+                    uvs.0.x as f32 * u_scale_inv, uvs.1.x as f32 * u_scale_inv,
+                    uvs.1.x as f32 * u_scale_inv, uvs.0.x as f32 * u_scale_inv,
                 ];
 
                 vs = vec![
-                    uvs.0.y as f32 / v_scale, uvs.0.y as f32 / v_scale,
-                    uvs.1.y as f32 / v_scale, uvs.1.y as f32 / v_scale,
+                    uvs.0.y as f32 * v_scale_inv, uvs.0.y as f32 * v_scale_inv,
+                    uvs.1.y as f32 * v_scale_inv, uvs.1.y as f32 * v_scale_inv,
                 ];
 
                 if texture_flip.contains(TextureFlip::X) { us.swap(0, 1); us.swap(2, 3); }
@@ -401,7 +415,7 @@ impl Renderer {
 
         let mut draw_call = DrawCall {
             program: self.default_program,
-            texture_object: self.default_texture.obj,
+            texture: self.default_texture,
             clip: None,
             start: 0,
             count: 0,
@@ -414,13 +428,19 @@ impl Renderer {
                 Command::Draw(cmd) => {
                     // @TODO remove the zero check after we have access to programs outside render
                     let program = cmd.program.unwrap_or(self.default_program);
-                    let texture = cmd.texture.unwrap_or(self.default_texture);
+                    let texture = cmd.texture.or_else( || {
+                        if draw_call.texture.white_pixel.is_some() {
+                            Some(draw_call.texture)
+                        } else {
+                            Some(self.default_texture)
+                        }
+                    }).unwrap();
 
-                    if program != draw_call.program || texture.obj != draw_call.texture_object {
+                    if program != draw_call.program || texture.obj != draw_call.texture.obj {
                         add_draw_call(&mut draw_call, &mut draw_calls);
 
                         draw_call.program = program;
-                        draw_call.texture_object = texture.obj;
+                        draw_call.texture = texture;
                     }
 
                     self.handle_draw_command(cmd, &mut draw_call);
@@ -483,14 +503,14 @@ impl Renderer {
         }
 
         self.change_shader_program(draw_calls[0].program);
-        self.change_texture(draw_calls[0].texture_object);
+        self.change_texture(draw_calls[0].texture.obj);
 
         self.bind_arrays();
         self.create_buffer_data();
 
         // @TODO improve this, somehow
         let mut current_program = draw_calls[0].program;
-        let mut current_texture_object = draw_calls[0].texture_object;
+        let mut current_texture_object = draw_calls[0].texture.obj;
 
         // @Refactor do a single draw call here (glDrawElementsIntanced + glVertexAttribDivisor)
         for call in draw_calls.iter() {
@@ -500,9 +520,9 @@ impl Renderer {
                 current_program = call.program;
             }
 
-            if call.texture_object != current_texture_object {
-                self.change_texture(call.texture_object);
-                current_texture_object = call.texture_object;
+            if call.texture.obj != current_texture_object {
+                self.change_texture(call.texture.obj);
+                current_texture_object = call.texture.obj;
             }
 
             if let Some((min, max)) = call.clip {
@@ -682,7 +702,7 @@ impl App<'_> {
 #[derive(Copy, Clone, Debug)]
 struct DrawCall {
     program: ShaderProgram,
-    texture_object: TextureObject,
+    texture: Texture,
     clip: Option<(Vec2i, Vec2i)>,
     start: usize,
     count: usize,

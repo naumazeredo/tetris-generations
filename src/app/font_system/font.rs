@@ -57,7 +57,8 @@ impl Font {
                 //packed_surface.save_bmp("tmp/font.bmp").unwrap();
                 println!("[font bake] Packing complete: {}", path.as_ref().display());
 
-                let texture = Texture::load_from_surface(packed_surface);
+                let texture = Texture::load_from_surface(packed_surface)
+                    .with_white_pixel((0, 0));
 
                 Some(Font { mapping, texture })
             },

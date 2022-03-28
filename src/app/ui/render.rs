@@ -78,14 +78,14 @@ impl Ui {
         // Draw elements
         let padding = self.style.padding;
 
-        batch.push_clip(self.layout.pos + padding, self.layout.size - 2 * padding);
+        //batch.push_clip(self.layout.pos + padding, self.layout.size - 2 * padding);
 
         let elements = std::mem::take(&mut self.elements);
         for element in elements {
             self.queue_draw_element(element, &mut batch, app);
         }
 
-        batch.pop_clip();
+        //batch.pop_clip();
 
         // Draw modal separately (without clipping)
         let modal_elements = std::mem::take(&mut self.modal_elements);
@@ -118,7 +118,7 @@ impl Ui {
 
                 let max_width = if *multiline { Some(layout.size.x as u32) } else { None };
 
-                batch.push_clip(layout.pos, layout.size);
+                //batch.push_clip(layout.pos, layout.size);
 
                 batch.queue_draw_text(
                     text,
@@ -135,7 +135,7 @@ impl Ui {
                     &app,
                 );
 
-                batch.pop_clip();
+                //batch.pop_clip();
             }
 
             ElementVariant::Button { text } => {
@@ -174,7 +174,7 @@ impl Ui {
                     text_color = self.style.text_color;
                 }
 
-                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
+                //batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 batch.queue_draw_text(
                     text,
@@ -191,7 +191,7 @@ impl Ui {
                     &app,
                 );
 
-                batch.pop_clip();
+                //batch.pop_clip();
             }
 
             ElementVariant::Checkbox { value } => {
@@ -274,7 +274,7 @@ impl Ui {
                     }
                 }
 
-                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
+                //batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 batch.queue_draw_text(
                     text,
@@ -333,7 +333,7 @@ impl Ui {
                     }
                 }
 
-                batch.pop_clip();
+                //batch.pop_clip();
             }
 
             ElementVariant::Slider { percent, variant, .. } => {
@@ -466,7 +466,7 @@ impl Ui {
                     text_color = self.style.text_color;
                 }
 
-                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
+                //batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
                 let text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
@@ -499,7 +499,7 @@ impl Ui {
                     &app,
                 );
 
-                batch.pop_clip();
+                //batch.pop_clip();
             }
 
             ElementVariant::ComboboxOption { selected, text } => {
@@ -539,7 +539,7 @@ impl Ui {
                     text_color = self.style.text_color;
                 }
 
-                batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
+                //batch.push_clip(layout.pos + padding, layout.size - 2 * padding);
 
                 // Draw text
                 let text_draw_size: Vec2i = calculate_draw_text_size_with_callback(
@@ -572,7 +572,7 @@ impl Ui {
                     &app,
                 );
 
-                batch.pop_clip();
+                //batch.pop_clip();
             }
 
             ElementVariant::Scrollbar => {
