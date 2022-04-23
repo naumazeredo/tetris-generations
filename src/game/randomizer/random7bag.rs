@@ -34,8 +34,7 @@ impl RandomizerTrait for Randomizer7Bag {
 
     fn next_piece(&mut self) -> PieceVariant {
         if self.index == 7 {
-            for _ in 0..10 {
-                let i = (self.rng.next_u32() % 7) as usize;
+            for i in 0..7 {
                 let j = (self.rng.next_u32() % 7) as usize;
                 self.sequence.swap(i, j);
             }

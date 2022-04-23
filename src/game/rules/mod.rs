@@ -195,7 +195,7 @@ impl From<RotationSystem> for Rules {
 
                     rotation_system: RotationSystem::SRS,
 
-                    randomizer_type: RandomizerType::FullRandom,
+                    randomizer_type: RandomizerType::Random7Bag,
 
                     // Animation
                     has_movement_animation: true,

@@ -171,7 +171,7 @@ pub fn draw_piece_centered(
         if has_grid {
             let extra_px = Vec2i { x: 1, y: 1 };
             draw_pos = pos +
-                extra_px + block_pos * persistent.pixel_scale as i32;
+                (extra_px + block_pos) * persistent.pixel_scale as i32;
         } else {
             draw_pos = pos + block_pos * persistent.pixel_scale as i32;
         }

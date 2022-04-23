@@ -18,6 +18,7 @@ pub enum RandomizerType {
     FullRandom,
 
     // https://tetris.fandom.com/wiki/Random_Generator
+    // @TODO @Rename: rename this! it's not matching all other randomizers
     Random7Bag, // Random Generator, with a bag of all 7 pieces
     TGMACE,     // Random Generator + not dealing SZO initially
 
