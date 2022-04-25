@@ -17,6 +17,10 @@
 
 - [ ] [bug] Changing scenes while paused stays in the same state
   - [ ] Should we reset the time when changing scenes? Is this a rule?
+- [ ] Rules
+  - [ ] Show piece above playfield render
+    - [ ] Show preview (only some pixels from the immediate block above the render frame)
+    - [ ] Show all (or show a count of blocks above)
 - [ ] Fix Classic style: NES Classic has blocks with sizes 7x7, not 8x8
 - [ ] General refactor/cleanup
   - [x] Refactor SinglePlayerScene into RulesInstance (maybe a better name)
@@ -26,7 +30,8 @@
     - [ ] BLOCK_SCALE to u8
     - [ ] All render functions to receive Vec2i or integers instead of floats
   - [ ] [render] move game/render.rs functions to their impls
-  - [ ] Rename rules to tetris (not the best name. rules should be part of the tetris module)
+  - [ ] Rename RulesInstance to TetrisGame (not the best name. RulesInstance should be part of the
+      tetris module)
   - [ ] Create instance draw style: position of windows, scales, color of pieces
 - [ ] Scenes
   - [x] Main menu
@@ -45,8 +50,11 @@
     - [ ] Local
     - [ ] Multiplayer
   - [ ] Custom game
+    - [ ] Preview rules
+      - [x] Go back to the custom menu
+      - [ ] Make a new scene?
     - [ ] Explanation for each rule
-      - [ ] Times should show a realtime + slowdown near the action (or step by step explaination)
+      - [ ] Times should show a realtime + slowdown near the action (or step by step explanation)
       - [ ] (maybe) Rotation systems should show all pieces rotations and have multiple pages
           showing the kicks
       - [x] Abstract InputMapping into a trait to create SimulatedInputMapping
@@ -59,6 +67,7 @@
           - [ ] Time scaling
           - [ ] Wait for piece drop
         - [x] RulesInstance
+          - [ ] Update rule without needing to create a new preview
       - [ ] Show input buttons
       - [ ] Text explanations
         - [ ] Rotation system (rename to Rotation Rule)
@@ -68,6 +77,7 @@
         - [ ] Soft drop lock
         - [ ] Soft drop interval
         - [ ] Hold
+        - [x] Ghost
 - [x] [render] Clip render of blocks to playfield
   - [x] ~[bug] Piece movement animation makes the rendering be outside of the playfield. This should be
       fixed with rendering on a framebuffer instead of directly on the screen~
@@ -87,6 +97,9 @@
   - [ ] Send the whole playfield to the shader
 - [ ] [instance] Entry delay: the piece should spawn but stay on a waiting state, instead of only
     spawning after the entry delay period
+- [x] [bug] main menu going to State::Main after popping other scenes
+- [x] [bug] SRS being full random instead of 7 bag
+- [x] [bug] Next piece preview not centering correctly
 
 ### Engine
 

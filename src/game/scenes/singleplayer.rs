@@ -13,18 +13,20 @@ use crate::game::{
 };
 
 #[derive(Debug, ImDraw)]
-pub struct SingleplayerScene {
+pub struct SinglePlayerScene {
     rules_instance: RulesInstance,
     music_id: MusicId,
     server: Option<Server>,
     quit: bool,
+
+    is_preview: bool,
 
     playfield_pos: Vec2i,
     hold_piece_window_pos: Vec2i,
     next_pieces_preview_window_pos: Vec2i,
 }
 
-impl SceneTrait for SingleplayerScene {
+impl SceneTrait for SinglePlayerScene {
     type Scene = Scene;
     type PersistentData = PersistentData;
 
@@ -89,17 +91,19 @@ impl SceneTrait for SingleplayerScene {
         self.rules_instance.render_hold_piece(self.hold_piece_window_pos, true, &mut app.batch(), persistent);
         self.rules_instance.render_next_pieces_preview(self.next_pieces_preview_window_pos, 0, true, &mut app.batch(), persistent);
 
-        app.queue_draw_text(
-            &format!("time: {:.2}", to_seconds(self.rules_instance.timestamp())),
-            &TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
-            32.,
-            WHITE,
-            None,
-            None,
-        );
+        if self.is_preview {
+            app.queue_draw_text(
+                "PREVIEW",
+                &TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
+                32.,
+                WHITE,
+                None,
+                None,
+            );
+        }
 
         app.queue_draw_text(
-            &format!("level: {}", self.rules_instance.level()),
+            &format!("time: {:.2}", to_seconds(self.rules_instance.timestamp())),
             &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
             32.,
             WHITE,
@@ -108,7 +112,7 @@ impl SceneTrait for SingleplayerScene {
         );
 
         app.queue_draw_text(
-            &format!("score: {}", self.rules_instance.score()),
+            &format!("level: {}", self.rules_instance.level()),
             &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
             32.,
             WHITE,
@@ -117,8 +121,17 @@ impl SceneTrait for SingleplayerScene {
         );
 
         app.queue_draw_text(
-            &format!("lines: {}", self.rules_instance.total_lines_cleared()),
+            &format!("score: {}", self.rules_instance.score()),
             &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
+            32.,
+            WHITE,
+            None,
+            None,
+        );
+
+        app.queue_draw_text(
+            &format!("lines: {}", self.rules_instance.total_lines_cleared()),
+            &TransformBuilder::new().pos_xy(10.0, 210.0).layer(800).build(),
             32.,
             WHITE,
             None,
@@ -180,7 +193,7 @@ impl SceneTrait for SingleplayerScene {
     }
 }
 
-impl SingleplayerScene {
+impl SinglePlayerScene {
     pub fn new(
         seed: u64,
         rules: Rules,
@@ -222,6 +235,8 @@ impl SingleplayerScene {
             music_id,
             server: None,
             quit: false,
+
+            is_preview: false,
 
             playfield_pos,
             hold_piece_window_pos,

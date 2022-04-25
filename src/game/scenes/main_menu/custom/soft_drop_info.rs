@@ -127,8 +127,9 @@ pub fn show_custom_rules_info_soft_drop(
     ui::Text::builder("SOFT DROP").build(app);
 
     let text =
-        "A soft drop is a move in which a Tetromino speeds up its downwards motion. It is a higher \
-        scoring move than letting the Tetromino fall by itself, but lower scoring than a hard drop.";
+        "A soft drop is a move in which a Tetromino speeds up its downwards motion. \
+        It is a higher scoring move than letting the Tetromino fall by itself, but \
+        lower scoring than a hard drop.";
 
     ui::Text::builder(text).multiline(true).build(app);
 

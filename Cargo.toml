@@ -1,5 +1,5 @@
 [package]
-name = "tetris-for-all"
+name = "tetris-generations"
 version = "0.1.0"
 authors = ["Naum Azeredo <naumazeredo@gmail.com>"]
 edition = "2018"

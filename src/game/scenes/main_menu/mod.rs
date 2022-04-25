@@ -43,7 +43,8 @@ enum State {
     ModernOnlineSpectate,
 
     CustomRules,
-    Custom,
+    CustomLocal,
+    CustomPreview,
 
     Options,
     OptionsVideo,
@@ -141,9 +142,11 @@ impl SceneTrait for MainMenuScene {
     ) -> Option<SceneTransition<Self::Scene>> {
         match self.state {
             State::ClassicLocal => {
+                self.state = State::Main;
+
                 Some(
                     SceneTransition::Push(
-                        SingleplayerScene::new(
+                        SinglePlayerScene::new(
                             persistent.rng.next_u64(),
                             RotationSystem::NRSR.into(),
                             app,
@@ -154,9 +157,11 @@ impl SceneTrait for MainMenuScene {
             }
 
             State::ModernLocal => {
+                self.state = State::Main;
+
                 Some(
                     SceneTransition::Push(
-                        SingleplayerScene::new(
+                        SinglePlayerScene::new(
                             persistent.rng.next_u64(),
                             RotationSystem::SRS.into(),
                             app,
@@ -166,13 +171,61 @@ impl SceneTrait for MainMenuScene {
                 )
             }
 
-            /*
-            State::ModernOnlineSolo =>
-                Some(SceneTransition::Push(MultiPlayerScene::new(app, persistent).into())),
+            State::ModernOnlineSolo => {
+                self.state = State::Main;
 
-            State::ModernOnlineSpectate =>
-                Some(SceneTransition::Push(MultiPlayerSpectateScene::new(app, persistent).into())),
-            */
+                Some(
+                    SceneTransition::Push(
+                        MultiPlayerScene::new(
+                            app,
+                            persistent
+                        ).into()
+                    )
+                )
+            }
+
+            State::ModernOnlineSpectate => {
+                self.state = State::Main;
+
+                Some(
+                    SceneTransition::Push(
+                        MultiPlayerSpectateScene::new(
+                            app,
+                            persistent
+                        ).into()
+                    )
+                )
+            }
+
+            State::CustomLocal => {
+                self.state = State::Main;
+
+                Some(
+                    SceneTransition::Push(
+                        SinglePlayerScene::new(
+                            persistent.rng.next_u64(),
+                            self.custom_rules.clone(),
+                            app,
+                            persistent
+                        ).into()
+                    )
+                )
+            }
+
+            State::CustomPreview => {
+                self.state = State::CustomRules;
+
+                Some(
+                    SceneTransition::Push(
+                        SinglePlayerScene::new(
+                            persistent.rng.next_u64(),
+                            self.custom_rules.clone(),
+                            app,
+                            persistent
+                        ).into()
+                    )
+                )
+            }
 
             _ => None
         }
@@ -182,8 +235,7 @@ impl SceneTrait for MainMenuScene {
 impl MainMenuScene {
     pub fn new(app: &mut App) -> Self {
         Self {
-            //state: State::Main,
-            state:        State::CustomRules,
+            state: State::Main,
             video_info:   VideoInfo::load(app),
             custom_rules: RotationSystem::NRSR.into(),
             focused_rule: None,

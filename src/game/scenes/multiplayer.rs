@@ -4,6 +4,7 @@ use crate::linalg::Vec2i;
 use super::*;
 
 use crate::game::{
+    render::*,
     rules::{
         RotationSystem,
         Rules,
@@ -17,6 +18,10 @@ pub struct MultiPlayerScene {
     quit: bool,
     rules_instance: RulesInstance,
     server: Server,
+
+    playfield_pos: Vec2i,
+    hold_piece_window_pos: Vec2i,
+    next_pieces_preview_window_pos: Vec2i,
 }
 
 impl SceneTrait for MultiPlayerScene {
@@ -67,7 +72,7 @@ impl SceneTrait for MultiPlayerScene {
         }
 
         if !app.is_paused() {
-            let has_updated = self.rules_instance.update(app, &persistent.input_mapping);
+            let has_updated = self.rules_instance.update(dt, &persistent.input_mapping, app);
             if has_updated {
                 let update = Update {
                     timestamp: app.game_timestamp(),
@@ -91,19 +96,20 @@ impl SceneTrait for MultiPlayerScene {
             let menu_size = Vec2i { x: 600, y: 300 };
 
             // Ui
-            let window_layout = Layout {
+            let window_layout = ui::Layout {
                 pos: Vec2i {
                     x: (window_size.x - menu_size.x) / 2,
                     y: (window_size.y - menu_size.y) / 2,
                 },
                 size: menu_size
             };
-            app.new_ui(window_layout);
+
+            ui::Ui::builder(window_layout).build(app);
+
+            ui::Text::new("PAUSED", app);
+            ui::Text::new(&format!("IP: {}", self.server.addr()), app);
 
             // Ui
-            Text::new("PAUSED", app);
-            Text::new(&format!("IP: {}", self.server.addr()), app);
-
             if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }
@@ -117,51 +123,46 @@ impl SceneTrait for MultiPlayerScene {
             }
         }
 
-        /*
-        let pixel_scale = persistent.pixel_scale;
-
-        let window_size = app.video_system.window.size();
-
-        let playfield_pixel_size = Vec2i {
-            x: (pixel_scale as f32 * BLOCK_SCALE * self.rules_instance.playfield_grid_size().x as f32) as i32,
-            y: (pixel_scale as f32 * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32) as i32,
-        };
-
-        let playfield_pos = Vec2i {
-            x: (window_size.0 as i32 - playfield_pixel_size.x) / 2,
-            y: (window_size.1 as i32 - playfield_pixel_size.y) / 2,
-        };
-        */
+        self.rules_instance.update_animations();
+        self.rules_instance.render_playfield(self.playfield_pos, true, &mut app.batch(), persistent);
+        self.rules_instance.render_hold_piece(self.hold_piece_window_pos, true, &mut app.batch(), persistent);
+        self.rules_instance.render_next_pieces_preview(self.next_pieces_preview_window_pos, 0, true, &mut app.batch(), persistent);
 
         app.queue_draw_text(
-            &format!("time: {:.2}", app.game_time()),
-            &TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
+            &format!("time: {:.2}", to_seconds(self.rules_instance.timestamp())),
+            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         app.queue_draw_text(
             &format!("level: {}", self.rules_instance.level()),
-            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
+            &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         app.queue_draw_text(
             &format!("score: {}", self.rules_instance.score()),
-            &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
+            &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         app.queue_draw_text(
             &format!("lines: {}", self.rules_instance.total_lines_cleared()),
-            &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
+            &TransformBuilder::new().pos_xy(10.0, 210.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
-
-        self.rules_instance.render(app, persistent);
     }
 
     fn handle_input(
@@ -203,13 +204,41 @@ impl SceneTrait for MultiPlayerScene {
 }
 
 impl MultiPlayerScene {
-    pub fn new(app: &mut App, persistent: &mut Self::PersistentData) -> Self {
+    pub fn new(
+        app: &mut App,
+        persistent: &mut PersistentData
+    ) -> Self {
         // rules
         let seed = app.system_time();
         let rules: Rules = RotationSystem::SRS.into();
-        let rules_instance = RulesInstance::new(rules, seed, app, persistent);
+        let rules_instance = RulesInstance::new(rules, seed);
 
         let server = Server::new("127.0.0.1:42042").unwrap();
+
+        // @Refactor use InstanceStyle
+        // Playfield rendering
+        let playfield_draw_size = get_draw_playfield_size(
+            &rules_instance.playfield(),
+            persistent.pixel_scale,
+            true,
+        );
+
+        let window_size = app.window_size();
+        let playfield_pos = Vec2i {
+            x: (window_size.0 as i32 - playfield_draw_size.x) / 2,
+            y: (window_size.1 as i32 - playfield_draw_size.y) / 2,
+        };
+
+        let hold_window_size = rules_instance.hold_piece_window_size(true, persistent);
+        let hold_piece_window_pos =
+            playfield_pos +
+            Vec2i { x: -20, y: 0 } +
+            Vec2i { x: -hold_window_size.x, y: 0 };
+
+        let next_pieces_preview_window_pos =
+            playfield_pos +
+            Vec2i { x: 20, y: 0 } +
+            Vec2i { x: playfield_draw_size.x, y: 0 };
 
         Self {
             quit: false,
@@ -217,6 +246,10 @@ impl MultiPlayerScene {
             rules_instance,
 
             server,
+
+            playfield_pos,
+            hold_piece_window_pos,
+            next_pieces_preview_window_pos,
         }
     }
 }

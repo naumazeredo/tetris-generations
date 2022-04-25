@@ -1,16 +1,16 @@
 use crate::app::*;
 use crate::linalg::Vec2i;
-use crate::rand_core::RngCore;
 
 use super::*;
 
 use crate::game::{
-    network::MultiplayerMessages,
+    render::*,
     rules::{
         RotationSystem,
         Rules,
         instance::RulesInstance,
     },
+    network::MultiplayerMessages,
 };
 
 #[derive(Debug, ImDraw)]
@@ -29,6 +29,10 @@ pub struct MultiPlayerSpectateScene {
 
     client: Client,
     rules_instance: RulesInstance,
+
+    playfield_pos: Vec2i,
+    hold_piece_window_pos: Vec2i,
+    next_pieces_preview_window_pos: Vec2i,
 }
 
 impl SceneTrait for MultiPlayerSpectateScene {
@@ -37,6 +41,7 @@ impl SceneTrait for MultiPlayerSpectateScene {
 
     fn update(
         &mut self,
+        dt: u64,
         app: &mut App,
         persistent: &mut Self::PersistentData
     ) {
@@ -115,7 +120,7 @@ impl SceneTrait for MultiPlayerSpectateScene {
         let menu_size = Vec2i { x: 600, y: 300 };
 
         // Ui
-        let window_layout = Layout {
+        let window_layout = ui::Layout {
             pos: Vec2i {
                 x: (window_size.x - menu_size.x) / 2,
                 y: (window_size.y - menu_size.y) / 2,
@@ -124,9 +129,9 @@ impl SceneTrait for MultiPlayerSpectateScene {
         };
 
         if app.is_paused() {
-            app.new_ui(window_layout);
+            ui::Ui::builder(window_layout).build(app);
 
-            Text::new("PAUSED", app);
+            ui::Text::new("PAUSED", app);
             if ui::Button::new("RESUME", app).pressed {
                 app.resume();
             }
@@ -137,10 +142,10 @@ impl SceneTrait for MultiPlayerSpectateScene {
         } else {
             match self.state {
                 State::ConnectMenu => {
-                    app.new_ui(window_layout);
+                    ui::Ui::builder(window_layout).build(app);
 
-                    Text::new("WATCH GAME", app);
-                    ui::Input::new("Server", &mut self.start_menu_server_ip, app);
+                    ui::Text::new("WATCH GAME", app);
+                    ui::Input::builder("Server").build(&mut self.start_menu_server_ip, app);
                     if ui::Button::new("CONNECT", app).pressed {
                         match self.client.connect(self.start_menu_server_ip.clone()) {
                             Ok(_) => self.state = State::Connecting,
@@ -154,8 +159,8 @@ impl SceneTrait for MultiPlayerSpectateScene {
                 },
 
                 State::Connecting => {
-                    app.new_ui(window_layout);
-                    Text::new("CONNECTING...", app);
+                    ui::Ui::builder(window_layout).build(app);
+                    ui::Text::new("CONNECTING...", app);
 
                     if ui::Button::new("CANCEL", app).pressed {
                         self.state = State::ConnectMenu;
@@ -170,51 +175,46 @@ impl SceneTrait for MultiPlayerSpectateScene {
             }
         }
 
-        /*
-        let pixel_scale = persistent.pixel_scale;
-
-        let window_size = app.video_system.window.size();
-
-        let playfield_pixel_size = Vec2i {
-            x: (pixel_scale as f32 * BLOCK_SCALE * self.rules_instance.playfield_grid_size().x as f32) as i32,
-            y: (pixel_scale as f32 * BLOCK_SCALE * PLAYFIELD_VISIBLE_HEIGHT as f32) as i32,
-        };
-
-        let playfield_pos = Vec2i {
-            x: (window_size.0 as i32 - playfield_pixel_size.x) / 2,
-            y: (window_size.1 as i32 - playfield_pixel_size.y) / 2,
-        };
-        */
+        self.rules_instance.update_animations();
+        self.rules_instance.render_playfield(self.playfield_pos, true, &mut app.batch(), persistent);
+        self.rules_instance.render_hold_piece(self.hold_piece_window_pos, true, &mut app.batch(), persistent);
+        self.rules_instance.render_next_pieces_preview(self.next_pieces_preview_window_pos, 0, true, &mut app.batch(), persistent);
 
         app.queue_draw_text(
-            &format!("time: {:.2}", app.game_time()),
-            &TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
+            &format!("time: {:.2}", to_seconds(self.rules_instance.timestamp())),
+            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         app.queue_draw_text(
             &format!("level: {}", self.rules_instance.level()),
-            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
+            &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         app.queue_draw_text(
             &format!("score: {}", self.rules_instance.score()),
-            &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
+            &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
 
         app.queue_draw_text(
             &format!("lines: {}", self.rules_instance.total_lines_cleared()),
-            &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
+            &TransformBuilder::new().pos_xy(10.0, 210.0).layer(800).build(),
             32.,
-            WHITE
+            WHITE,
+            None,
+            None,
         );
-
-        self.rules_instance.render(app, persistent);
     }
 
     fn handle_input(
@@ -251,17 +251,49 @@ impl SceneTrait for MultiPlayerSpectateScene {
 }
 
 impl MultiPlayerSpectateScene {
-    pub fn new(app: &mut App, persistent: &mut Self::PersistentData) -> Self {
+    pub fn new(
+        app: &mut App,
+        persistent: &mut PersistentData
+    ) -> Self {
         let rules: Rules = RotationSystem::SRS.into();
-        let rules_instance = RulesInstance::new(rules, 0, app, persistent);
+        let rules_instance = RulesInstance::new(rules, 0);
 
         let client = Client::new(persistent.rng.next_u64()).unwrap();
+
+        // @Refactor use InstanceStyle
+        // Playfield rendering
+        let playfield_draw_size = get_draw_playfield_size(
+            &rules_instance.playfield(),
+            persistent.pixel_scale,
+            true,
+        );
+
+        let window_size = app.window_size();
+        let playfield_pos = Vec2i {
+            x: (window_size.0 as i32 - playfield_draw_size.x) / 2,
+            y: (window_size.1 as i32 - playfield_draw_size.y) / 2,
+        };
+
+        let hold_window_size = rules_instance.hold_piece_window_size(true, persistent);
+        let hold_piece_window_pos =
+            playfield_pos +
+            Vec2i { x: -20, y: 0 } +
+            Vec2i { x: -hold_window_size.x, y: 0 };
+
+        let next_pieces_preview_window_pos =
+            playfield_pos +
+            Vec2i { x: 20, y: 0 } +
+            Vec2i { x: playfield_draw_size.x, y: 0 };
 
         Self {
             state: State::ConnectMenu,
             start_menu_server_ip: "127.0.0.1:42042".to_owned(),
             rules_instance,
             client,
+
+            playfield_pos,
+            hold_piece_window_pos,
+            next_pieces_preview_window_pos,
         }
     }
 }

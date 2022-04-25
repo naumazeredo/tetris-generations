@@ -1,3 +1,4 @@
+mod ghost_info;
 mod hard_drop_info;
 mod rotation_system_info;
 mod soft_drop_info;
@@ -7,6 +8,7 @@ mod playfield_animation;
 
 use super::*;
 
+use ghost_info::*;
 use hard_drop_info::*;
 use rotation_system_info::*;
 use soft_drop_info::*;
@@ -30,7 +32,7 @@ pub enum FocusedRule {
     Hold,
     HoldResetRotation,
 
-    Ghost,
+    Ghost(PlayfieldAnimation),
 
     SpawnRow,
     SpawnDrop,
@@ -114,7 +116,7 @@ impl MainMenuScene {
             .build(app);
         ui::Text::builder("CUSTOM GAME").build(app);
 
-        let mut rules_box_placer = ui::PagedBox::builder(26).build(app).unwrap();
+        let mut rules_box_placer = ui::PagedBox::builder(25).build(app).unwrap();
         {
             // @TODO combobox for presets
             let mut preset_index = 0;
@@ -170,7 +172,8 @@ impl MainMenuScene {
             change_rule_info!(self, state, SoftDrop, SoftDropPreview::new());
 
             let state = ui::Checkbox::builder("  SOFT DROP LOCK")
-                .disabled(!self.custom_rules.has_soft_drop)
+                //.disabled(!self.custom_rules.has_soft_drop)
+                .disabled(true)
                 .build_with_placer(&mut self.custom_rules.has_soft_drop_lock, &mut rules_box_placer, app);
 
             change_rule_info!(self, state, SoftDropLock);
@@ -200,7 +203,9 @@ impl MainMenuScene {
             let state = ui::Checkbox::builder("GHOST PIECE")
                 .build_with_placer(&mut self.custom_rules.has_ghost_piece, &mut rules_box_placer, app);
 
-            change_rule_info!(self, state, Ghost);
+            change_rule_info_on_change!(
+                self, state, Ghost, GhostPreview::new(self.custom_rules.has_ghost_piece)
+            );
 
             // Spawn
 
@@ -348,8 +353,12 @@ impl MainMenuScene {
             //app.input_u64_stretch("seed", &mut self.seed);
         }
 
+        if ui::Button::new("PREVIEW", app).pressed {
+            self.state = State::CustomPreview;
+        }
+
         if ui::Button::new("START GAME", app).pressed {
-            self.state = State::Custom;
+            self.state = State::CustomLocal;
         }
 
         if ui::Button::new("BACK", app).pressed {
@@ -368,14 +377,22 @@ impl MainMenuScene {
             Some(focused_rule) => {
                 match focused_rule {
                     // @TODO remove self ref from all
-                    FocusedRule::RotationSystem => show_custom_rules_info_rotation_system(app, persistent),
+                    FocusedRule::RotationSystem =>
+                        show_custom_rules_info_rotation_system(app, persistent),
 
-                    FocusedRule::HardDrop(preview) => show_custom_rules_info_hard_drop(preview, app, persistent),
-                    FocusedRule::SoftDrop(preview) => show_custom_rules_info_soft_drop(preview, app, persistent),
+                    FocusedRule::HardDrop(preview) =>
+                        show_custom_rules_info_hard_drop(preview, app, persistent),
+                    FocusedRule::SoftDrop(preview) =>
+                        show_custom_rules_info_soft_drop(preview, app, persistent),
+
                     FocusedRule::SoftDropInterval(preview) =>
                         show_custom_rules_info_soft_drop_interval(preview, app, persistent),
 
-                    FocusedRule::SpawnDelay => show_custom_rules_info_spawn_delay(app, persistent),
+                    FocusedRule::Ghost(preview) =>
+                        show_custom_rules_info_ghost(preview, app, persistent),
+
+                    FocusedRule::SpawnDelay =>
+                        show_custom_rules_info_spawn_delay(app, persistent),
 
                     _ => self.show_custom_rules_info(app, persistent),
                 }

@@ -66,6 +66,8 @@ impl Server {
 
         match UdpSocket::bind(bind_addr) {
             Ok(s) => {
+                // @TODO: logger
+                println!("[network][server] UDP socket bound");
                 s.set_nonblocking(true).unwrap();
 
                 Ok(Self {
