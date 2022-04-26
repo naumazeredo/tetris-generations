@@ -4,7 +4,7 @@ mod modern;
 mod options;
 
 use crate::app::*;
-use crate::linalg::Vec2i;
+use crate::linalg::{ Vec2i, Vec2 };
 use crate::game::{
     playfield::Playfield,
     randomizer::RandomizerDefinedSequence,
@@ -101,6 +101,11 @@ impl SceneTrait for MainMenuScene {
         app: &mut App,
         persistent: &mut Self::PersistentData
     ) {
+        match self.state {
+            State::CustomRules => {},
+            _ => self.render_background(app, persistent),
+        }
+
         match self.state {
             State::Main            => self.show_main(app, persistent),
 
@@ -280,5 +285,36 @@ impl MainMenuScene {
         if ui::Button::new("QUIT", app).pressed {
             app.exit();
         }
+    }
+
+    fn render_background(
+        &mut self,
+        app: &mut App,
+        _persistent: &mut PersistentData
+    ) {
+        let text = "TETRIS GENERATIONS";
+        let text_size = 64.;
+
+        let text_draw_size: Vec2i = app.calculate_draw_text_size(
+            text,
+            text_size,
+            None,
+            None
+        ).into();
+
+        let window_size = app.window_size();
+        let text_pos = Vec2 {
+            x: ((window_size.0 as i32 - text_draw_size.x) / 2) as f32,
+            y: 50.0
+        };
+
+        app.queue_draw_text(
+            text,
+            &TransformBuilder::new().pos(text_pos).layer(100).build(),
+            text_size,
+            WHITE,
+            None,
+            None,
+        );
     }
 }

@@ -415,6 +415,5 @@ impl MainMenuScene {
             size: menu_size
         };
         ui::Ui::builder(window_layout).fixed_height().build(app);
-        ui::Text::builder("RULE DESCRIPTION").build(app);
     }
 }

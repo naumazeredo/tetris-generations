@@ -2,15 +2,14 @@ use super::*;
 use crate::game::{
     input::*,
     pieces::PieceVariant,
-    rules::GravityCurve,
 };
 
 pub struct GhostPreview;
 
-// TODO somehow update the preview instance on state changed instead of recreating the whole preview
+// @TODO somehow update the preview instance on state changed instead of recreating the whole preview
 
 impl GhostPreview {
-    // @TODO copy current rules from the menu
+    // @Maybe show preview with ghost and without ghost
     pub fn new(has_ghost_piece: bool) -> PlayfieldAnimation {
         // @Maybe using only SRS for previews for now, maybe we should show the rotation system the
         //        player has chosen?
