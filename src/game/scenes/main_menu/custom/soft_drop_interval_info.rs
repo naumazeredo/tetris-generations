@@ -77,15 +77,15 @@ pub fn show_custom_rules_info_soft_drop_interval(
     let last_frame_duration = app.last_frame_real_duration();
     preview.update(last_frame_duration, app);
 
-    preview.instance.update_animations();
-    preview.instance.render_playfield(
+    preview.tetris_game.update_animations();
+    preview.tetris_game.render_playfield(
         Vec2i::new(),
         true,
         &mut batch,
         persistent,
     );
 
-    let playfield = &preview.instance.playfield();
+    let playfield = &preview.tetris_game.playfield();
     let playfield_draw_size = get_draw_playfield_grid_size(
         Vec2i { x: 5, y: 8 },
         persistent.pixel_scale,

@@ -3,6 +3,7 @@ use super::*;
 use crate::game::{
     input::*,
     randomizer::*,
+    tetris_game::TetrisGame,
 };
 
 #[derive(Debug)]
@@ -102,7 +103,7 @@ impl Button for SimulatedButton {
 
 #[derive(Debug)]
 pub struct PlayfieldAnimation {
-    pub(super) instance: RulesInstance,
+    pub(super) tetris_game: TetrisGame,
 
     // Event sequence
     duration: u64,
@@ -127,9 +128,9 @@ impl PlayfieldAnimation {
 
     pub fn update(&mut self, dt: u64, app: &mut App) -> bool {
         let events_updated   = self.update_events(dt);
-        let instance_updated = self.instance.update(dt, &self.input_mapping, app);
+        let tetris_game_updated = self.tetris_game.update(dt, &self.input_mapping, app);
 
-        instance_updated || events_updated
+        tetris_game_updated || events_updated
     }
 
     fn reset(&mut self) {
@@ -138,12 +139,12 @@ impl PlayfieldAnimation {
         self.input_mapping = SimulatedInputMapping::new();
 
         let playfield = Playfield::new(
-            self.instance.playfield().grid_size,
-            self.instance.playfield().visible_height,
+            self.tetris_game.playfield().grid_size,
+            self.tetris_game.playfield().visible_height,
         );
 
-        self.instance = RulesInstance::new_preview(
-            self.instance.rules().clone(),
+        self.tetris_game = TetrisGame::new_preview(
+            self.tetris_game.rules().clone(),
             playfield,
             self.randomizer_start.clone(),
         );
@@ -167,7 +168,7 @@ impl PlayfieldAnimation {
 
             match self.events[self.next_event as usize].variant {
                 PlayfieldAnimationEventVariant::Reset    => self.reset(),
-                PlayfieldAnimationEventVariant::NewPiece => self.instance.new_piece(),
+                PlayfieldAnimationEventVariant::NewPiece => self.tetris_game.new_piece(),
 
                 PlayfieldAnimationEventVariant::Button { button_name, is_press } => {
                     let button = &mut self.input_mapping.button_mut(button_name.to_owned());
@@ -285,10 +286,10 @@ impl PlayfieldAnimationBuilder {
         randomizer: Randomizer,
     ) -> PlayfieldAnimation {
         let randomizer_start = randomizer.clone();
-        let instance = RulesInstance::new_preview(rules, playfield, randomizer);
+        let tetris_game = TetrisGame::new_preview(rules, playfield, randomizer);
 
         PlayfieldAnimation {
-            instance,
+            tetris_game,
 
             duration: self.current_time,
             events:   self.events,

@@ -13,7 +13,6 @@ use crate::game::{
         Rules,
         RotationSystem,
         ROTATION_SYSTEM_NAMES,
-        instance::RulesInstance,
         line_clear::{LINE_CLEAR_RULE_NAMES, LineClearRule},
         topout::TopOutRule,
     },
