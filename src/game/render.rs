@@ -1,6 +1,8 @@
 // @TODO move all this to their respective structs
 //       All Batch stuff should be behind a trait?
 
+// @TODO move this whole file to tetris_game module
+
 use crate::BLOCK_SCALE;
 use crate::app::*;
 use crate::linalg::*;
@@ -25,6 +27,7 @@ pub fn draw_piece_in_playfield(
     color: Color,
     playfield: &Playfield,
     playfield_pos: Vec2i,
+    pixel_scale: u8,
     has_grid: bool,
     batch: &mut Batch,
     persistent: &PersistentData
@@ -36,6 +39,7 @@ pub fn draw_piece_in_playfield(
             color,
             playfield,
             playfield_pos,
+            pixel_scale,
             has_grid,
             batch,
             persistent
@@ -49,6 +53,7 @@ pub fn draw_block_in_playfield(
     color: Color,
     playfield: &Playfield,
     playfield_pos: Vec2i,
+    pixel_scale: u8,
     has_grid: bool,
     batch: &mut Batch,
     persistent: &PersistentData
@@ -60,7 +65,7 @@ pub fn draw_block_in_playfield(
         return;
     }
 
-    let pixel_scale = persistent.pixel_scale as i32;
+    let pixel_scale = pixel_scale as i32;
     let delta_pos = Vec2i { x: delta_pos.x.round() as i32, y: delta_pos.y.round() as i32 };
 
     // Vertical position should be corrected since it's from bottom to top.
@@ -92,6 +97,7 @@ pub fn draw_block_in_playfield(
     draw_block(
         render_pos,
         color,
+        pixel_scale as u8,
         batch,
         persistent
     );
@@ -100,10 +106,11 @@ pub fn draw_block_in_playfield(
 pub fn draw_block(
     pos: Vec2i,
     color: Color,
+    pixel_scale: u8,
     batch: &mut Batch,
     persistent: &PersistentData
 ) {
-    let scale = Vec2i { x: persistent.pixel_scale as i32, y: persistent.pixel_scale as i32 };
+    let scale = Vec2i { x: pixel_scale as i32, y: pixel_scale as i32 };
     batch.queue_draw_sprite(
         &TransformBuilder::new()
             .pos(pos.into())
@@ -119,6 +126,7 @@ pub fn draw_piece(
     piece: Piece,
     pos: Vec2i,
     color: Color,
+    pixel_scale: u8,
     has_grid: bool,
     batch: &mut Batch,
     persistent: &PersistentData
@@ -130,14 +138,15 @@ pub fn draw_piece(
         if has_grid {
             let extra_px = Vec2i { x: 1, y: 1 };
             draw_pos = pos +
-                extra_px + block_pos * (1 + BLOCK_SCALE as i32) * persistent.pixel_scale as i32;
+                extra_px + block_pos * (1 + BLOCK_SCALE as i32) * pixel_scale as i32;
         } else {
-            draw_pos = pos + block_pos * BLOCK_SCALE as i32 * persistent.pixel_scale as i32;
+            draw_pos = pos + block_pos * BLOCK_SCALE as i32 * pixel_scale as i32;
         }
 
         draw_block(
             draw_pos,
             color,
+            pixel_scale,
             batch,
             persistent
         );
@@ -148,6 +157,7 @@ pub fn draw_piece_centered(
     piece: Piece,
     pos: Vec2i,
     color: Color,
+    pixel_scale: u8,
     has_grid: bool,
     batch: &mut Batch,
     persistent: &PersistentData
@@ -171,14 +181,15 @@ pub fn draw_piece_centered(
         if has_grid {
             let extra_px = Vec2i { x: 1, y: 1 };
             draw_pos = pos +
-                (extra_px + block_pos) * persistent.pixel_scale as i32;
+                (extra_px + block_pos) * pixel_scale as i32;
         } else {
-            draw_pos = pos + block_pos * persistent.pixel_scale as i32;
+            draw_pos = pos + block_pos * pixel_scale as i32;
         }
 
         draw_block(
             draw_pos,
             color,
+            pixel_scale,
             batch,
             persistent
         );
@@ -218,18 +229,19 @@ pub fn get_draw_playfield_grid_size(
 pub fn draw_playfield(
     playfield: &Playfield,
     pos: Vec2i,
+    pixel_scale: u8,
     has_grid: bool,
     line_clear_animation: Option<(u64, u64, LineClearAnimationType, &[u8], u64)>,
     rotation_system: RotationSystem,
     batch: &mut Batch,
     persistent: &PersistentData
 ) {
-    let size = get_draw_playfield_size(playfield, persistent.pixel_scale, has_grid);
+    let size = get_draw_playfield_size(playfield, pixel_scale, has_grid);
 
     draw_rect_window(
         pos,
         size,
-        persistent.pixel_scale,
+        pixel_scale,
         batch,
         persistent
     );
@@ -249,6 +261,7 @@ pub fn draw_playfield(
                             get_piece_variant_color(piece_type, rotation_system),
                             playfield,
                             pos,
+                            pixel_scale,
                             has_grid,
                             batch,
                             persistent
@@ -286,6 +299,7 @@ pub fn draw_playfield(
                                 get_piece_variant_color(piece_type, rotation_system),
                                 playfield,
                                 pos,
+                                pixel_scale,
                                 has_grid,
                                 batch,
                                 persistent
@@ -305,6 +319,7 @@ pub fn draw_playfield(
                                 get_piece_variant_color(piece_type, rotation_system),
                                 playfield,
                                 pos,
+                                pixel_scale,
                                 has_grid,
                                 batch,
                                 persistent
@@ -379,6 +394,7 @@ pub fn draw_rect_window(
 pub fn draw_piece_window(
     pos: Vec2i,
     piece: Piece,
+    pixel_scale: u8,
     is_centered: bool,
     has_grid: bool,
     batch: &mut Batch,
@@ -386,17 +402,17 @@ pub fn draw_piece_window(
 ) {
     let window_size;
     if has_grid {
-        let size = persistent.pixel_scale as i32 * ((1 + BLOCK_SCALE as i32) * 4 + 1);
+        let size = pixel_scale as i32 * ((1 + BLOCK_SCALE as i32) * 4 + 1);
         window_size = Vec2i { x: size, y: size };
     } else {
-        let size = persistent.pixel_scale as i32 * BLOCK_SCALE as i32 * 4;
+        let size = pixel_scale as i32 * BLOCK_SCALE as i32 * 4;
         window_size = Vec2i { x: size, y: size };
     }
 
     draw_rect_window(
         pos,
         window_size,
-        persistent.pixel_scale,
+        pixel_scale,
         batch,
         persistent
     );
@@ -406,6 +422,7 @@ pub fn draw_piece_window(
             piece,
             pos,
             piece.color(),
+            pixel_scale,
             has_grid,
             batch,
             persistent
@@ -415,6 +432,7 @@ pub fn draw_piece_window(
             piece,
             pos,
             piece.color(),
+            pixel_scale,
             has_grid,
             batch,
             persistent

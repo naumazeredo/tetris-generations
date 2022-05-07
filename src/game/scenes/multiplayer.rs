@@ -4,19 +4,19 @@ use crate::linalg::Vec2i;
 use super::*;
 
 use crate::game::{
+    network::{MultiplayerMessages, Connect, Update},
     render::*,
     rules::{
         RotationSystem,
         Rules,
-        instance::RulesInstance,
     },
-    network::{MultiplayerMessages, Connect, Update},
+    tetris_game::TetrisGame,
 };
 
 #[derive(Debug, ImDraw)]
 pub struct MultiPlayerScene {
     quit: bool,
-    rules_instance: RulesInstance,
+    tetris_game: TetrisGame,
     server: Server,
 
     playfield_pos: Vec2i,
@@ -45,9 +45,9 @@ impl SceneTrait for MultiPlayerScene {
                         ServerEvent::ClientConnect(client_id) => {
                             let connect = Connect {
                                 timestamp: app.game_timestamp(),
-                                instance: self.rules_instance.to_network(),
-                                rotation_system: self.rules_instance.rules().rotation_system,
-                                randomizer: self.rules_instance.randomizer().clone(),
+                                tetris_game: self.tetris_game.to_network(),
+                                rotation_system: self.tetris_game.rules().rotation_system,
+                                randomizer: self.tetris_game.randomizer().clone(),
                             };
 
                             let message = MultiplayerMessages::Connect(connect);
@@ -72,11 +72,11 @@ impl SceneTrait for MultiPlayerScene {
         }
 
         if !app.is_paused() {
-            let has_updated = self.rules_instance.update(dt, &persistent.input_mapping, app);
+            let has_updated = self.tetris_game.update(dt, &persistent.input_mapping, app);
             if has_updated {
                 let update = Update {
                     timestamp: app.game_timestamp(),
-                    instance: self.rules_instance.to_network(),
+                    tetris_game: self.tetris_game.to_network(),
                 };
 
                 let message = MultiplayerMessages::Update(update);
@@ -123,13 +123,13 @@ impl SceneTrait for MultiPlayerScene {
             }
         }
 
-        self.rules_instance.update_animations();
-        self.rules_instance.render_playfield(self.playfield_pos, true, &mut app.batch(), persistent);
-        self.rules_instance.render_hold_piece(self.hold_piece_window_pos, true, &mut app.batch(), persistent);
-        self.rules_instance.render_next_pieces_preview(self.next_pieces_preview_window_pos, 0, true, &mut app.batch(), persistent);
+        self.tetris_game.update_animations();
+        self.tetris_game.render_playfield(self.playfield_pos, true, &mut app.batch(), persistent);
+        self.tetris_game.render_hold_piece(self.hold_piece_window_pos, true, &mut app.batch(), persistent);
+        self.tetris_game.render_next_pieces_preview(self.next_pieces_preview_window_pos, 0, persistent.pixel_scale, true, &mut app.batch(), persistent);
 
         app.queue_draw_text(
-            &format!("time: {:.2}", to_seconds(self.rules_instance.timestamp())),
+            &format!("time: {:.2}", to_seconds(self.tetris_game.timestamp())),
             &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
             32.,
             WHITE,
@@ -138,7 +138,7 @@ impl SceneTrait for MultiPlayerScene {
         );
 
         app.queue_draw_text(
-            &format!("level: {}", self.rules_instance.level()),
+            &format!("level: {}", self.tetris_game.level()),
             &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
             32.,
             WHITE,
@@ -147,7 +147,7 @@ impl SceneTrait for MultiPlayerScene {
         );
 
         app.queue_draw_text(
-            &format!("score: {}", self.rules_instance.score()),
+            &format!("score: {}", self.tetris_game.score()),
             &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
             32.,
             WHITE,
@@ -156,7 +156,7 @@ impl SceneTrait for MultiPlayerScene {
         );
 
         app.queue_draw_text(
-            &format!("lines: {}", self.rules_instance.total_lines_cleared()),
+            &format!("lines: {}", self.tetris_game.total_lines_cleared()),
             &TransformBuilder::new().pos_xy(10.0, 210.0).layer(800).build(),
             32.,
             WHITE,
@@ -211,14 +211,14 @@ impl MultiPlayerScene {
         // rules
         let seed = app.system_time();
         let rules: Rules = RotationSystem::SRS.into();
-        let rules_instance = RulesInstance::new(rules, seed);
+        let tetris_game = TetrisGame::new(rules, seed);
 
         let server = Server::new("127.0.0.1:42042").unwrap();
 
         // @Refactor use InstanceStyle
         // Playfield rendering
         let playfield_draw_size = get_draw_playfield_size(
-            &rules_instance.playfield(),
+            &tetris_game.playfield(),
             persistent.pixel_scale,
             true,
         );
@@ -229,7 +229,7 @@ impl MultiPlayerScene {
             y: (window_size.1 as i32 - playfield_draw_size.y) / 2,
         };
 
-        let hold_window_size = rules_instance.hold_piece_window_size(true, persistent);
+        let hold_window_size = tetris_game.hold_piece_window_size(true, persistent);
         let hold_piece_window_pos =
             playfield_pos +
             Vec2i { x: -20, y: 0 } +
@@ -243,7 +243,7 @@ impl MultiPlayerScene {
         Self {
             quit: false,
 
-            rules_instance,
+            tetris_game,
 
             server,
 

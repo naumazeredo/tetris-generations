@@ -5,25 +5,23 @@ use super::*;
 
 use crate::game::{
     input::*,
+    render::*,
     rules::{
         Rules,
-        instance::RulesInstance,
     },
-    render::*,
+    tetris_game::{ TetrisGame, TetrisLayout },
 };
 
 #[derive(Debug, ImDraw)]
 pub struct SinglePlayerScene {
-    rules_instance: RulesInstance,
+    tetris_game: TetrisGame,
     music_id: MusicId,
     server: Option<Server>,
     quit: bool,
 
     is_preview: bool,
 
-    playfield_pos: Vec2i,
-    hold_piece_window_pos: Vec2i,
-    next_pieces_preview_window_pos: Vec2i,
+    tetris_layout: TetrisLayout,
 }
 
 impl SceneTrait for SinglePlayerScene {
@@ -45,7 +43,7 @@ impl SceneTrait for SinglePlayerScene {
 
         if app.is_paused() { return; }
 
-        self.rules_instance.update(dt, &persistent.input_mapping, app);
+        self.tetris_game.update(dt, &persistent.input_mapping, app);
     }
 
     fn render(
@@ -85,11 +83,14 @@ impl SceneTrait for SinglePlayerScene {
             }
         }
 
-        // @TODO self.rules_instance.render(&instance_style, app, persistent);
-        self.rules_instance.update_animations();
-        self.rules_instance.render_playfield(self.playfield_pos, true, &mut app.batch(), persistent);
-        self.rules_instance.render_hold_piece(self.hold_piece_window_pos, true, &mut app.batch(), persistent);
-        self.rules_instance.render_next_pieces_preview(self.next_pieces_preview_window_pos, 0, true, &mut app.batch(), persistent);
+        self.tetris_game.update_and_render(self.tetris_layout, &mut app.batch(), persistent);
+
+        /*
+        self.tetris_game.update_animations();
+        self.tetris_game.render_playfield(self.playfield_pos, true, &mut app.batch(), persistent);
+        self.tetris_game.render_hold_piece(self.hold_piece_window_pos, true, &mut app.batch(), persistent);
+        self.tetris_game.render_next_pieces_preview(self.next_pieces_preview_window_pos, 0, true, &mut app.batch(), persistent);
+        */
 
         if self.is_preview {
             app.queue_draw_text(
@@ -103,7 +104,7 @@ impl SceneTrait for SinglePlayerScene {
         }
 
         app.queue_draw_text(
-            &format!("time: {:.2}", to_seconds(self.rules_instance.timestamp())),
+            &format!("time: {:.2}", to_seconds(self.tetris_game.timestamp())),
             &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
             32.,
             WHITE,
@@ -112,7 +113,7 @@ impl SceneTrait for SinglePlayerScene {
         );
 
         app.queue_draw_text(
-            &format!("level: {}", self.rules_instance.level()),
+            &format!("level: {}", self.tetris_game.level()),
             &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
             32.,
             WHITE,
@@ -121,7 +122,7 @@ impl SceneTrait for SinglePlayerScene {
         );
 
         app.queue_draw_text(
-            &format!("score: {}", self.rules_instance.score()),
+            &format!("score: {}", self.tetris_game.score()),
             &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
             32.,
             WHITE,
@@ -130,7 +131,7 @@ impl SceneTrait for SinglePlayerScene {
         );
 
         app.queue_draw_text(
-            &format!("lines: {}", self.rules_instance.total_lines_cleared()),
+            &format!("lines: {}", self.tetris_game.total_lines_cleared()),
             &TransformBuilder::new().pos_xy(10.0, 210.0).layer(800).build(),
             32.,
             WHITE,
@@ -162,7 +163,7 @@ impl SceneTrait for SinglePlayerScene {
             }
 
             Event::KeyDown { scancode: Some(Scancode::D), .. } => {
-                //self.rules_instance.next_level();
+                //self.tetris_game.next_level();
             }
 
             Event::KeyDown { scancode: Some(Scancode::F), .. } => {
@@ -201,46 +202,20 @@ impl SinglePlayerScene {
         persistent: &mut PersistentData
     ) -> Self {
         // rules
-        let rules_instance = RulesInstance::new(rules, seed);
+        let tetris_game = TetrisGame::new(rules, seed);
+        let tetris_layout = tetris_game.new_layout(app, persistent);
 
         let music_id = app.load_music("assets/sfx/Original-Tetris-theme.ogg");
 
-        // @Refactor use InstanceStyle
-        // Playfield rendering
-        let playfield_draw_size = get_draw_playfield_size(
-            &rules_instance.playfield(),
-            persistent.pixel_scale,
-            true,
-        );
-
-        let window_size = app.window_size();
-        let playfield_pos = Vec2i {
-            x: (window_size.0 as i32 - playfield_draw_size.x) / 2,
-            y: (window_size.1 as i32 - playfield_draw_size.y) / 2,
-        };
-
-        let hold_window_size = rules_instance.hold_piece_window_size(true, persistent);
-        let hold_piece_window_pos =
-            playfield_pos +
-            Vec2i { x: -20, y: 0 } +
-            Vec2i { x: -hold_window_size.x, y: 0 };
-
-        let next_pieces_preview_window_pos =
-            playfield_pos +
-            Vec2i { x: 20, y: 0 } +
-            Vec2i { x: playfield_draw_size.x, y: 0 };
-
         Self {
-            rules_instance,
+            tetris_game,
             music_id,
             server: None,
             quit: false,
 
             is_preview: false,
 
-            playfield_pos,
-            hold_piece_window_pos,
-            next_pieces_preview_window_pos,
+            tetris_layout,
         }
     }
 }

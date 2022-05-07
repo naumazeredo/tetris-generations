@@ -1,14 +1,14 @@
 use crate::app::*;
 use crate::linalg::Vec2i;
 use crate::game::{
+    pieces::{Piece, PieceVariant},
+    playfield::{BlockType, Playfield},
     randomizer::{Randomizer, RandomizerType},
     rules::{
         RotationSystem,
-        instance::NEXT_PIECES_COUNT,
         lock::{LastPieceAction, LockedPiece, LockedPieceResult},
     },
-    pieces::{Piece, PieceVariant},
-    playfield::{BlockType, Playfield},
+    tetris_game::NEXT_PIECES_COUNT,
 };
 
 pub enum MultiplayerMessages {
@@ -19,9 +19,9 @@ pub enum MultiplayerMessages {
 #[derive(Debug)]
 pub struct Connect {
     pub timestamp: u64,
-    pub instance: NetworkedRulesInstance,
+    pub tetris_game: NetworkedTetrisGame,
 
-    // Removed from RulesInstance that needed to be synched
+    // Removed from TetrisGame that needed to be synched
     //rules: Rules, // @XXX using rotation system instead since we are just testing and we have no macro to automate Serialize/Deserialize yet
     pub rotation_system: RotationSystem,
     pub randomizer: Randomizer,
@@ -30,15 +30,15 @@ pub struct Connect {
 #[derive(Debug)]
 pub struct Update {
     pub timestamp: u64,
-    pub instance: NetworkedRulesInstance,
+    pub tetris_game: NetworkedTetrisGame,
 }
 
 // @Refactor Serialize/Deserialize should be a macro
 
-// Rules Instance
+// TetrisGame
 
 #[derive(Debug)]
-pub struct NetworkedRulesInstance {
+pub struct NetworkedTetrisGame {
     pub timestamp: u64, // per game
 
     pub has_topped_out: bool, // per game
@@ -83,7 +83,7 @@ impl Serialize for MultiplayerMessages {
             MultiplayerMessages::Connect(c) => {
                 0u8.serialize(serializer)?;
                 c.timestamp.serialize(serializer)?;
-                c.instance.serialize(serializer)?;
+                c.tetris_game.serialize(serializer)?;
                 //c.rules.serialize(serializer)?;
                 c.rotation_system.serialize(serializer)?;
                 c.randomizer.serialize(serializer)?;
@@ -92,7 +92,7 @@ impl Serialize for MultiplayerMessages {
             MultiplayerMessages::Update(u) => {
                 1u8.serialize(serializer)?;
                 u.timestamp.serialize(serializer)?;
-                u.instance.serialize(serializer)?;
+                u.tetris_game.serialize(serializer)?;
             },
         }
         Ok(())
@@ -104,14 +104,14 @@ impl Deserialize for MultiplayerMessages {
         let t = match u8::deserialize(deserializer)? {
             0 => {
                 let timestamp = u64::deserialize(deserializer)?;
-                let instance = NetworkedRulesInstance::deserialize(deserializer)?;
+                let tetris_game = NetworkedTetrisGame::deserialize(deserializer)?;
                 //let rules = Rules::deserialize(deserializer)?;
                 let rotation_system = RotationSystem::deserialize(deserializer)?;
                 let randomizer = Randomizer::deserialize(deserializer)?;
 
                 MultiplayerMessages::Connect(Connect {
                     timestamp,
-                    instance,
+                    tetris_game,
                     //rules,
                     rotation_system,
                     randomizer,
@@ -120,11 +120,11 @@ impl Deserialize for MultiplayerMessages {
 
             1 => {
                 let timestamp = u64::deserialize(deserializer)?;
-                let instance = NetworkedRulesInstance::deserialize(deserializer)?;
+                let tetris_game = NetworkedTetrisGame::deserialize(deserializer)?;
 
                 MultiplayerMessages::Update(Update {
                     timestamp,
-                    instance,
+                    tetris_game,
                 })
             }
 
@@ -152,7 +152,7 @@ impl Deserialize for Playfield {
     }
 }
 
-impl Serialize for NetworkedRulesInstance {
+impl Serialize for NetworkedTetrisGame {
     fn serialize(&self, serializer: &mut Serializer) -> Result<(), SerializationError> {
         self.timestamp.serialize(serializer)?;
 
@@ -177,7 +177,7 @@ impl Serialize for NetworkedRulesInstance {
     }
 }
 
-impl Deserialize for NetworkedRulesInstance {
+impl Deserialize for NetworkedTetrisGame {
     fn deserialize(deserializer: &mut Deserializer) -> Result<Self, SerializationError> {
         let timestamp = u64::deserialize(deserializer)?;
 

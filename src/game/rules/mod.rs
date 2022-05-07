@@ -1,7 +1,6 @@
 use crate::app::ImDraw;
 use super::randomizer::RandomizerType;
 
-pub mod instance;
 pub mod line_clear;
 pub mod lock;
 pub mod movement;
@@ -88,14 +87,14 @@ pub struct Rules {
     pub randomizer_type: RandomizerType,
 
     // Animation
-    has_movement_animation: bool,
-    movement_animation_show_ghost: bool, // @Remove this is debug only
-    movement_animation_duration: u64,
+    pub has_movement_animation: bool,
+    pub movement_animation_show_ghost: bool, // @Remove this is debug only
+    pub movement_animation_duration: u64,
 
-    line_clear_animation_type: Option<LineClearAnimationType>,
+    pub line_clear_animation_type: Option<LineClearAnimationType>,
 
-    has_locking_animation: bool,
-    locking_animation_duration: u64,
+    pub has_locking_animation: bool,
+    pub locking_animation_duration: u64,
 }
 
 // @TODO RulesBuilder?
