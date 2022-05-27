@@ -1,24 +1,27 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+
 use bitflags::bitflags;
-//use gl::types::GLbitfield;
 use super::*;
 
 pub(in crate::app) type FramebufferObject = GLuint;
 
 
-#[derive(Copy, Clone, Debug, ImDraw)]
+#[derive(Clone, Debug, ImDraw)]
 pub struct Framebuffer {
+    pub(super) obj: FramebufferObject,
     pub(super) width:  u32,
     pub(super) height: u32,
 
-    pub(super) framebuffer_object: FramebufferObject,
-
     // @TODO add a list of attachments. We will need to pass and store the texture format (in
     //       Texture) to be able to either create an R/RG/RGB or DepthStencil texture
-    pub(super) color_texture_object: TextureObject,
+    pub(super) color_texture: TextureRef,
 }
 
+pub type FramebufferRef = Rc<RefCell<Framebuffer>>;
+
 impl Framebuffer {
-    pub fn new(width: u32, height: u32, color_texture: Texture) -> Self {
+    pub fn new(width: u32, height: u32, color_texture: TextureRef) -> FramebufferRef {
         let mut fbo = 0;
         unsafe {
             gl::GenFramebuffers(1, &mut fbo);
@@ -28,22 +31,22 @@ impl Framebuffer {
                 gl::FRAMEBUFFER,
                 gl::COLOR_ATTACHMENT0,
                 gl::TEXTURE_2D,
-                color_texture.obj,
+                color_texture.borrow().obj,
                 0
             );
         }
 
-        Self {
+        Rc::new(RefCell::new(Self {
+            obj: fbo,
             width,
             height,
-            framebuffer_object: fbo,
-            color_texture_object: color_texture.obj,
-        }
+            color_texture: color_texture,
+        }))
     }
 
-    pub fn clear(self, buffer_clear: BufferClear) {
+    pub fn clear(&mut self, buffer_clear: BufferClear) {
         unsafe {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer_object);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.obj);
             gl::Disable(gl::SCISSOR_TEST);
             gl::ColorMask(true as _, true as _, true as _, true as _);
             gl::ClearColor(buffer_clear.color.r, buffer_clear.color.g, buffer_clear.color.b, buffer_clear.color.a);
@@ -51,9 +54,27 @@ impl Framebuffer {
             gl::ClearStencil(buffer_clear.stencil as _);
             gl::Clear(buffer_clear.clear_mask.to_gl());
         }
+    }
 
+    pub(in crate::app) fn bind(&mut self, renderer: &mut Renderer) {
+        unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.obj);
+            gl::Disable(gl::DEPTH_TEST); // @Hack it should depend on framebuffer configuration
+        }
+
+        renderer.change_viewport((self.width, self.height));
     }
 }
+
+impl Drop for Framebuffer {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteFramebuffers(1, &self.obj);
+        }
+    }
+}
+
+// @TODO move clear stuff to another file
 
 bitflags! {
     pub struct ClearMask : u8 {

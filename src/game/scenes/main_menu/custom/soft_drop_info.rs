@@ -164,9 +164,9 @@ pub fn show_custom_rules_info_soft_drop(
 
     let framebuffer = app.get_framebuffer_or_create(
         "main_menu/custom/soft_drop/playfield",
-        texture
+        texture.clone()
     );
-    framebuffer.clear(BufferClear::new().color(color::TRANSPARENT));
+    framebuffer.borrow_mut().clear(BufferClear::new().color(color::TRANSPARENT));
 
     app.render_batch(batch, Some(framebuffer));
     ui::Texture::new(texture, app);

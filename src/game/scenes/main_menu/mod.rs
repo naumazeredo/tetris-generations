@@ -309,7 +309,7 @@ impl MainMenuScene {
 
         app.queue_draw_text(
             text,
-            &TransformBuilder::new().pos(text_pos).layer(100).build(),
+            TransformBuilder::new().pos(text_pos).layer(100).build(),
             text_size,
             WHITE,
             None,

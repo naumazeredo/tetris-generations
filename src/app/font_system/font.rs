@@ -6,7 +6,7 @@ use crate::{
     app::{
         App,
         imgui_wrapper::ImDraw,
-        renderer::Texture,
+        renderer::{ Texture, TextureRef },
     },
     utils::string_ref::StringRef,
 };
@@ -20,7 +20,7 @@ use super::{
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FontId(StringRef);
 impl FontId {
-    fn new(s: String) -> Self {
+    fn new(s: &str) -> Self {
         Self(StringRef::new(s))
     }
 }
@@ -36,7 +36,7 @@ impl_imdraw_todo!(FontId);
 #[derive(Clone, Debug, ImDraw)]
 pub(in crate::app) struct Font {
     mapping: BTreeMap<char, CharData>,
-    pub(in crate::app) texture: Texture,
+    pub(in crate::app) texture: TextureRef,
     // @TODO ascent, descent, etc
 }
 
@@ -57,8 +57,8 @@ impl Font {
                 //packed_surface.save_bmp("tmp/font.bmp").unwrap();
                 println!("[font bake] Packing complete: {}", path.as_ref().display());
 
-                let texture = Texture::load_from_surface(packed_surface)
-                    .with_white_pixel((0, 0));
+                let texture = Texture::load_from_surface(packed_surface);
+                texture.borrow_mut().set_white_pixel((0, 0));
 
                 Some(Font { mapping, texture })
             },
@@ -85,7 +85,7 @@ pub(super) fn bake_font<P: AsRef<Path>>(
     ttf_context: &sdl2::ttf::Sdl2TtfContext
 ) -> Option<(FontId, Font)> {
 
-    let font_id = FontId::new(path.as_ref().to_string_lossy().to_string());
+    let font_id = FontId::new(path.as_ref().to_str().unwrap());
 
     // @Check if it's already baked?
 

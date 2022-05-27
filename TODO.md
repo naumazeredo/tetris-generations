@@ -27,10 +27,12 @@
   - [ ] Refactor orientation rule usage and rules functions
   - [ ] [render] Change all rendering to be pixel perfect
     - [x] pixel_scale to u8
+      - [ ] Make it selectable (user can choose a fixed scale) or auto adjust
     - [ ] BLOCK_SCALE to u8
     - [ ] All render functions to receive Vec2i or integers instead of floats
+    - [ ] (from NoelFB) render to a buffer and scale with nearest neighbor
   - [ ] [render] move game/render.rs functions to their impls
-  - [ ] Rename RulesInstance to TetrisGame (not the best name. RulesInstance should be part of the
+  - [x] Rename RulesInstance to TetrisGame (not the best name. RulesInstance should be part of the
       tetris module)
   - [ ] Create instance draw style: position of windows, scales, color of pieces
 - [ ] Scenes
@@ -109,6 +111,9 @@
   - [ ] Refactor systems to have a uniform interface (system/mod.rs should contain the pub
       interface) and avoid App self borrow:
       app.time.delta(), app.tasks.queue_task(..), app.renderer.queue_draw(..)
+    - [ ] Or maybe do the ggez way: tasks::queue_task(&mut app, ..), renderer::queue_draw(&mut app,
+        ..). This can help in some cases like Batch needing Options since it doesn't have access to
+        the default materials inside Renderer.
   - [ ] Refactor App into multiple traits to be able to have mockable parts to test everything
       app.time().delta(), app.tasks().queue_task(..), app.renderer().queue_draw(..)
       - This may be annoying since it would add a mut self reference to app
@@ -153,6 +158,21 @@
     - [ ] Multiline \n
     - [ ] Multiline break on strings
     - [ ] Escape commands (change color, change font size?, add texture?)
+  - [ ] Fit/center to window: render to a buffer and scale to the screen
+  - [ ] Shader/Material struct
+    - [ ] Store all uniforms (glGetProgramiv) (do we need to store the attributes also?)
+      - [x] Store single values
+      - [ ] Store arrays
+    - [ ] Set attribute values during execution
+      - [x] Create VertexFormat
+      - [ ] Binding + buffer data copy
+    - [ ] Remove matrix calculation from the shader (use a u_matrix uniform)
+    - [ ] Material: define material uniforms and element uniforms
+    - [ ] Extra
+      - [ ] Implement texture slots
+      - [ ] Use BufferSubData
+  - [ ] [cleanup] GPU resources should be either obj or id, decide which one!
+  - [ ] [cleanup] DrawCall should hold raw data, not Rc<RefCell<>>
 - [ ] [ui]
   - [x] Remove header? it doesn't make it better (doesn't deal with multiline texts or anything
       special). Just adding a Text widget is good enough
@@ -220,6 +240,11 @@
         SDL timestamp of events and calculating when the event should happen. We can use a
         millisecond precision, seems precise enough for this.
 - [ ] [time] refactor: real time, step time and game time (+ frame start real time)
+- [ ] [game state] PersistentData should be an associate generic type
+  - [ ] (from NoelFB code) PersistentData -> SaveData (maybe not a good name)
+
+- [ ] [bug] Changing to display 3 crashes with "Couldn't find display mode match".
+    Display 3 has a lower resolution, is rotated and has some GSYNC capabilities.
 
 ## v0.0.1: The start of the journey
 
@@ -416,6 +441,7 @@
 
 ### Engine
 
+- [ ] Refactor the *Ref design out. I might need allocators and to design it as system + data
 - [ ] Address cargo clippy warnings
 - [ ] Remove usize variables (why would I need 8 bytes for most things?)
 - [ ] Test systems
@@ -448,9 +474,6 @@
     - [ ] Stack commands
       - [ ] Blending
       - [ ] Matrix transformation
-  - [ ] Shader struct
-    - [ ] Store all uniforms (glGetProgramiv) (do we need to store the attributes also?)
-    - [ ] Set attribute values during execution
   - [ ] Check GL errors
   - [ ] More backend supports (Vulkan, DirectX)
   - [ ] Multithreading
@@ -458,6 +481,7 @@
   - [ ] [video?] Have a way to resize nicely: resizing the window doesn't change the rendering.
       Maybe we should have specific layouts for specific aspect-ratios and make the renderer
       re-scale based on the resolution
+  - [ ] Add Matrix 3x2 to 2D transformations using less memory (2x2 rotation, 1x2 translation)
 - [ ] [input]
   - [ ] [issue] Not updating an input_mapping can break it: maybe having a local timer for each
       input_manager, getting the whole global key state on enabling and calling update with dt will
@@ -614,6 +638,10 @@
   - [ ] Implement basic Editor functionality using UI System
     - [ ] Save/load UI designs
 - [ ] [vfs] Virtual file system (like physicsFS)
+- [ ] [utils]
+  - [ ] Easing functions
+  - [ ] Clamp functions
+- [ ] std::simd -> Check when we can use it in our code
 
 ### Build system
 

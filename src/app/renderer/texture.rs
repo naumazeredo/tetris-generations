@@ -1,5 +1,8 @@
-use bitflags::bitflags;
+use std::cell::RefCell;
 use std::path::Path;
+use std::rc::Rc;
+
+use bitflags::bitflags;
 use gl::types::*;
 use sdl2::image::*;
 use imgui::{im_str, TreeNode};
@@ -17,9 +20,7 @@ enum TextureFormat {
     DepthStencil,
 }
 
-// @Refactor maybe own the object and free on Drop?
-//           or maybe just manage what's in GPU properly (not so safe, right?)
-#[derive(PartialEq, Copy, Clone, Debug, ImDraw, Default)]
+#[derive(Debug, ImDraw, Default)]
 pub struct Texture {
     pub(in crate::app) obj: TextureObject,
     pub w: u32,
@@ -27,8 +28,10 @@ pub struct Texture {
     pub white_pixel: Option<(u32, u32)>,
 }
 
+pub type TextureRef = Rc<RefCell<Texture>>;
+
 impl Texture {
-    pub fn new(w: u32, h: u32, pixels: Option<&[u8]>) -> Self {
+    pub fn new(w: u32, h: u32, pixels: Option<&[u8]>) -> TextureRef {
         let mut obj : TextureObject = 0;
 
         unsafe {
@@ -50,6 +53,7 @@ impl Texture {
                 pixels as _        // const void * data
             );
 
+            // @TODO create TextureSampler to abstract wrap+filter
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as _);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as _);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _);
@@ -58,19 +62,10 @@ impl Texture {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
-        Texture { obj, w, h, white_pixel: None }
+        Rc::new(RefCell::new(Texture { obj, w, h, white_pixel: None }))
     }
 
-    /*
-    // @XXX this would not be safe since we can copy the texture object
-    pub fn destroy(&mut self) {
-        unsafe {
-            gl::DestroyTextures
-        }
-    }
-    */
-
-    pub(in crate::app) fn load_from_surface(surface: sdl2::surface::Surface) -> Self {
+    pub(in crate::app) fn load_from_surface(surface: sdl2::surface::Surface) -> TextureRef {
         //let format = surface.pixel_format_enum();
         let w = surface.width();
         let h = surface.height();
@@ -79,7 +74,7 @@ impl Texture {
         surface.with_lock(|pixels| Self::new(w, h, Some(pixels)))
     }
 
-    pub(in crate::app) fn load_from_file<P: AsRef<Path>>(path: P) -> Self {
+    pub(in crate::app) fn load_from_file<P: AsRef<Path>>(path: P) -> TextureRef {
         use sdl2::surface::Surface;
         let surface = Surface::from_file(path)
             .unwrap_or_else(|err| {
@@ -89,11 +84,24 @@ impl Texture {
         Self::load_from_surface(surface)
     }
 
-    pub(in crate::app) fn with_white_pixel(self, white_pixel: (u32, u32)) -> Self {
-        Self {
-            white_pixel: Some(white_pixel),
-            ..self
+    // @Refactor this is not clean on use. Either we need to create a TextureBuilder or see a better
+    //           way of doing this
+    pub(in crate::app) fn set_white_pixel(&mut self, white_pixel: (u32, u32)) {
+        self.white_pixel = Some(white_pixel);
+    }
+}
+
+impl Drop for Texture {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteTextures(1, &self.obj);
         }
+    }
+}
+
+impl PartialEq for Texture {
+    fn eq(&self, other: &Self) -> bool {
+        self.obj == other.obj
     }
 }
 

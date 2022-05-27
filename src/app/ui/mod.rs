@@ -392,7 +392,7 @@ enum ElementVariant {
     },
 
     Texture {
-        texture: renderer::Texture,
+        texture: renderer::TextureRef,
     },
 
     Separator,

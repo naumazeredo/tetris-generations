@@ -7,7 +7,7 @@ pub struct StringRef(u64);
 
 // @TODO macro this
 impl StringRef {
-    pub fn new(s: String) -> Self {
+    pub fn new(s: &str) -> Self {
         let mut hasher = FNVHasher::new();
         s.hash(&mut hasher);
         Self(hasher.finish())

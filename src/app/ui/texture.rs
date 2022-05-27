@@ -13,16 +13,16 @@ pub struct TextureState {
 }
 
 pub struct Texture {
-    texture: renderer::Texture,
+    texture: renderer::TextureRef,
 }
 
 impl Texture {
     #[track_caller]
-    pub fn new(texture: renderer::Texture, app: &mut App) -> TextureState {
+    pub fn new(texture: renderer::TextureRef, app: &mut App) -> TextureState {
         Texture::builder(texture).build(app)
     }
 
-    pub fn builder(texture: renderer::Texture) -> Self {
+    pub fn builder(texture: renderer::TextureRef) -> Self {
         Self { texture }
     }
 
@@ -76,13 +76,15 @@ fn texture_internal<'a, P: Placer>(
     let placer_pos = placer.cursor(app);
 
     // Texture layout
+    let texture_w = texture.texture.borrow().w as i32;
+    let texture_h = texture.texture.borrow().h as i32;
     let widget_layout = Layout {
-        pos: placer_pos + Vec2i { x: (draw_width - texture.texture.w as i32) / 2, y: 0 },
-        size: Vec2i { x: texture.texture.w as i32, y: texture.texture.h as i32 },
+        pos: placer_pos + Vec2i { x: (draw_width - texture_w) / 2, y: 0 },
+        size: Vec2i { x: texture_w, y: texture_h },
     };
 
     // The texture will be centered in the placer
-    let size = Vec2i { x: draw_width, y: texture.texture.h as i32 };
+    let size = Vec2i { x: draw_width, y: texture_h as i32 };
     let layout = placer.place_element(id, size, app);
 
     if layout.is_none() { return None; }

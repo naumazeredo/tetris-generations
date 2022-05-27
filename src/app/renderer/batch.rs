@@ -14,30 +14,30 @@ macro_rules! clip {
 
 #[derive(Debug, Default, ImDraw)]
 pub struct Batch {
-    pub(super) cmds: Vec<Command>,
+    pub(super) cmds: Vec<DrawCommand>,
 }
 
 impl Batch {
     pub fn new() -> Self {
-        Self { cmds: Vec::new() }
+        Self {
+            cmds: Vec::new(),
+        }
     }
 
     pub fn queue_draw_solid(
         &mut self,
-        transform: &Transform,
-        size: Vec2,
-        color: Color,
+        transform: Transform,
+        size:      Vec2,
+        color:     Color,
     ) {
         self.cmds.push(
-            Command::Draw(DrawCommand {
-                program: None,
-                texture: None,
-                layer: transform.layer,
+            DrawCommand::Draw(DrawCommandData {
+                material: None,
+                texture:  None,
+                size,
                 color,
-                pos: transform.pos,
-                scale: transform.scale,
-                rot: transform.rot,
-                variant: DrawVariant::Solid { size },
+                transform,
+                variant: DrawVariant::Solid,
             })
         );
     }
@@ -51,7 +51,7 @@ impl Batch {
         assert!(size.y >= 0);
 
         self.cmds.push(
-            Command::PushClip {
+            DrawCommand::PushClip {
                 min: pos,
                 max: pos + size,
                 intersect: false,
@@ -60,16 +60,16 @@ impl Batch {
     }
 
     pub fn pop_clip(&mut self) {
-        self.cmds.push(Command::PopClip);
+        self.cmds.push(DrawCommand::PopClip);
     }
 }
 
 impl App<'_> {
     pub fn queue_draw_solid(
         &mut self,
-        transform: &Transform,
-        size: Vec2,
-        color: Color,
+        transform: Transform,
+        size:      Vec2,
+        color:     Color,
     ) {
         self.renderer.batch.queue_draw_solid(transform, size, color);
     }

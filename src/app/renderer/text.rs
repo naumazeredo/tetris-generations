@@ -66,7 +66,7 @@ where
                 }
 
                 // Callback
-                let font_texture = font_system.fonts.get(&font_id).unwrap().texture;
+                let font_texture = font_system.fonts.get(&font_id).unwrap().texture.clone();
                 let uvs = char_data.get_uvs();
 
                 callback(
@@ -103,13 +103,13 @@ where
 impl Batch {
     pub fn queue_draw_text(
         &mut self,
-        //program: ShaderProgram,
-        text: &str,
-        transform: &Transform,
-        font_size: f32,
-        color: Color,
 
-        font_id: Option<FontId>,
+        text:      &str,
+        transform: Transform,
+        font_size: f32,
+        color:     Color,
+
+        font_id:   Option<FontId>,
         max_width: Option<u32>,
 
         app: &App,
@@ -131,13 +131,12 @@ impl Batch {
         &mut self,
         font_system: &FontSystem,
 
-        //program: ShaderProgram,
-        text: &str,
-        transform: &Transform,
+        text:      &str,
+        transform: Transform,
         font_size: f32,
-        color: Color,
+        color:     Color,
 
-        font_id: Option<FontId>,
+        font_id:   Option<FontId>,
         max_width: Option<u32>,
     ) {
         calculate_draw_text_size_with_callback(
@@ -149,7 +148,7 @@ impl Batch {
             |subtexture, pos: Vec2, size| {
                 self.queue_draw_sprite(
                     transform,
-                    &Sprite {
+                    Sprite {
                         subtexture,
                         texture_flip: TextureFlip::NO,
                         pivot: -pos,
@@ -165,12 +164,13 @@ impl Batch {
 impl App<'_> {
     pub fn queue_draw_text(
         &mut self,
-        //program: ShaderProgram,
-        text: &str,
-        transform: &Transform,
+
+        text:      &str,
+        transform: Transform,
         font_size: f32,
-        color: Color,
-        font_id: Option<FontId>,
+        color:     Color,
+
+        font_id:   Option<FontId>,
         max_width: Option<u32>,
     ) {
         self.renderer.batch.queue_draw_text_internal(
@@ -189,9 +189,9 @@ impl App<'_> {
 
     pub fn calculate_draw_text_size(
         &self,
-        text: &str,
+        text:      &str,
         font_size: f32,
-        font_id: Option<FontId>,
+        font_id:   Option<FontId>,
         max_width: Option<u32>,
     ) -> Vec2 {
         calculate_draw_text_size_with_callback(

@@ -5,6 +5,7 @@ layout(location = 0) in vec3 position;
 layout(location = 1) in vec4 color;
 layout(location = 2) in vec2 uv;
 
+// @TODO change this to uniform mat4 transform; ?
 layout(location = 3) in vec2 pivot;
 layout(location = 4) in float rotation;
 layout(location = 5) in vec3 translation;
@@ -13,8 +14,8 @@ layout(location = 5) in vec3 translation;
 out vec4 frag_color;
 out vec2 frag_uv;
 
-uniform mat4 view_mat;
-uniform mat4 proj_mat;
+uniform mat4 u_view_mat;
+uniform mat4 u_proj_mat;
 
 //uniform mat4 model_mat;
 
@@ -54,5 +55,5 @@ void main() {
 
   mat4 model_mat = build_model_matrix();
 
-  gl_Position = proj_mat * view_mat * model_mat * vec4(position, 1);
+  gl_Position = u_proj_mat * u_view_mat * model_mat * vec4(position, 1);
 }

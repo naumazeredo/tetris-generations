@@ -57,6 +57,8 @@ impl VideoSystem {
         let gl_context = window.gl_create_context().unwrap();
         gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
 
+        // @TODO enable debug output
+
         window.gl_make_current(&gl_context).unwrap();
 
         // @TODO video system
@@ -116,7 +118,8 @@ impl App<'_> {
             self.set_window_screen_mode(FullscreenType::Off);
         }
 
-        let display_bounds = self.sdl_context.video_subsystem.display_bounds(display_index as i32).unwrap();
+        let display_bounds =
+            self.sdl_context.video_subsystem.display_bounds(display_index as i32).unwrap();
 
         let size = self.window_size();
         let w  = size.0  as i32;
@@ -132,8 +135,16 @@ impl App<'_> {
         }
     }
 
+    // @TODO return an Option
     pub fn window_display_mode(&self) -> DisplayMode {
-        self.video_system.window.display_mode().unwrap()
+        match self.video_system.window.display_mode() {
+            Ok(mode) => mode,
+            Err(err) => {
+                // @TODO logging
+                println!("Display mode not found: {}", err);
+                panic!("");
+            }
+        }
     }
 
     pub fn num_displays(&self) -> usize {

@@ -3,18 +3,19 @@ use crate::app::imgui_wrapper::ImDraw;
 
 #[derive(Copy, Clone, Debug, ImDraw)]
 pub struct Transform {
-    pub pos: Vec2,
+    pub pos:   Vec2,
     pub scale: Vec2,
-    pub rot: f32,
+    pub rot:   f32,
+    // pub pivot: Vec2,
     pub layer: i32,
 }
 
 impl Default for Transform {
     fn default() -> Self {
         Self {
-            pos: Vec2::new(),
+            pos:   Vec2::new(),
             scale: Vec2::identity(),
-            rot: 0.0,
+            rot:   0.0,
             layer: 0,
         }
     }

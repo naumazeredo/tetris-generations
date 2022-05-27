@@ -209,6 +209,7 @@ macro_rules! tuple_impl_imdraw {
 tuple_impl_imdraw!(A, B, C, D);
 */
 
+
 // option
 
 impl<T> ImDraw for Option<T>
@@ -310,6 +311,8 @@ where
     }
 }
 
+/*
+// @Fix Display can't be implemented to tuples, so this breaks quite easily
 impl<K, V> ImDraw for BTreeMap<K, V>
 where
     K: Display,
@@ -327,6 +330,25 @@ where
         });
     }
 }
+*/
+
+impl<K, V> ImDraw for BTreeMap<K, V>
+where
+    V: ImDraw,
+{
+    fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
+        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+            let id = ui.push_id(label);
+
+            for (key, value) in self.iter_mut() {
+                value.imdraw("(to fix)", ui);
+            }
+
+            id.pop(ui);
+        });
+    }
+}
+
 
 // @TODO imdraw BinaryHeap
 impl<V> ImDraw for BinaryHeap<V>

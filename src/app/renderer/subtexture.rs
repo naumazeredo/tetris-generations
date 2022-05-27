@@ -6,14 +6,14 @@ use crate::app::{
 };
 use super::*;
 
-#[derive(Copy, Clone, Debug, Default, ImDraw)]
+#[derive(Clone, Debug, Default, ImDraw)]
 pub struct Subtexture {
-    pub texture: Texture,
+    pub texture: TextureRef,
     pub uvs: (Vec2i, Vec2i),
 }
 
 impl Subtexture {
-    pub fn new(texture: Texture, x: u32, y: u32, w: u32, h: u32) -> Self {
+    pub fn new(texture: TextureRef, x: u32, y: u32, w: u32, h: u32) -> Self {
         Self {
             texture,
             uvs: (
@@ -24,13 +24,15 @@ impl Subtexture {
     }
 }
 
-impl From<Texture> for Subtexture {
-    fn from(texture: Texture) -> Self {
+impl From<TextureRef> for Subtexture {
+    fn from(texture: TextureRef) -> Self {
+        let w = texture.borrow().w as i32;
+        let h = texture.borrow().h as i32;
         Self {
             texture,
             uvs: (
                 Vec2i { x: 0, y: 0 },
-                Vec2i { x: texture.w as i32, y: texture.h as i32 },
+                Vec2i { x: w, y: h },
             ),
         }
     }
@@ -39,14 +41,14 @@ impl From<Texture> for Subtexture {
 impl Batch {
     pub fn queue_draw_texture(
         &mut self,
-        transform: &Transform,
+        transform:  Transform,
         subtexture: Subtexture,
-        size: Vec2,
-        color: Color,
+        size:       Vec2,
+        color:      Color,
     ) {
         self.queue_draw_sprite(
             transform,
-            &Sprite {
+            Sprite {
                 subtexture,
                 // @Refactor this is required for any texture not loaded from files. The texture
                 //           coordinates have an inverted y-axis, so we need to fix it by flipping
@@ -63,10 +65,10 @@ impl Batch {
 impl App<'_> {
     pub fn queue_draw_texture(
         &mut self,
-        transform: &Transform,
+        transform:  Transform,
         subtexture: Subtexture,
-        size: Vec2,
-        color: Color,
+        size:       Vec2,
+        color:      Color,
     ) {
         self.renderer.batch.queue_draw_texture(transform, subtexture, size, color);
     }

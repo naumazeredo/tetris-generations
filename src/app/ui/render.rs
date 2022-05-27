@@ -50,7 +50,7 @@ impl Ui {
 
         // Draw ui window background
         batch.queue_draw_solid(
-            &Transform {
+            Transform {
                 pos: self.layout.pos.into(),
                 scale: Vec2 { x: 1.0, y: 1.0 },
                 rot: 0.0,
@@ -64,7 +64,7 @@ impl Ui {
         if let Some(line) = self.focused_line {
             let layout = self.lines[line as usize].layout;
             batch.queue_draw_solid(
-                &Transform {
+                Transform {
                     pos: layout.pos.into(),
                     scale: Vec2 { x: 1.0, y: 1.0 },
                     rot: 0.0,
@@ -122,7 +122,7 @@ impl Ui {
 
                 batch.queue_draw_text(
                     text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -152,7 +152,7 @@ impl Ui {
                 }
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -178,7 +178,7 @@ impl Ui {
 
                 batch.queue_draw_text(
                     text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -219,7 +219,7 @@ impl Ui {
                 }
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -246,7 +246,7 @@ impl Ui {
                 }
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -278,7 +278,7 @@ impl Ui {
 
                 batch.queue_draw_text(
                     text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -321,7 +321,7 @@ impl Ui {
                             };
 
                             batch.queue_draw_solid(
-                                &Transform {
+                                Transform {
                                     pos: pos.into(),
                                     scale: Vec2 { x: 1.0, y: 1.0 },
                                     rot: 0.0,
@@ -344,7 +344,7 @@ impl Ui {
                 };
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -381,7 +381,7 @@ impl Ui {
                 };
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -417,7 +417,7 @@ impl Ui {
 
                 batch.queue_draw_text(
                     text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -445,7 +445,7 @@ impl Ui {
                 }
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -486,7 +486,7 @@ impl Ui {
 
                 batch.queue_draw_text(
                     text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -518,7 +518,7 @@ impl Ui {
                 }
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -559,7 +559,7 @@ impl Ui {
 
                 batch.queue_draw_text(
                     text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -577,7 +577,7 @@ impl Ui {
 
             ElementVariant::Scrollbar => {
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: layout.pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -599,7 +599,7 @@ impl Ui {
                 };
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -617,7 +617,7 @@ impl Ui {
                 };
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -637,7 +637,7 @@ impl Ui {
                 };
 
                 batch.queue_draw_solid(
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -684,7 +684,7 @@ impl Ui {
 
                 batch.queue_draw_text(
                     left_text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -705,20 +705,20 @@ impl Ui {
 
                 let mouse_pos = pos + Vec2i { x: left_text_draw_size.x, y: 0 };
                 batch.queue_draw_sprite(
-                    &Transform {
+                    Transform {
                         pos: mouse_pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
                     },
-                    &mouse_sprite,
+                    mouse_sprite,
                     WHITE
                 );
 
                 let pos = pos + Vec2i { x: left_text_draw_size.x + 16, y: 0 };
                 batch.queue_draw_text(
                     right_text,
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
@@ -733,26 +733,25 @@ impl Ui {
             }
 
             ElementVariant::Texture { texture } => {
-                let texture = *texture;
                 let pos = layout.pos +
                     Vec2i {
-                        x: (layout.size.x - texture.w as i32) / 2,
+                        x: (layout.size.x - texture.borrow().w as i32) / 2,
                         y: 0,
                     };
 
                 let size = Vec2i {
-                    x: texture.w as i32,
-                    y: texture.h as i32,
+                    x: texture.borrow().w as i32,
+                    y: texture.borrow().h as i32,
                 };
 
                 batch.queue_draw_texture(
-                    &Transform {
+                    Transform {
                         pos: pos.into(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 920,
                     },
-                    texture.into(),
+                    texture.clone().into(),
                     size.into(),
                     WHITE,
                 );

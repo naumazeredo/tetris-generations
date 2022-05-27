@@ -112,12 +112,12 @@ pub fn draw_block(
 ) {
     let scale = Vec2i { x: pixel_scale as i32, y: pixel_scale as i32 };
     batch.queue_draw_sprite(
-        &TransformBuilder::new()
+        TransformBuilder::new()
             .pos(pos.into())
             .scale(scale.into())
             .layer(10)
             .build(),
-        &persistent.sprites.block,
+        persistent.sprites.block.clone(),
         color
     );
 }
@@ -349,16 +349,16 @@ pub fn draw_rect_window(
         y: 2 * border_size.y + size.y,
     };
     batch.queue_draw_sprite(
-        &TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
-        &persistent.sprites.blank,
+        TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
+        persistent.sprites.blank.clone(),
         WHITE
     );
 
     // right
     let rect_pos = pos + Vec2i { x: size.x, y: -border_size.y };
     batch.queue_draw_sprite(
-        &TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
-        &persistent.sprites.blank,
+        TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
+        persistent.sprites.blank.clone(),
         WHITE
     );
 
@@ -369,24 +369,24 @@ pub fn draw_rect_window(
         y: border_size.y,
     };
     batch.queue_draw_sprite(
-        &TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
-        &persistent.sprites.blank,
+        TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
+        persistent.sprites.blank.clone(),
         WHITE
     );
 
     // bottom
     let rect_pos = pos + Vec2i { x: -border_size.x, y: size.y };
     batch.queue_draw_sprite(
-        &TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
-        &persistent.sprites.blank,
+        TransformBuilder::new().pos(rect_pos.into()).scale(scale.into()).build(),
+        persistent.sprites.blank.clone(),
         WHITE
     );
 
     // bg
     batch.queue_draw_sprite(
         // @TODO fix layer negative not showing
-        &TransformBuilder::new().pos(pos.into()).scale(size.into()).layer(0).build(),
-        &persistent.sprites.blank,
+        TransformBuilder::new().pos(pos.into()).scale(size.into()).layer(0).build(),
+        persistent.sprites.blank.clone(),
         BLACK
     );
 }

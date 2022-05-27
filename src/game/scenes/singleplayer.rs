@@ -95,7 +95,7 @@ impl SceneTrait for SinglePlayerScene {
         if self.is_preview {
             app.queue_draw_text(
                 "PREVIEW",
-                &TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
+                TransformBuilder::new().pos_xy(10.0, 42.0).layer(800).build(),
                 32.,
                 WHITE,
                 None,
@@ -105,7 +105,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("time: {:.2}", to_seconds(self.tetris_game.timestamp())),
-            &TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
+            TransformBuilder::new().pos_xy(10.0, 84.0).layer(800).build(),
             32.,
             WHITE,
             None,
@@ -114,7 +114,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("level: {}", self.tetris_game.level()),
-            &TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
+            TransformBuilder::new().pos_xy(10.0, 126.0).layer(800).build(),
             32.,
             WHITE,
             None,
@@ -123,7 +123,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("score: {}", self.tetris_game.score()),
-            &TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
+            TransformBuilder::new().pos_xy(10.0, 168.0).layer(800).build(),
             32.,
             WHITE,
             None,
@@ -132,7 +132,7 @@ impl SceneTrait for SinglePlayerScene {
 
         app.queue_draw_text(
             &format!("lines: {}", self.tetris_game.total_lines_cleared()),
-            &TransformBuilder::new().pos_xy(10.0, 210.0).layer(800).build(),
+            TransformBuilder::new().pos_xy(10.0, 210.0).layer(800).build(),
             32.,
             WHITE,
             None,
