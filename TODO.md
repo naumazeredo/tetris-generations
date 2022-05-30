@@ -105,6 +105,7 @@
 
 ### Engine
 
+- [ ] [cleanup] Remove pivot from Transform
 - [ ] Refactor projects: lib (engine), bins (game, server, etc)
   - [ ] linalg should be moved to the app
 - [ ] Refactor systems to be data and App interface to implement the logic
@@ -166,11 +167,12 @@
     - [ ] Set attribute values during execution
       - [x] Create VertexFormat
       - [ ] Binding + buffer data copy
-    - [ ] Remove matrix calculation from the shader (use a u_matrix uniform)
+    - [ ] Remove matrix calculation from the shader: use an instance attribute
     - [ ] Material: define material uniforms and element uniforms
     - [ ] Extra
       - [ ] Implement texture slots
       - [ ] Use BufferSubData
+  - [ ] Get video info (e.g.: GPU video memory) (sdl1: SDL_VideoInfo)
   - [ ] [cleanup] GPU resources should be either obj or id, decide which one!
   - [ ] [cleanup] DrawCall should hold raw data, not Rc<RefCell<>>
 - [ ] [ui]

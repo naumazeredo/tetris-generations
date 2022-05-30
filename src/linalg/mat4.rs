@@ -3,6 +3,7 @@ use std::ops::{Sub, SubAssign};
 use std::ops::{Mul, MulAssign};
 use std::ops::{Div, DivAssign};
 use std::ops::Neg;
+use std::ops::Index;
 
 use imgui;
 use crate::app::ImDraw;
@@ -308,6 +309,13 @@ impl<T: Num + ToPrimitive> Mul<T> for Mat4 {
     }
 }
 */
+
+impl Index<usize> for Mat4 {
+    type Output = [f32; 4];
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.m[index]
+    }
+}
 
 
 #[cfg(test)]

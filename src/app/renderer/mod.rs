@@ -48,8 +48,6 @@ pub(in crate::app) struct Renderer {
     vertex_array_object: VertexArray,
 
     vertex_buffer_object:  BufferObject,
-    color_buffer_object:   BufferObject,
-    uv_buffer_object:      BufferObject,
     element_buffer_object: BufferObject,
 
     // @Refactor don't use Vec since debug push performance is so bad. We can add a frame allocator
@@ -57,8 +55,6 @@ pub(in crate::app) struct Renderer {
     //           offset_of)
     // @Refactor maybe use only one vbo? Not sure the cost of doing this
     vertex_buffer:  Vec<f32>,
-    color_buffer:   Vec<f32>,
-    uv_buffer:      Vec<f32>,
     element_buffer: Vec<u32>,
 
     vertex_count: u32,
@@ -66,6 +62,7 @@ pub(in crate::app) struct Renderer {
     batch: Batch,
 
     // ----
+    // @TODO change to instance_buffer
     model_mat_buffer_object: BufferObject,
     model_mat_buffer: Vec<f32>,
 
@@ -80,11 +77,11 @@ impl App<'_> {
 impl Renderer {
     pub(in crate::app) fn new(window_size: (u32, u32)) -> Self {
         let mut vao = 0;
-        let mut bo = [0; 5];
+        let mut bo = [0; 3];
 
         unsafe {
             gl::GenVertexArrays(1, &mut vao);
-            gl::GenBuffers(5, &mut bo[0]);
+            gl::GenBuffers(3, &mut bo[0]);
         }
 
         let view_mat = mat4::IDENTITY;
@@ -110,13 +107,17 @@ impl Renderer {
             VertexAttribute { location: 0, variant: AttributeVariant::Float3, normalized: false },
             VertexAttribute { location: 1, variant: AttributeVariant::Float4, normalized: false },
             VertexAttribute { location: 2, variant: AttributeVariant::Float2, normalized: false },
+
+            // @Remove use instance_buffer
+            VertexAttribute { location: 3, variant: AttributeVariant::Float4, normalized: false },
+            VertexAttribute { location: 4, variant: AttributeVariant::Float4, normalized: false },
+            VertexAttribute { location: 5, variant: AttributeVariant::Float4, normalized: false },
+            VertexAttribute { location: 6, variant: AttributeVariant::Float4, normalized: false },
         ]);
 
         // Reserve a lot of space -> 2000 quads
         // @TODO use a frame allocator to avoid extra allocations
-        let vertex_buffer    = Vec::with_capacity(4 * 3 * 2000);
-        let color_buffer     = Vec::with_capacity(4 * 4 * 2000);
-        let uv_buffer        = Vec::with_capacity(4 * 2 * 2000);
+        let vertex_buffer    = Vec::with_capacity(vertex_format.size() as usize * 2000);
         let element_buffer   = Vec::with_capacity(6 * 2000);
         let model_mat_buffer = Vec::with_capacity(6 * 2000);
 
@@ -132,13 +133,9 @@ impl Renderer {
 
             vertex_array_object:   vao,
             vertex_buffer_object:  bo[0],
-            color_buffer_object:   bo[1],
-            uv_buffer_object:      bo[2],
-            element_buffer_object: bo[3],
+            element_buffer_object: bo[1],
 
             vertex_buffer,
-            color_buffer,
-            uv_buffer,
             element_buffer,
 
             vertex_count: 0,
@@ -146,7 +143,7 @@ impl Renderer {
             batch: Batch::new(),
 
             // ----
-            model_mat_buffer_object: bo[4],
+            model_mat_buffer_object: bo[2],
             model_mat_buffer,
 
             window_size,
@@ -199,65 +196,12 @@ impl Renderer {
                     vertex_attrib.variant.components_count() as _,
                     gl::FLOAT,
                     normalized,
-                    self.vertex_format.total_size() as _,
+                    self.vertex_format.size() as _,
                     offset as _,
                 );
 
                 offset + vertex_attrib.variant.size()
             });
-
-            // @TODO remove model matrix from vertex attributes
-
-            // model matrix info
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.model_mat_buffer_object);
-
-            let pivot_cstr = CString::new("pivot").unwrap();
-            let pivot_attr = gl::GetAttribLocation(
-                self.default_shader.borrow().id,
-                pivot_cstr.as_ptr()
-            ) as Location;
-
-            gl::EnableVertexAttribArray(pivot_attr);
-            gl::VertexAttribPointer(
-                pivot_attr,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                (6 * std::mem::size_of::<GLfloat>()) as _,
-                0 as _
-            );
-
-            let rotation_cstr = CString::new("rotation").unwrap();
-            let rotation_attr = gl::GetAttribLocation(
-                self.default_shader.borrow().id,
-                rotation_cstr.as_ptr()
-            ) as Location;
-
-            gl::EnableVertexAttribArray(rotation_attr);
-            gl::VertexAttribPointer(
-                rotation_attr,
-                1,
-                gl::FLOAT,
-                gl::FALSE,
-                (6 * std::mem::size_of::<GLfloat>()) as _,
-                (2 * std::mem::size_of::<GLfloat>()) as _
-            );
-
-            let translation_cstr = CString::new("translation").unwrap();
-            let translation_attr = gl::GetAttribLocation(
-                self.default_shader.borrow().id,
-                translation_cstr.as_ptr()
-            ) as Location;
-
-            gl::EnableVertexAttribArray(translation_attr);
-            gl::VertexAttribPointer(
-                translation_attr,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                (6 * std::mem::size_of::<GLfloat>()) as _,
-                (3 * std::mem::size_of::<GLfloat>()) as _
-            );
 
             // element buffer
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.element_buffer_object);
@@ -353,6 +297,10 @@ impl Renderer {
             },
         }
 
+        let mut transform = draw_command_data.transform;
+        transform.pivot = pivot;
+        let model_mat = Mat4::from(transform);
+
         // Vertex: pos (float3), color (float4), uv (float2)
         self.vertex_buffer.push(0.); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
         self.vertex_buffer.push(draw_command_data.color.r);
@@ -361,12 +309,54 @@ impl Renderer {
         self.vertex_buffer.push(draw_command_data.color.a);
         self.vertex_buffer.push(us[0]); self.vertex_buffer.push(vs[0]);
 
+        // @Refactor use AttribDivisor
+        self.vertex_buffer.push(model_mat[0][0]);
+        self.vertex_buffer.push(model_mat[0][1]);
+        self.vertex_buffer.push(model_mat[0][2]);
+        self.vertex_buffer.push(model_mat[0][3]);
+
+        self.vertex_buffer.push(model_mat[1][0]);
+        self.vertex_buffer.push(model_mat[1][1]);
+        self.vertex_buffer.push(model_mat[1][2]);
+        self.vertex_buffer.push(model_mat[1][3]);
+
+        self.vertex_buffer.push(model_mat[2][0]);
+        self.vertex_buffer.push(model_mat[2][1]);
+        self.vertex_buffer.push(model_mat[2][2]);
+        self.vertex_buffer.push(model_mat[2][3]);
+
+        self.vertex_buffer.push(model_mat[3][0]);
+        self.vertex_buffer.push(model_mat[3][1]);
+        self.vertex_buffer.push(model_mat[3][2]);
+        self.vertex_buffer.push(model_mat[3][3]);
+
         self.vertex_buffer.push(w); self.vertex_buffer.push(0.); self.vertex_buffer.push(0.);
         self.vertex_buffer.push(draw_command_data.color.r);
         self.vertex_buffer.push(draw_command_data.color.g);
         self.vertex_buffer.push(draw_command_data.color.b);
         self.vertex_buffer.push(draw_command_data.color.a);
         self.vertex_buffer.push(us[1]); self.vertex_buffer.push(vs[1]);
+
+        // @Refactor use AttribDivisor
+        self.vertex_buffer.push(model_mat[0][0]);
+        self.vertex_buffer.push(model_mat[0][1]);
+        self.vertex_buffer.push(model_mat[0][2]);
+        self.vertex_buffer.push(model_mat[0][3]);
+
+        self.vertex_buffer.push(model_mat[1][0]);
+        self.vertex_buffer.push(model_mat[1][1]);
+        self.vertex_buffer.push(model_mat[1][2]);
+        self.vertex_buffer.push(model_mat[1][3]);
+
+        self.vertex_buffer.push(model_mat[2][0]);
+        self.vertex_buffer.push(model_mat[2][1]);
+        self.vertex_buffer.push(model_mat[2][2]);
+        self.vertex_buffer.push(model_mat[2][3]);
+
+        self.vertex_buffer.push(model_mat[3][0]);
+        self.vertex_buffer.push(model_mat[3][1]);
+        self.vertex_buffer.push(model_mat[3][2]);
+        self.vertex_buffer.push(model_mat[3][3]);
 
         self.vertex_buffer.push(w); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
         self.vertex_buffer.push(draw_command_data.color.r);
@@ -375,6 +365,27 @@ impl Renderer {
         self.vertex_buffer.push(draw_command_data.color.a);
         self.vertex_buffer.push(us[2]); self.vertex_buffer.push(vs[2]);
 
+        // @Refactor use AttribDivisor
+        self.vertex_buffer.push(model_mat[0][0]);
+        self.vertex_buffer.push(model_mat[0][1]);
+        self.vertex_buffer.push(model_mat[0][2]);
+        self.vertex_buffer.push(model_mat[0][3]);
+
+        self.vertex_buffer.push(model_mat[1][0]);
+        self.vertex_buffer.push(model_mat[1][1]);
+        self.vertex_buffer.push(model_mat[1][2]);
+        self.vertex_buffer.push(model_mat[1][3]);
+
+        self.vertex_buffer.push(model_mat[2][0]);
+        self.vertex_buffer.push(model_mat[2][1]);
+        self.vertex_buffer.push(model_mat[2][2]);
+        self.vertex_buffer.push(model_mat[2][3]);
+
+        self.vertex_buffer.push(model_mat[3][0]);
+        self.vertex_buffer.push(model_mat[3][1]);
+        self.vertex_buffer.push(model_mat[3][2]);
+        self.vertex_buffer.push(model_mat[3][3]);
+
         self.vertex_buffer.push(0.); self.vertex_buffer.push(h); self.vertex_buffer.push(0.);
         self.vertex_buffer.push(draw_command_data.color.r);
         self.vertex_buffer.push(draw_command_data.color.g);
@@ -382,6 +393,29 @@ impl Renderer {
         self.vertex_buffer.push(draw_command_data.color.a);
         self.vertex_buffer.push(us[3]); self.vertex_buffer.push(vs[3]);
 
+        // @Refactor use AttribDivisor
+        self.vertex_buffer.push(model_mat[0][0]);
+        self.vertex_buffer.push(model_mat[0][1]);
+        self.vertex_buffer.push(model_mat[0][2]);
+        self.vertex_buffer.push(model_mat[0][3]);
+
+        self.vertex_buffer.push(model_mat[1][0]);
+        self.vertex_buffer.push(model_mat[1][1]);
+        self.vertex_buffer.push(model_mat[1][2]);
+        self.vertex_buffer.push(model_mat[1][3]);
+
+        self.vertex_buffer.push(model_mat[2][0]);
+        self.vertex_buffer.push(model_mat[2][1]);
+        self.vertex_buffer.push(model_mat[2][2]);
+        self.vertex_buffer.push(model_mat[2][3]);
+
+        self.vertex_buffer.push(model_mat[3][0]);
+        self.vertex_buffer.push(model_mat[3][1]);
+        self.vertex_buffer.push(model_mat[3][2]);
+        self.vertex_buffer.push(model_mat[3][3]);
+
+
+        // Elements
         self.element_buffer.push(self.vertex_count + 0);
         self.element_buffer.push(self.vertex_count + 1);
         self.element_buffer.push(self.vertex_count + 2);
@@ -391,6 +425,7 @@ impl Renderer {
         self.element_buffer.push(self.vertex_count + 0);
         self.vertex_count += 4;
 
+        /*
         // model matrix info
         self.model_mat_buffer.push(pivot.x); self.model_mat_buffer.push(pivot.y);
         self.model_mat_buffer.push(draw_command_data.transform.rot);
@@ -415,6 +450,7 @@ impl Renderer {
         self.model_mat_buffer.push(draw_command_data.transform.pos.x);
         self.model_mat_buffer.push(draw_command_data.transform.pos.y);
         self.model_mat_buffer.push((draw_command_data.transform.layer as f32) / 10. + 0.1);
+        */
 
         draw_call.count += 6;
     }
@@ -546,8 +582,6 @@ impl Renderer {
         }
 
         self.vertex_buffer.clear();
-        self.color_buffer.clear();
-        self.uv_buffer.clear();
         self.element_buffer.clear();
         self.model_mat_buffer.clear();
         self.vertex_count = 0;
@@ -559,8 +593,6 @@ impl Renderer {
         }
 
         assert!(!self.vertex_buffer.is_empty());
-        //assert!(!self.color_buffer.is_empty());
-        //assert!(!self.uv_buffer.is_empty());
         assert!(!self.element_buffer.is_empty());
 
         unsafe {
@@ -569,32 +601,6 @@ impl Renderer {
                 gl::ARRAY_BUFFER,
                 (self.vertex_buffer.len() * std::mem::size_of::<GLfloat>()) as _,
                 std::mem::transmute(&self.vertex_buffer[0]),
-                gl::DYNAMIC_DRAW
-            );
-
-            /*
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.color_buffer_object);
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (self.color_buffer.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-                std::mem::transmute(&self.color_buffer[0]),
-                gl::DYNAMIC_DRAW
-            );
-
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.uv_buffer_object);
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (self.uv_buffer.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-                std::mem::transmute(&self.uv_buffer[0]),
-                gl::DYNAMIC_DRAW
-            );
-            */
-
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.model_mat_buffer_object);
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                (self.model_mat_buffer.len() * std::mem::size_of::<GLfloat>()) as GLsizeiptr,
-                std::mem::transmute(&self.model_mat_buffer[0]),
                 gl::DYNAMIC_DRAW
             );
 
@@ -678,8 +684,6 @@ impl Drop for Renderer {
         unsafe {
             gl::DeleteVertexArrays(1, &mut self.vertex_array_object);
             gl::DeleteBuffers(1, &mut self.vertex_buffer_object);
-            gl::DeleteBuffers(1, &mut self.color_buffer_object);
-            gl::DeleteBuffers(1, &mut self.uv_buffer_object);
             gl::DeleteBuffers(1, &mut self.element_buffer_object);
         }
     }

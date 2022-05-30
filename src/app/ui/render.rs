@@ -52,6 +52,7 @@ impl Ui {
         batch.queue_draw_solid(
             Transform {
                 pos: self.layout.pos.into(),
+                pivot: Vec2::new(),
                 scale: Vec2 { x: 1.0, y: 1.0 },
                 rot: 0.0,
                 layer: 900,
@@ -66,6 +67,7 @@ impl Ui {
             batch.queue_draw_solid(
                 Transform {
                     pos: layout.pos.into(),
+                    pivot: Vec2::new(),
                     scale: Vec2 { x: 1.0, y: 1.0 },
                     rot: 0.0,
                     layer: 905,
@@ -124,6 +126,7 @@ impl Ui {
                     text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -154,6 +157,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: layout.pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -180,6 +184,7 @@ impl Ui {
                     text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -221,6 +226,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: layout.pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -248,6 +254,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: layout.pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -280,6 +287,7 @@ impl Ui {
                     text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -323,6 +331,7 @@ impl Ui {
                             batch.queue_draw_solid(
                                 Transform {
                                     pos: pos.into(),
+                                    pivot: Vec2::new(),
                                     scale: Vec2 { x: 1.0, y: 1.0 },
                                     rot: 0.0,
                                     layer: 910,
@@ -346,6 +355,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: layout.pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -383,6 +393,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -419,6 +430,7 @@ impl Ui {
                     text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -447,6 +459,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: layout.pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -488,6 +501,7 @@ impl Ui {
                     text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -520,6 +534,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: layout.pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 920,
@@ -561,6 +576,7 @@ impl Ui {
                     text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 920,
@@ -579,6 +595,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: layout.pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 920,
@@ -601,6 +618,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 901,
@@ -619,6 +637,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 901,
@@ -639,6 +658,7 @@ impl Ui {
                 batch.queue_draw_solid(
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 901,
@@ -686,6 +706,7 @@ impl Ui {
                     left_text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -707,6 +728,7 @@ impl Ui {
                 batch.queue_draw_sprite(
                     Transform {
                         pos: mouse_pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -720,6 +742,7 @@ impl Ui {
                     right_text,
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 910,
@@ -747,6 +770,7 @@ impl Ui {
                 batch.queue_draw_texture(
                     Transform {
                         pos: pos.into(),
+                        pivot: Vec2::new(),
                         scale: Vec2 { x: 1.0, y: 1.0 },
                         rot: 0.0,
                         layer: 920,

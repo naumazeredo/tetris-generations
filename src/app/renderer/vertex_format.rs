@@ -43,20 +43,20 @@ pub(super) struct VertexAttribute {
 #[derive(Clone, Debug, ImDraw)]
 pub(super) struct VertexFormat {
     attributes: Vec<VertexAttribute>,
-    total_size: u32,
+    size: u32,
 }
 
 impl VertexFormat {
     pub(super) fn new(attributes: Vec<VertexAttribute>) -> Self {
-        let total_size = attributes.iter()
+        let size = attributes.iter()
             .fold(0, |acc, attrib| acc + attrib.variant.size());
 
         VertexFormat {
             attributes,
-            total_size,
+            size,
         }
     }
 
     pub(super) fn attributes(&self) -> &Vec<VertexAttribute> { &self.attributes }
-    pub(super) fn total_size(&self) -> u32 { self.total_size }
+    pub(super) fn size(&self) -> u32 { self.size }
 }
