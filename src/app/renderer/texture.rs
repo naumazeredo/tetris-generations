@@ -9,7 +9,7 @@ use imgui::{im_str, TreeNode};
 
 use crate::app::imgui_wrapper::ImDraw;
 
-pub(in crate::app) type TextureObject = GLuint;
+pub(in crate::app) type TextureID = GLuint;
 
 #[derive(Copy, Clone, Debug)]
 enum TextureFormat {
@@ -22,7 +22,7 @@ enum TextureFormat {
 
 #[derive(Debug, ImDraw, Default)]
 pub struct Texture {
-    pub(in crate::app) obj: TextureObject,
+    pub(in crate::app) id: TextureID,
     pub w: u32,
     pub h: u32,
     pub white_pixel: Option<(u32, u32)>,
@@ -32,11 +32,11 @@ pub type TextureRef = Rc<RefCell<Texture>>;
 
 impl Texture {
     pub fn new(w: u32, h: u32, pixels: Option<&[u8]>) -> TextureRef {
-        let mut obj : TextureObject = 0;
+        let mut id: TextureID = 0;
 
         unsafe {
-            gl::GenTextures(1, &mut obj);
-            gl::BindTexture(gl::TEXTURE_2D, obj);
+            gl::GenTextures(1, &mut id);
+            gl::BindTexture(gl::TEXTURE_2D, id);
 
             gl::PixelStorei(gl::UNPACK_ROW_LENGTH, 0);
 
@@ -62,7 +62,7 @@ impl Texture {
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
-        Rc::new(RefCell::new(Texture { obj, w, h, white_pixel: None }))
+        Rc::new(RefCell::new(Texture { id, w, h, white_pixel: None }))
     }
 
     pub(in crate::app) fn load_from_surface(surface: sdl2::surface::Surface) -> TextureRef {
@@ -94,14 +94,14 @@ impl Texture {
 impl Drop for Texture {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteTextures(1, &self.obj);
+            gl::DeleteTextures(1, &self.id);
         }
     }
 }
 
 impl PartialEq for Texture {
     fn eq(&self, other: &Self) -> bool {
-        self.obj == other.obj
+        self.id == other.id
     }
 }
 

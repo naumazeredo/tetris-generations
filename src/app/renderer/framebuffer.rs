@@ -4,12 +4,12 @@ use std::cell::RefCell;
 use bitflags::bitflags;
 use super::*;
 
-pub(in crate::app) type FramebufferObject = GLuint;
+pub(in crate::app) type FramebufferID = GLuint;
 
 
 #[derive(Clone, Debug, ImDraw)]
 pub struct Framebuffer {
-    pub(super) obj: FramebufferObject,
+    pub(super) id: FramebufferID,
     pub(super) width:  u32,
     pub(super) height: u32,
 
@@ -31,13 +31,13 @@ impl Framebuffer {
                 gl::FRAMEBUFFER,
                 gl::COLOR_ATTACHMENT0,
                 gl::TEXTURE_2D,
-                color_texture.borrow().obj,
+                color_texture.borrow().id,
                 0
             );
         }
 
         Rc::new(RefCell::new(Self {
-            obj: fbo,
+            id: fbo,
             width,
             height,
             color_texture: color_texture,
@@ -46,7 +46,7 @@ impl Framebuffer {
 
     pub fn clear(&mut self, buffer_clear: BufferClear) {
         unsafe {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, self.obj);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.id);
             gl::Disable(gl::SCISSOR_TEST);
             gl::ColorMask(true as _, true as _, true as _, true as _);
             gl::ClearColor(buffer_clear.color.r, buffer_clear.color.g, buffer_clear.color.b, buffer_clear.color.a);
@@ -58,18 +58,18 @@ impl Framebuffer {
 
     pub(in crate::app) fn bind(&mut self, renderer: &mut Renderer) {
         unsafe {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, self.obj);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.id);
             gl::Disable(gl::DEPTH_TEST); // @Hack it should depend on framebuffer configuration
         }
 
-        renderer.change_viewport((self.width, self.height));
+        //renderer.change_viewport((self.width, self.height)); // Is this necessary?
     }
 }
 
 impl Drop for Framebuffer {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteFramebuffers(1, &self.obj);
+            gl::DeleteFramebuffers(1, &self.id);
         }
     }
 }

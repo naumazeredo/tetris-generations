@@ -32,6 +32,10 @@ impl Mat4 {
         }
     }
 
+    pub fn from_data(m: [[f32; 4]; 4]) -> Self {
+        Self { m }
+    }
+
     pub fn transpose(&mut self) {
         let tmp = self.m[0][1]; self.m[0][1] = self.m[1][0]; self.m[1][0] = tmp;
         let tmp = self.m[0][2]; self.m[0][2] = self.m[2][0]; self.m[2][0] = tmp;
@@ -59,10 +63,10 @@ impl Mat4 {
 pub fn translation(v: Vec3) -> Mat4 {
     Mat4 {
         m: [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [v.x, v.y, v.z, 1.0],
+            [1.0, 0.0, 0.0, v.x],
+            [0.0, 1.0, 0.0, v.y],
+            [0.0, 0.0, 1.0, v.z],
+            [0.0, 0.0, 0.0, 1.0],
         ],
     }
 }
@@ -77,19 +81,19 @@ pub fn rotation(rad: f32, axis: Vec3) -> Mat4 {
     let mut m = [[0.0f32; 4]; 4];
 
     m[0][0] = c + t.x * a.x;
-    m[0][1] = 0.0 + t.x * a.y + s * a.z;
-    m[0][2] = 0.0 + t.x * a.z - s * a.y;
-    m[0][3] = 0.0;
+    m[1][0] = 0.0 + t.x * a.y + s * a.z;
+    m[2][0] = 0.0 + t.x * a.z - s * a.y;
+    m[3][0] = 0.0;
 
-    m[1][0] = 0.0 + t.y * a.x - s * a.z;
+    m[0][1] = 0.0 + t.y * a.x - s * a.z;
     m[1][1] = c + t.y * a.y;
-    m[1][2] = 0.0 + t.y * a.z + s * a.x;
-    m[1][3] = 0.0;
+    m[2][1] = 0.0 + t.y * a.z + s * a.x;
+    m[3][1] = 0.0;
 
-    m[2][0] = 0.0 + t.z * a.x + s * a.y;
-    m[2][1] = 0.0 + t.z * a.y - s * a.x;
+    m[0][2] = 0.0 + t.z * a.x + s * a.y;
+    m[1][2] = 0.0 + t.z * a.y - s * a.x;
     m[2][2] = c + t.z * a.z;
-    m[2][3] = 0.0;
+    m[3][2] = 0.0;
 
     m[3][3] = 1.0;
 
@@ -99,11 +103,10 @@ pub fn rotation(rad: f32, axis: Vec3) -> Mat4 {
 // TODO invert_z: bool
 #[allow(dead_code)]
 pub fn ortho(
-    left: f32, right: f32,
-    bottom: f32, top: f32,
-    near: f32, far: f32
+    left:   f32, right: f32,
+    bottom: f32, top:   f32,
+    near:   f32, far:   f32,
 ) -> Mat4 {
-
     Mat4 {
         m: [
             [ 2.0 / (right - left), 0.0, 0.0, 0.0 ],
@@ -132,6 +135,13 @@ impl ImDraw for Mat4 {
 
             id.pop(ui);
         });
+    }
+}
+
+impl Index<usize> for Mat4 {
+    type Output = [f32; 4];
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.m[index]
     }
 }
 
@@ -310,10 +320,17 @@ impl<T: Num + ToPrimitive> Mul<T> for Mat4 {
 }
 */
 
-impl Index<usize> for Mat4 {
-    type Output = [f32; 4];
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.m[index]
+
+impl Mul<Vec3> for Mat4 {
+    type Output = Vec3;
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        let w = self.m[3][0] * rhs.x + self.m[3][1] * rhs.y + self.m[3][2] * rhs.z + self.m[0][3];
+
+        Vec3 {
+            x: (self.m[0][0] * rhs.x + self.m[0][1] * rhs.y + self.m[0][2] * rhs.z + self.m[0][3]) / w,
+            y: (self.m[1][0] * rhs.x + self.m[1][1] * rhs.y + self.m[1][2] * rhs.z + self.m[1][3]) / w,
+            z: (self.m[2][0] * rhs.x + self.m[2][1] * rhs.y + self.m[2][2] * rhs.z + self.m[2][3]) / w,
+        }
     }
 }
 

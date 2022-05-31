@@ -27,7 +27,7 @@ impl Material {
         }))
     }
 
-    pub fn has_uniform(&mut self, name: &str) -> bool {
+    pub fn has_uniform(&self, name: &str) -> bool {
         self.shader.borrow().uniforms.iter()
             .position(|uniform| uniform.name == name)
             .is_some()
@@ -43,11 +43,22 @@ impl Material {
         self.uniform_data[index] = value.clone();
     }
 
-    pub fn get_uniform(&mut self, name: &str) -> Option<(usize, &UniformData)> {
+    pub fn get_uniform(&self, name: &str) -> Option<(usize, &UniformData)> {
         match self.shader.borrow().uniforms.iter().position(|uniform| uniform.name == name) {
             None => None,
             Some(index) => Some((index, &self.uniform_data[index])),
         }
+    }
+
+    pub fn get_uniform_location(&self, name: &str) -> Option<GLint> {
+        self.shader.borrow().uniforms.iter()
+            .find_map(|uniform| {
+                if uniform.name == name {
+                    Some(uniform.location)
+                } else {
+                    None
+                }
+            })
     }
 
     /*

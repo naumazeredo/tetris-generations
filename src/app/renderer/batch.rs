@@ -64,6 +64,7 @@ impl Batch {
     }
 }
 
+// @TODO this should go somewhere else
 impl App<'_> {
     pub fn queue_draw_solid(
         &mut self,

@@ -31,6 +31,9 @@ impl AttributeVariant {
     pub(super) fn size(self) -> u32 {
         self.components_count() * std::mem::size_of::<GLfloat>() as u32
     }
+
+    // @TODO gl_type
+    //pub(super) fn gl_type(self) -> GLenum
 }
 
 #[derive(Copy, Clone, Debug, ImDraw)]

@@ -25,6 +25,7 @@ impl Default for Transform {
     }
 }
 
+// @Fix missing scale
 impl From<Transform> for Mat4 {
     fn from(transform: Transform) -> Self {
         let rad = transform.rot.to_radians();
@@ -35,10 +36,10 @@ impl From<Transform> for Mat4 {
         let z = (transform.layer as f32) / 10. + 0.1;
 
         Mat4 { m: [
-            [cos, -sin, 0.0, 0.0],
-            [sin,  cos, 0.0, 0.0],
-            [0.0,  0.0, 1.0, 0.0],
-            [x,    y,   z,   1.0],
+            [cos, -sin, 0.0, x],
+            [sin,  cos, 0.0, y],
+            [0.0,  0.0, 1.0, z],
+            [0.0,  0.0, 0.0, 1.0],
         ]}
     }
 }
