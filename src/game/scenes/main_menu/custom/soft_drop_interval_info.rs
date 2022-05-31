@@ -85,7 +85,7 @@ pub fn show_custom_rules_info_soft_drop_interval(
         persistent,
     );
 
-    let playfield = &preview.tetris_game.playfield();
+    //let playfield = &preview.tetris_game.playfield();
     let playfield_draw_size = get_draw_playfield_grid_size(
         Vec2i { x: 5, y: 8 },
         persistent.pixel_scale,

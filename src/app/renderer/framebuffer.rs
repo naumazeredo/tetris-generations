@@ -56,7 +56,7 @@ impl Framebuffer {
         }
     }
 
-    pub(in crate::app) fn bind(&mut self, renderer: &mut Renderer) {
+    pub(in crate::app) fn bind(&mut self) { //, _renderer: &mut Renderer) {
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, self.id);
             gl::Disable(gl::DEPTH_TEST); // @Hack it should depend on framebuffer configuration

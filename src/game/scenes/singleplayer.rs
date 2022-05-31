@@ -5,7 +5,6 @@ use super::*;
 
 use crate::game::{
     input::*,
-    render::*,
     rules::{
         Rules,
     },

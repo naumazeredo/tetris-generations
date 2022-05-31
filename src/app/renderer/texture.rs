@@ -5,7 +5,7 @@ use std::rc::Rc;
 use bitflags::bitflags;
 use gl::types::*;
 use sdl2::image::*;
-use imgui::{im_str, TreeNode};
+use imgui::TreeNode;
 
 use crate::app::imgui_wrapper::ImDraw;
 
@@ -120,12 +120,12 @@ bitflags! {
 // ------
 impl ImDraw for TextureFlip {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        TreeNode::new(im_str2!(label)).build(ui, || {
+        TreeNode::new(label).build(ui, || {
             let mut flip_x = self.contains(TextureFlip::X);
-            ui.checkbox(im_str!("flip x"), &mut flip_x);
+            ui.checkbox("flip x", &mut flip_x);
 
             let mut flip_y = self.contains(TextureFlip::Y);
-            ui.checkbox(im_str!("flip y"), &mut flip_y);
+            ui.checkbox("flip y", &mut flip_y);
 
             let mut texture_flip = TextureFlip::NO;
             if flip_x { texture_flip |= TextureFlip::X; }

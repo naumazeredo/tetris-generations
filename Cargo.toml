@@ -6,15 +6,16 @@ edition = "2018"
 build = "build.rs"
 
 [dependencies]
+bitflags = "1.3.2"
+enum_dispatch = "0.3"
 gl = "0.14.0"
-imgui = "0.6.1"
-imgui-opengl-renderer = "0.10.0"
-bitflags = "1.2.1"
-imdraw_derive = { path = "imdraw_derive" }
+imgui = "0.8.2"
+imgui-opengl-renderer = "0.11.0"
+paste = "1.0"
 rand_pcg = "0.3"
 rand_core = "0.6"
-enum_dispatch = "0.3"
-paste = "1.0"
+
+imdraw_derive = { path = "imdraw_derive" }
 
 [dependencies.sdl2]
 version = "0.35"

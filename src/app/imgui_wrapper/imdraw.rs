@@ -19,14 +19,6 @@ pub trait ImDraw {
 // Macros
 // ------
 
-// @TODO remove this!!!
-#[macro_export]
-macro_rules! im_str2 {
-    ($e:tt) => ({
-        &imgui::ImString::new($e)
-    });
-}
-
 #[macro_export]
 macro_rules! impl_imdraw_todo {
     ($type:path) => {
@@ -54,7 +46,7 @@ macro_rules! impl_drag {
         impl ImDraw for $type {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
                 let mut data = *self as $cast;
-                Drag::new(im_str2!(label)).build(ui, &mut data);
+                Drag::new(label).build(ui, &mut data);
                 *self = data as _;
             }
         }
@@ -63,7 +55,7 @@ macro_rules! impl_drag {
     ($type:ident with $($extra:ident ( $extra_val:expr )),*) => {
         impl ImDraw for $type {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-                Drag::new(im_str2!(label))
+                Drag::new(label)
                     $( .$extra($extra_val) )*
                     .build(ui, self);
             }
@@ -73,7 +65,7 @@ macro_rules! impl_drag {
     ($type:ident) => {
         impl ImDraw for $type {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-                Drag::new(im_str2!(label)).build(ui, self);
+                Drag::new(label).build(ui, self);
             }
         }
     };
@@ -101,7 +93,7 @@ impl_drag!(isize using i64);
 
 impl ImDraw for bool {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        ui.checkbox(im_str2!(label), self);
+        ui.checkbox(label, self);
     }
 }
 
@@ -113,9 +105,7 @@ impl ImDraw for &str {
 
 impl ImDraw for String {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        let mut im_str = self.clone().into();
-        imgui::InputText::new(ui, im_str2!(label), &mut im_str).build();
-        *self = im_str.to_string();
+        imgui::InputText::new(ui, label, self).build();
     }
 }
 
@@ -128,11 +118,11 @@ where
     B: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
             self.0.imdraw("(0)", ui);
             self.1.imdraw("(1)", ui);
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -144,12 +134,12 @@ where
     C: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
             self.0.imdraw("(0)", ui);
             self.1.imdraw("(1)", ui);
             self.2.imdraw("(2)", ui);
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -162,13 +152,13 @@ where
     D: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
             self.0.imdraw("(0)", ui);
             self.1.imdraw("(1)", ui);
             self.2.imdraw("(2)", ui);
             self.3.imdraw("(3)", ui);
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -184,7 +174,7 @@ macro_rules! tuple_impl_imdraw {
             $( $tail: ImDraw ),*
         {
             fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-                imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+                imgui::TreeNode::new(label).build(ui, || {
                     let mut id = ui.push_id(label);
 
                     let index = 0;
@@ -195,7 +185,7 @@ macro_rules! tuple_impl_imdraw {
                         $tail.imdraw(format!("({})", index), ui);
                     )*
 
-                    id.pop(ui);
+                    id.pop();
                 });
             }
         }
@@ -256,12 +246,12 @@ where
     T: ImDraw
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
             for (i, value) in self.iter_mut().enumerate() {
                 value.imdraw(&format!("[{}]", i).to_owned(), ui);
             }
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -272,14 +262,14 @@ where
     V: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
 
             for (key, value) in self.iter_mut() {
                 value.imdraw(&format!("{}", key).to_owned(), ui);
             }
 
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -289,7 +279,7 @@ where
     V: ImDraw + Copy,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
 
             /*
@@ -306,7 +296,7 @@ where
                 value.imdraw("", ui);
             }
 
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -319,14 +309,14 @@ where
     V: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
 
             for (key, value) in self.iter_mut() {
                 value.imdraw(&format!("{}", key).to_owned(), ui);
             }
 
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -337,14 +327,14 @@ where
     V: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
 
-            for (key, value) in self.iter_mut() {
+            for (_key, value) in self.iter_mut() {
                 value.imdraw("(to fix)", ui);
             }
 
-            id.pop(ui);
+            id.pop();
         });
     }
 }
@@ -373,7 +363,7 @@ where
     T: ImDraw
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             for i in 0..LENGTH {
                 self[i].imdraw(&format!("[{}]", i), ui);
             }
@@ -388,7 +378,7 @@ where
     T: ImDraw
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             for i in 0..self.len() {
                 self[i].imdraw(&format!("[{}]", i), ui);
             }

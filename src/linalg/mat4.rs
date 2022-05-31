@@ -125,15 +125,15 @@ pub fn ortho(
 impl ImDraw for Mat4 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
 
-        imgui::TreeNode::new(im_str2!(label)).build(ui, || {
+        imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
 
-            imgui::Drag::new(im_str2!("[0]")).build_array(ui, &mut self.m[0]);
-            imgui::Drag::new(im_str2!("[1]")).build_array(ui, &mut self.m[1]);
-            imgui::Drag::new(im_str2!("[2]")).build_array(ui, &mut self.m[2]);
-            imgui::Drag::new(im_str2!("[3]")).build_array(ui, &mut self.m[3]);
+            imgui::Drag::new("[0]").build_array(ui, &mut self.m[0]);
+            imgui::Drag::new("[1]").build_array(ui, &mut self.m[1]);
+            imgui::Drag::new("[2]").build_array(ui, &mut self.m[2]);
+            imgui::Drag::new("[3]").build_array(ui, &mut self.m[3]);
 
-            id.pop(ui);
+            id.pop();
         });
     }
 }

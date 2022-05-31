@@ -168,7 +168,7 @@ impl SceneTrait for MultiPlayerScene {
     fn handle_input(
         &mut self,
         event: &sdl2::event::Event,
-        app: &mut App,
+        _app: &mut App,
         _persistent: &mut Self::PersistentData,
     ) -> bool {
         use sdl2::event::Event;

@@ -164,14 +164,15 @@
     - [ ] Store all uniforms (glGetProgramiv) (do we need to store the attributes also?)
       - [x] Store single values
       - [ ] Store arrays
-    - [ ] Set attribute values during execution
+    - [x] Set attribute values during execution
       - [x] Create VertexFormat
-      - [ ] Binding + buffer data copy
-    - [ ] Remove matrix calculation from the shader: use an instance attribute
-    - [ ] Material: define material uniforms and element uniforms
+      - [x] Binding + buffer data copy
+    - [x] Remove matrix calculation from the shader: use an instance attribute
+    - [ ] Pixel perfect rendering: render to a framebuffer and scale to fit
     - [ ] Extra
       - [ ] Implement texture slots
       - [ ] Use BufferSubData
+      - [ ] Material: define material uniforms and element uniforms (is this viable?)
   - [ ] Get video info (e.g.: GPU video memory) (sdl1: SDL_VideoInfo)
   - [ ] [cleanup] GPU resources should be either obj or id, decide which one!
   - [ ] [cleanup] DrawCall should hold raw data, not Rc<RefCell<>>
@@ -470,8 +471,6 @@
     - [ ] [Multiple Render Targets (MRT)](https://learnopengl.com/Advanced-Lighting/Bloom)
     - [ ] [High Dynamic Range (HDR)](https://learnopengl.com/Advanced-Lighting/HDR)
     - [ ] [Bloom](https://learnopengl.com/Advanced-Lighting/Bloom)
-  - [ ] Have a way to delete allocated textures: this depends on AssetManager design decisions
-  - [ ] Pixel perfect rendering
   - [ ] Batch rendering
     - [ ] Stack commands
       - [ ] Blending
@@ -484,6 +483,9 @@
       Maybe we should have specific layouts for specific aspect-ratios and make the renderer
       re-scale based on the resolution
   - [ ] Add Matrix 3x2 to 2D transformations using less memory (2x2 rotation, 1x2 translation)
+  - [ ] Shader/Material struct
+    - [ ] Store all uniforms (glGetProgramiv) (do we need to store the attributes also?)
+      - [ ] Store arrays
 - [ ] [input]
   - [ ] [issue] Not updating an input_mapping can break it: maybe having a local timer for each
       input_manager, getting the whole global key state on enabling and calling update with dt will
@@ -566,7 +568,9 @@
   - [ ] get_ui_sprite: Change sprite depending on most recent input type (keyboard/mouse, Xbox
       controller, PS controller, etc)
 - [ ] [font]
-  - [ ] Change from sdl-ttf to ttf-parser (https://github.com/RazrFalcon/ttf-parser) + render.
+  - [ ] Change from sdl-ttf to something else
+      Options: 1) ttf-parser (https://github.com/RazrFalcon/ttf-parser) + render.
+               2) ab_glyph (https://docs.rs/ab_glyph/latest/ab_glyph/index.html)
       It's not that easy to just change to stb-truetype since translating a C lib is not so direct
       and the crate that does this is not maintained anymore).
   - [ ] Store multiple font sizes or a chosen value that has a lot of divisors, to avoid conversion

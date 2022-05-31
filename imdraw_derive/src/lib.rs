@@ -38,10 +38,10 @@ fn generate(ast: DeriveInput) -> TokenStream {
             quote! {
                 impl #impl_generics ImDraw for #name #ty_generics #where_clause {
                     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
-                        imgui::TreeNode::new(crate::im_str2!(label)).build(ui, || {
+                        imgui::TreeNode::new(label).build(ui, || {
                             let id = ui.push_id(label);
                             #(#expanded_fields)*
-                            id.pop(ui);
+                            id.pop();
                         });
                     }
                 }
@@ -81,10 +81,10 @@ fn generate(ast: DeriveInput) -> TokenStream {
                         quote! {
                             #name::#ident(#(#match_fields)*) => {
                                 let display_label = format!("{}: {}", label, stringify!(#ident));
-                                imgui::TreeNode::new(crate::im_str2!(display_label)).build(ui, || {
+                                imgui::TreeNode::new(display_label).build(ui, || {
                                     let id = ui.push_id(label);
                                     #(#fields_operations)*
-                                    id.pop(ui);
+                                    id.pop();
                                 });
                             }
                         }
@@ -108,10 +108,10 @@ fn generate(ast: DeriveInput) -> TokenStream {
                         quote! {
                             #name::#ident { #(#match_fields)* } => {
                                 let display_label = format!("{}: {}", label, stringify!(#ident));
-                                imgui::TreeNode::new(crate::im_str2!(display_label)).build(ui, || {
+                                imgui::TreeNode::new(display_label).build(ui, || {
                                     let id = ui.push_id(label);
                                     #(#fields_operations)*
-                                    id.pop(ui);
+                                    id.pop();
                                 });
                             }
                         }

@@ -44,10 +44,8 @@ impl Material {
     }
 
     pub fn get_uniform(&self, name: &str) -> Option<(usize, &UniformData)> {
-        match self.shader.borrow().uniforms.iter().position(|uniform| uniform.name == name) {
-            None => None,
-            Some(index) => Some((index, &self.uniform_data[index])),
-        }
+        self.shader.borrow().uniforms.iter().position(|uniform| uniform.name == name)
+            .map(|index| (index, &self.uniform_data[index]))
     }
 
     pub fn get_uniform_location(&self, name: &str) -> Option<GLint> {

@@ -89,10 +89,7 @@ pub(super) fn bake_font<P: AsRef<Path>>(
 
     // @Check if it's already baked?
 
-    match Font::bake(path, ttf_context) {
-        Some(font) => Some((font_id, font)),
-        None => None,
-    }
+    Font::bake(path, ttf_context).map(|font| (font_id, font))
 }
 
 impl App<'_>{

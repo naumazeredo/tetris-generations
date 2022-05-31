@@ -456,7 +456,7 @@ impl Renderer {
 
         // @TODO improve this whole framebuffer logic
         if let Some(framebuffer) = framebuffer {
-            framebuffer.borrow_mut().bind(self);
+            framebuffer.borrow_mut().bind();
             let height = framebuffer.borrow().height;
             framebuffer_height = height;
         } else {
@@ -547,6 +547,8 @@ impl Renderer {
         //assert!(!self.instance_buffer.is_empty());
 
         unsafe {
+            // @TODO use BufferSubData
+
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer_object);
             gl::BufferData(
                 gl::ARRAY_BUFFER,

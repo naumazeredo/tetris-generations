@@ -41,7 +41,7 @@ impl SceneTrait for MultiPlayerSpectateScene {
 
     fn update(
         &mut self,
-        dt: u64,
+        _dt: u64,
         app: &mut App,
         persistent: &mut Self::PersistentData
     ) {

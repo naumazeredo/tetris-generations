@@ -78,8 +78,9 @@ impl Ui {
         }
 
         // Draw elements
-        let padding = self.style.padding;
 
+        // @Cleanup not clipping to avoid multiple draw calls
+        //let padding = self.style.padding;
         //batch.push_clip(self.layout.pos + padding, self.layout.size - 2 * padding);
 
         let elements = std::mem::take(&mut self.elements);
@@ -468,8 +469,9 @@ impl Ui {
                     color,
                 );
 
+                // @Cleanup not clipping to avoid multiple draw calls
                 // Fix text position since it's rendered from the bottom
-                let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
+                //let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
                 //let pos = layout.pos + padding + Vec2i { x: 0, y: self.style.text_size as i32 };
 
                 let text_color;
@@ -543,8 +545,9 @@ impl Ui {
                     color,
                 );
 
+                // @Cleanup not clipping to avoid multiple draw calls
                 // Fix text position since it's rendered from the bottom
-                let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
+                //let padding = Vec2i { x: self.style.box_padding, y: self.style.box_padding };
                 //let pos = layout.pos + padding + Vec2i { x: 0, y: self.style.text_size as i32 };
 
                 let text_color;

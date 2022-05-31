@@ -90,8 +90,8 @@ impl SceneTrait for MainMenuScene {
     fn update(
         &mut self,
         _dt: u64,
-        app: &mut App,
-        persistent: &mut Self::PersistentData
+        _app: &mut App,
+        _persistent: &mut Self::PersistentData
     ) {
     }
 

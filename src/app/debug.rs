@@ -54,7 +54,7 @@ impl Debug {
 
         let ui = self.imgui.frame();
 
-        imgui::Window::new(imgui::im_str!("Debug"))
+        imgui::Window::new("Debug")
             .build(&ui, || {
                 ui.text(format!("Application average {:.3} ms/frame ({:.1} FPS)",
                     1000.0 / ui.io().framerate, ui.io().framerate));
