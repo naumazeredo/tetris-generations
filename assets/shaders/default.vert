@@ -9,12 +9,11 @@ layout(location = 2) in vec2 uv;
 out vec4 frag_color;
 out vec2 frag_uv;
 
-uniform mat4 u_view_mat;
-uniform mat4 u_proj_mat;
+uniform mat4 u_view_proj_mat;
 
 void main() {
   frag_uv = uv;
   frag_color = color;
 
-  gl_Position = u_proj_mat * u_view_mat * vec4(position, 1);
+  gl_Position = u_view_proj_mat * vec4(position, 1);
 }

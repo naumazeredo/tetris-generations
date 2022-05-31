@@ -45,6 +45,7 @@ pub(in crate::app) struct Renderer {
 
     view_mat: Mat4,
     proj_mat: Mat4,
+    view_proj_mat: Mat4,
 
     vertex_array_object: VertexArray,
 
@@ -88,6 +89,7 @@ impl Renderer {
             window_size.1 as f32, 0.0,
             0.01, 1000.
         );
+        let view_proj_mat = proj_mat * view_mat;
 
         // Create default shader program, texture and material
         // These are used when no shader program or texture is passed to a draw command.
@@ -123,6 +125,7 @@ impl Renderer {
 
             view_mat,
             proj_mat,
+            view_proj_mat,
 
             vertex_array_object:    vao,
             vertex_buffer_object:   bo[0],
@@ -580,20 +583,12 @@ impl Renderer {
             let location = material.borrow().get_uniform_location("u_texture").unwrap();
             gl::Uniform1ui(location, 0);
 
-            let location = material.borrow().get_uniform_location("u_view_mat").unwrap();
+            let location = material.borrow().get_uniform_location("u_view_proj_mat").unwrap();
             gl::UniformMatrix4fv(
                 location,
                 1,
                 gl::FALSE as GLboolean,
-                &self.view_mat.m[0][0]
-            );
-
-            let location = material.borrow().get_uniform_location("u_proj_mat").unwrap();
-            gl::UniformMatrix4fv(
-                location,
-                1,
-                gl::FALSE as GLboolean,
-                &self.proj_mat.m[0][0]
+                &self.view_proj_mat.m[0][0]
             );
         }
     }
@@ -614,6 +609,8 @@ impl Renderer {
             size.1 as f32, 0.0,
             0.01, 1000.
         );
+
+        self.view_proj_mat = self.proj_mat * self.view_mat;
 
         unsafe {
             gl::Viewport(0, 0, size.0 as _, size.1 as _);
