@@ -18,7 +18,7 @@ use super::{
 pub(super) struct AssetSystem {
     textures     : BTreeMap<StringRef, TextureRef>,
     framebuffers : BTreeMap<StringRef, FramebufferRef>,
-    shaders      : BTreeMap<(StringRef, StringRef), ShaderRef>,
+    shaders      : BTreeMap<StringRef, ShaderRef>,
 }
 
 impl AssetSystem {
@@ -71,9 +71,8 @@ impl AssetSystem {
     ) -> ShaderRef {
         self.shaders
             .entry(
-                (
-                    StringRef::new(vs.as_ref().to_str().unwrap()),
-                    StringRef::new(fs.as_ref().to_str().unwrap())
+                StringRef::new(
+                    &(vs.as_ref().to_str().unwrap().to_owned() + fs.as_ref().to_str().unwrap())
                 )
             )
             .or_insert_with(|| Shader::new(vs, fs))

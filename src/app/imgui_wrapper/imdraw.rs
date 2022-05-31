@@ -324,14 +324,15 @@ where
 
 impl<K, V> ImDraw for BTreeMap<K, V>
 where
+    K: Display,
     V: ImDraw,
 {
     fn imdraw(&mut self, label: &str, ui: &imgui::Ui) {
         imgui::TreeNode::new(label).build(ui, || {
             let id = ui.push_id(label);
 
-            for (_key, value) in self.iter_mut() {
-                value.imdraw("(to fix)", ui);
+            for (key, value) in self.iter_mut() {
+                value.imdraw(&format!("{key}").to_owned(), ui);
             }
 
             id.pop();
